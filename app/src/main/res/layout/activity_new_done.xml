@@ -11,17 +11,17 @@
     tools:context="net.c306.done.NewDone">
 
     <LinearLayout
-        android:orientation="vertical"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:layout_alignParentStart="true"
         android:layout_alignParentTop="true"
-        android:layout_alignParentStart="true">
+        android:orientation="vertical">
 
         <EditText
+            android:id="@+id/done_edit_text"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Enter your dones"
-            android:inputType="textMultiLine"
-            android:id="@+id/done_edit_text"/>
+            android:hint="@string/new_done_hint"
+            android:inputType="textMultiLine"/>
     </LinearLayout>
 </RelativeLayout>

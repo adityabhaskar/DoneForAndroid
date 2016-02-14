@@ -2,13 +2,11 @@ package net.c306.done;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
-import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 
 public class MainActivity extends AppCompatActivity {
     
@@ -23,10 +21,10 @@ public class MainActivity extends AppCompatActivity {
     
     public void toNewDone(View view){
         Intent newDoneIntent = new Intent(MainActivity.this, NewDone.class);
-//                newDoneIntent.putExtra("key", value); //Optional parameters
         startActivity(newDoneIntent);
-//                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-//                        .setAction("Action", null).show();
+        
+        //Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
+        //        .setAction("Action", null).show();
     }
     
     @Override
@@ -52,4 +50,67 @@ public class MainActivity extends AppCompatActivity {
         
         return super.onOptionsItemSelected(item);
     }
+    
+    
+    private void writeDoneToDb(String doneText){
+        // From http://developer.android.com/training/basics/data-storage/databases.html
+/*
+        DoneListDbHelper mDbHelper = new DoneListDbHelper(getApplicationContext());
+        
+        // Gets the data repository in write mode
+        SQLiteDatabase db = mDbHelper.getWritableDatabase();
+    
+        // Create a new map of values, where column names are the keys
+        ContentValues values = new ContentValues();
+        //values.put(DoneListContract.DoneEntry.COLUMN_NAME_ENTRY_ID, id);
+        //values.put(DoneListContract.DoneEntry.COLUMN_NAME_TITLE, title);
+    
+        // Insert the new row, returning the primary key value of the new row
+        long newRowId;
+        newRowId = db.insert(
+                DoneListContract.DoneEntry.TABLE_NAME,
+                DoneListContract.DoneEntry.COLUMN_NAME_NULLABLE,
+                values);
+        
+*/
+    }
+    
+    private String readDonesFromDb(){
+        // From http://developer.android.com/training/basics/data-storage/databases.html
+/*
+        DoneListDbHelper mDbHelper = new DoneListDbHelper(getApplicationContext());
+    
+        // Gets the data repository in read mode
+        SQLiteDatabase db = mDbHelper.getReadableDatabase();
+
+        // Define a projection that specifies which columns from the database
+        // you will actually use after this query.
+        String[] projection = {
+                DoneListContract.DoneEntry._ID,
+                DoneListContract.DoneEntry.COLUMN_NAME_TITLE,
+                //DoneListContract.DoneEntry.COLUMN_NAME_UPDATED,
+        };
+
+// How you want the results sorted in the resulting Cursor
+        String sortOrder =
+                DoneListContract.DoneEntry.COLUMN_NAME_UPDATED + " DESC";
+    
+        Cursor c = db.query(
+                DoneListContract.DoneEntry.TABLE_NAME,  // The table to query
+                projection,                               // The columns to return
+                selection,                                // The columns for the WHERE clause
+                selectionArgs,                            // The values for the WHERE clause
+                null,                                     // don't group the rows
+                null,                                     // don't filter by row groups
+                sortOrder                                 // The sort order
+        );
+    
+        cursor.moveToFirst();
+        long itemId = cursor.getLong(
+                cursor.getColumnIndexOrThrow(FeedEntry._ID)
+        );
+*/
+        return " ";
+    }
+    
 }

@@ -3,6 +3,11 @@
     <string name="action_settings">Settings</string>
     <string name="title_activity_settings">Settings</string>
 
+    <!-- Strings related to New Done Activity -->
+    <string name="done_edit_text_empty_error">Enter a completed task</string>
+    <string name="done_toast_message">Done saved!</string>
+    <string name="new_done_hint">What did you do today?</string>
+
     <!-- Strings related to Settings -->
 
     <!-- Example General settings -->
