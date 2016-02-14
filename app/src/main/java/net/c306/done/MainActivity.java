@@ -1,14 +1,44 @@
 package net.c306.done;
 
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.Bundle;
+import android.support.design.widget.Snackbar;
+import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 
 public class MainActivity extends AppCompatActivity {
+    
+    private Snackbar newDoneSnackbar;
+    
+    // Our handler for received Intents. This will be called whenever an Intent
+    // with an action named "custom-event-name" is broadcasted.
+    // Src: http://stackoverflow.com/questions/8802157/how-to-use-localbroadcastmanager    
+    private BroadcastReceiver mMessageReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            // Get extra data included in the Intent
+            boolean status = intent.getBooleanExtra("message", false);
+            if(status){
+                if(newDoneSnackbar != null) {
+                    newDoneSnackbar.setText(R.string.done_sent_toast_message).setAction("Action", null).show();
+                } else {
+                    newDoneSnackbar = Snackbar.make(findViewById(R.id.fab), R.string.done_sent_toast_message, Snackbar.LENGTH_LONG);
+                    newDoneSnackbar.setAction("Action", null).show();
+                }
+            }
+            
+            Log.wtf("receiver", "Got message: " + status);
+        }
+    };
+    
     
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -16,15 +46,34 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-        
+    
+        // Register to receive messages.
+        // We are registering an observer (mMessageReceiver) to receive Intents
+        // with actions named "custom-event-name".
+        LocalBroadcastManager.getInstance(this).registerReceiver(mMessageReceiver,
+                new IntentFilter(getString(R.string.done_posted_intent)));
+    }
+    
+    @Override
+    protected void onDestroy() {
+        // Unregister since the activity is about to be closed.
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(mMessageReceiver);
+        super.onDestroy();
     }
     
     public void toNewDone(View view){
         Intent newDoneIntent = new Intent(MainActivity.this, NewDone.class);
-        startActivity(newDoneIntent);
+        startActivityForResult(newDoneIntent, 1);
         
-        //Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-        //        .setAction("Action", null).show();
+    }
+    
+    protected void onActivityResult(int requestCode, int resultCode,
+                                    Intent data) {
+        if (resultCode == RESULT_OK) {
+            newDoneSnackbar = Snackbar.make(findViewById(R.id.fab), R.string.done_saved_toast_message, Snackbar.LENGTH_LONG);
+            newDoneSnackbar.setAction("Action", null).show();
+        } else
+            Log.wtf("Main Activity", "Result Code: " + resultCode);
     }
     
     @Override
