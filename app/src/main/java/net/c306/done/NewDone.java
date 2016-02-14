@@ -2,16 +2,26 @@ package net.c306.done;
 
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.os.AsyncTask;
 import android.os.Bundle;
+import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.EditText;
-import android.widget.Toast;
 
 import com.google.gson.Gson;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.io.UnsupportedEncodingException;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
@@ -35,6 +45,10 @@ public class NewDone extends AppCompatActivity {
     
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle action bar item clicks here. The action bar will
+        // automatically handle clicks on the Home/Up button, so long
+        // as you specify a parent activity in AndroidManifest.xml.
+        
         switch (item.getItemId()) {
             case R.id.action_add_dones:
                 // User chose the "Add" item, save
@@ -67,80 +81,97 @@ public class NewDone extends AppCompatActivity {
             NewDoneClass newDoneObj = new NewDoneClass(doneText);
             Gson gson = new Gson();
             String doneAsJSON = gson.toJson(newDoneObj);
-    
+            
             //// DONE: 14/02/16 Save new done to SharedPreferences with date as today and list as personal
             SharedPreferences settings = getSharedPreferences(DONE_FILE_NAME, 0);
             int doneId = settings.getInt("id", 0) + 1;
-    
+            
             SharedPreferences.Editor editor = settings.edit();
             editor.putString("" + doneId, doneAsJSON);
             editor.putInt("id", doneId);
             editor.apply();
-    
-            Log.wtf(NEW_DONE_LOG, doneId + " " + doneAsJSON);
+            
+            Log.wtf(NEW_DONE_LOG, doneId + ": " + doneAsJSON);
+            
             //// TODO: 14/02/16 Start async task to send new done to server. On success, remove done from SharedPreferences
+            new PostNewDone().execute(doneAsJSON);
             
             
-            Toast t = Toast.makeText(getApplicationContext(), R.string.done_toast_message, Toast.LENGTH_SHORT);
-            t.show();
+            setResult(RESULT_OK);
             finish();
         }
     }
     
     
-    /* Inner class to get response */
-    //import org.apache.http.HttpResponse;
-    //import org.apache.http.NameValuePair;
-    //import org.apache.http.client.HttpClient;
-    //import org.apache.http.client.entity.UrlEncodedFormEntity;
-    //import org.apache.http.client.methods.HttpPost;
-    //import org.apache.http.impl.client.DefaultHttpClient;
-    //import org.apache.http.message.BasicNameValuePair;
-    //import org.json.JSONObject;
-/*
-    class AsyncT extends AsyncTask<Void, Void, Void> {
+
+    class PostNewDone extends AsyncTask<String, Void, String> {
+        
         @Override
-        protected Void doInBackground(Void... voids) {
-            HttpClient httpclient = new DefaultHttpClient();
-            HttpPost httppost = new HttpPost("<YOUR_SERVICE_URL>");
+        protected String doInBackground(String... doneJSON) {
             
-            try {
+            HttpURLConnection httpcon;
+            final String url = "https://idonethis.com/api/v0.1/dones/";
+            String data = doneJSON[0];
+            String result = null;
+            
+            try{
+                //Connect
+                httpcon = (HttpURLConnection) ((new URL(url).openConnection()));
+                httpcon.setDoOutput(true);
+                //Authorization: Token 9944b09199c62bcf9418ad846dd0e4bbdfc6ee4b
+                httpcon.setRequestProperty("Authorization", "");
+                httpcon.setRequestProperty("Content-Type", "application/json");
+                httpcon.setRequestProperty("Accept", "application/json");
+                httpcon.setRequestMethod("POST");
+                httpcon.connect();
                 
-                JSONObject jsonobj = new JSONObject();
+                //Write         
+                OutputStream os = httpcon.getOutputStream();
+                BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(os, "UTF-8"));
+                writer.write(data);
+                writer.close();
+                os.close();
                 
-                jsonobj.put("name", "Aneh");
-                jsonobj.put("age", "22");
+                //Read      
+                BufferedReader br = new BufferedReader(new InputStreamReader(httpcon.getInputStream(),"UTF-8"));
                 
-                List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>();
-                nameValuePairs.add(new BasicNameValuePair("req", jsonobj.toString()));
+                String line = null;
+                StringBuilder sb = new StringBuilder();
                 
-                Log.e("mainToPost", "mainToPost" + nameValuePairs.toString());
+                while ((line = br.readLine()) != null) {
+                    sb.append(line);
+                }
                 
-                // Use UrlEncodedFormEntity to send in proper format which we need
-                httppost.setEntity(new UrlEncodedFormEntity(nameValuePairs));
+                br.close();
+                result = sb.toString();
                 
-                // Execute HTTP Post Request
-                HttpResponse response = httpclient.execute(httppost);
-                InputStream inputStream = response.getEntity().getContent();
-                //InputStreamToStringExample str = new InputStreamToStringExample();
-                //responseServer = str.getStringFromInputStream(inputStream);
-                //Log.e("response", "response -----" + responseServer);
-                
-                
-            } catch (Exception e) {
+            } catch (UnsupportedEncodingException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
                 e.printStackTrace();
             }
-            return null;
+            
+            return result;
         }
         
         @Override
-        protected void onPostExecute(Void aVoid) {
+        protected void onPostExecute(String aVoid) {
             super.onPostExecute(aVoid);
             
-            txt.setText(responseServer);
+            sendMessage();
+            // Send an Intent with an action named "custom-event-name". The Intent sent should 
+            // be received by the ReceiverActivity.
+        }
+        
+        private void sendMessage() {
+            Intent intent = new Intent(getString(R.string.done_posted_intent));
+            
+            // You can also include some extra data.
+            intent.putExtra("message", true);
+            LocalBroadcastManager.getInstance(getApplicationContext()).sendBroadcast(intent);
         }
     }
-*/
+
     
     
     
