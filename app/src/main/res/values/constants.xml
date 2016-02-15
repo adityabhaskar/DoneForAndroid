@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--Save non-translating internal constant values here-->
+    <integer name="result_offline">-10</integer>
+    <string name="done_posted_intent">donePosted</string>
+    <string name="app_log_identifier">AppMessage</string>
+    <string name="done_file_name_shared_preferences">PendingDonesFile</string>
+    <string name="pending_done_array_name">newDones</string>
+    
+</resources>

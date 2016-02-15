@@ -24,18 +24,28 @@ public class MainActivity extends AppCompatActivity {
     private BroadcastReceiver mMessageReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            // Get extra data included in the Intent
-            boolean status = intent.getBooleanExtra("message", false);
-            if(status){
-                if(newDoneSnackbar != null) {
-                    newDoneSnackbar.setText(R.string.done_sent_toast_message).setAction("Action", null).show();
-                } else {
-                    newDoneSnackbar = Snackbar.make(findViewById(R.id.fab), R.string.done_sent_toast_message, Snackbar.LENGTH_LONG);
-                    newDoneSnackbar.setAction("Action", null).show();
-                }
+            // Get count of messages sent - >0 means success
+            int count = intent.getIntExtra("count", -1);
+            String message = intent.getStringExtra("message");
+            
+            if(count > 0){
+                if(newDoneSnackbar != null && newDoneSnackbar.isShown())
+                    newDoneSnackbar.dismiss();
+                
+                newDoneSnackbar = Snackbar.make(findViewById(R.id.fab), (count > 1 ? count + " dones " : "Done ") + getString(R.string.done_sent_toast_message), Snackbar.LENGTH_LONG);
+                newDoneSnackbar.setAction("Action", null).show();
+                
+                Log.wtf(getString(R.string.app_log_identifier) + " BroadcastReceiver", "Got message: " + count + " " + message);
+                
+                //// TODO: 15/02/16 re-fetch list from server
+                
+            } else {
+                Log.wtf(getString(R.string.app_log_identifier) + " BroadcastReceiver", "Got error: " + count);
+                
+                //// TODO: 15/02/16 Schedule another post attempt - on reconnection or timer
+                
             }
             
-            Log.wtf("receiver", "Got message: " + status);
         }
     };
     
@@ -52,6 +62,9 @@ public class MainActivity extends AppCompatActivity {
         // with actions named "custom-event-name".
         LocalBroadcastManager.getInstance(this).registerReceiver(mMessageReceiver,
                 new IntentFilter(getString(R.string.done_posted_intent)));
+        
+    
+        //// TODO: 15/02/16 Update dones from server and update in sqllite 
     }
     
     @Override
@@ -69,11 +82,24 @@ public class MainActivity extends AppCompatActivity {
     
     protected void onActivityResult(int requestCode, int resultCode,
                                     Intent data) {
-        if (resultCode == RESULT_OK) {
-            newDoneSnackbar = Snackbar.make(findViewById(R.id.fab), R.string.done_saved_toast_message, Snackbar.LENGTH_LONG);
-            newDoneSnackbar.setAction("Action", null).show();
-        } else
-            Log.wtf("Main Activity", "Result Code: " + resultCode);
+        if(newDoneSnackbar != null && newDoneSnackbar.isShown())
+            newDoneSnackbar.dismiss();
+        
+        switch (resultCode){
+            case RESULT_OK:
+                newDoneSnackbar = Snackbar.make(findViewById(R.id.fab), R.string.done_saved_toast_message, Snackbar.LENGTH_LONG);
+                newDoneSnackbar.setAction("Action", null).show();
+                break;
+            
+            case R.integer.result_offline:
+                newDoneSnackbar = Snackbar.make(findViewById(R.id.fab), R.string.done__offline_saved_toast_message, Snackbar.LENGTH_LONG);
+                newDoneSnackbar.setAction("Action", null).show();
+                break;
+            
+            default:
+                Log.wtf(getString(R.string.app_log_identifier) + " Main Activity", "Result Code: " + resultCode);
+    
+        }
     }
     
     @Override
@@ -163,3 +189,28 @@ public class MainActivity extends AppCompatActivity {
     }
     
 }
+
+/*
+        //Fetch all entries, change keys to NewDone-id
+        SharedPreferences settings = getSharedPreferences(getString(R.string.done_file_name_shared_preferences), 0);
+        SharedPreferences.Editor editor = settings.edit();
+        
+        editor.putString("authToken", "");
+        editor.apply();
+        
+        Map<String, ?> prefs = settings.getAll();
+        for ( Map.Entry<String, ?> entry : prefs.entrySet()) {
+            String key = entry.getKey();
+            //if(key != "id"){
+            //    editor.putString("NewDone-" + key, entry.getValue().toString());
+            //    editor.remove(key);
+            //}
+            //Log.v(getString(R.string.app_log_identifier), key + ": \n" + entry.getValue());
+        }
+        editor.apply();
+        
+        prefs = settings.getAll();
+        for ( Map.Entry<String, ?> entry : prefs.entrySet()) {
+            Log.v(getString(R.string.app_log_identifier), entry.getKey() + ": \n" + entry.getValue());
+        }
+*/

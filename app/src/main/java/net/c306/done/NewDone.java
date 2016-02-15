@@ -1,10 +1,10 @@
 package net.c306.done;
 
-import android.content.Intent;
+import android.content.Context;
 import android.content.SharedPreferences;
-import android.os.AsyncTask;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.Bundle;
-import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.Menu;
@@ -13,22 +13,13 @@ import android.widget.EditText;
 
 import com.google.gson.Gson;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.io.UnsupportedEncodingException;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
+import java.util.Locale;
 
 public class NewDone extends AppCompatActivity {
-    
-    private final String NEW_DONE_LOG = "Done Text";
-    private final String DONE_FILE_NAME = "PendingDonesFile";
     
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -55,12 +46,12 @@ public class NewDone extends AppCompatActivity {
                 saveDone();
                 return true;
             
-            case R.id.action_settings:
-                // User chose the "Favorite" action, mark the current item
-                // as a favorite...
-                Intent settingsIntent = new Intent(NewDone.this, SettingsActivity.class);
-                startActivity(settingsIntent);
-                return true;
+            //case R.id.action_settings:
+            //    // User chose the "Favorite" action, mark the current item
+            //    // as a favorite...
+            //    Intent settingsIntent = new Intent(NewDone.this, SettingsActivity.class);
+            //    startActivity(settingsIntent);
+            //    return true;
             
             default:
                 // If we got here, the user's action was not recognized.
@@ -70,109 +61,74 @@ public class NewDone extends AppCompatActivity {
         }
     }
     
+    private boolean isOnline() {
+        ConnectivityManager cm =
+                (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+    
+        NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
+        
+        return activeNetwork != null &&
+                activeNetwork.isConnected();
+    }
+    
     private void saveDone(){
         EditText doneEditText = (EditText) findViewById(R.id.done_edit_text);
         String doneText = doneEditText.getText().toString();
-        if(doneText.isEmpty()){
+        
+        if(doneText.isEmpty())
             doneEditText.setError(getString(R.string.done_edit_text_empty_error));
-        } else {
+        else {
             
-            //// DONE: 14/02/16 Convert done to JSON string 
+            //// DONE: 14/02/16 Convert done to JSON string with list as personal, date as Today
             NewDoneClass newDoneObj = new NewDoneClass(doneText);
             Gson gson = new Gson();
             String doneAsJSON = gson.toJson(newDoneObj);
             
-            //// DONE: 14/02/16 Save new done to SharedPreferences with date as today and list as personal
-            SharedPreferences settings = getSharedPreferences(DONE_FILE_NAME, 0);
-            int doneId = settings.getInt("id", 0) + 1;
+            //// DONE: 14/02/16 Save new done to SharedPreferences
             
+            SharedPreferences settings = getSharedPreferences(getString(R.string.done_file_name_shared_preferences), 0);
+            String pendingDonesArrayString = settings.getString(getString(R.string.pending_done_array_name), "");
+            
+            // Get pending Dones ArrayList as JSON String 
+            List<String> pendingDonesArray = new ArrayList<>();
+            if(!pendingDonesArrayString.equals(""))
+                pendingDonesArray = gson.fromJson(pendingDonesArrayString, ArrayList.class);
+            
+            // Add new done to ArrayList
+            pendingDonesArray.add(doneAsJSON);
+            
+            // Serialize ArrayList back to String for storage
+            pendingDonesArrayString = gson.toJson(pendingDonesArray, List.class);
+            
+            //Type listOfTestObject = new TypeToken<List<TestObject>>(){}.getType();
+            //String s = gson.toJson(list, listOfTestObject);
+            //List<TestObject> list2 = gson.fromJson(s, listOfTestObject);
+            
+            // Save pending Done ArrayList to SharedPrefs
             SharedPreferences.Editor editor = settings.edit();
-            editor.putString("" + doneId, doneAsJSON);
-            editor.putInt("id", doneId);
+            editor.putString(getString(R.string.pending_done_array_name), pendingDonesArrayString);
             editor.apply();
             
-            Log.wtf(NEW_DONE_LOG, doneId + ": " + doneAsJSON);
+            Log.wtf(getString(R.string.app_log_identifier) + " Saved Done Text", doneAsJSON);
+            Log.wtf(getString(R.string.app_log_identifier) + " Pending List Size", "" + pendingDonesArray.size());
             
-            //// TODO: 14/02/16 Start async task to send new done to server. On success, remove done from SharedPreferences
-            new PostNewDone().execute(doneAsJSON);
+            //// DONE: 14/02/16 Start async task to send new done to server. On success, remove done from SharedPreferences
+            if(isOnline()) {
+                //// DONE: 15/02/16 Don't send taskString to async task - let it read from storage and process all pending 
+                new PostNewDone(this).execute();
+                setResult(RESULT_OK);
+            
+            } else{
+                
+                setResult(R.integer.result_offline);
+                
+                //// TODO: 15/02/16 Set alarm to check when back online, to sync messages 
+            }
             
             
-            setResult(RESULT_OK);
             finish();
         }
     }
-    
-    
-
-    class PostNewDone extends AsyncTask<String, Void, String> {
-        
-        @Override
-        protected String doInBackground(String... doneJSON) {
-            
-            HttpURLConnection httpcon;
-            final String url = "https://idonethis.com/api/v0.1/dones/";
-            String data = doneJSON[0];
-            String result = null;
-            
-            try{
-                //Connect
-                httpcon = (HttpURLConnection) ((new URL(url).openConnection()));
-                httpcon.setDoOutput(true);
-                //Authorization: Token 9944b09199c62bcf9418ad846dd0e4bbdfc6ee4b
-                httpcon.setRequestProperty("Authorization", "");
-                httpcon.setRequestProperty("Content-Type", "application/json");
-                httpcon.setRequestProperty("Accept", "application/json");
-                httpcon.setRequestMethod("POST");
-                httpcon.connect();
-                
-                //Write         
-                OutputStream os = httpcon.getOutputStream();
-                BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(os, "UTF-8"));
-                writer.write(data);
-                writer.close();
-                os.close();
-                
-                //Read      
-                BufferedReader br = new BufferedReader(new InputStreamReader(httpcon.getInputStream(),"UTF-8"));
-                
-                String line = null;
-                StringBuilder sb = new StringBuilder();
-                
-                while ((line = br.readLine()) != null) {
-                    sb.append(line);
-                }
-                
-                br.close();
-                result = sb.toString();
-                
-            } catch (UnsupportedEncodingException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            
-            return result;
-        }
-        
-        @Override
-        protected void onPostExecute(String aVoid) {
-            super.onPostExecute(aVoid);
-            
-            sendMessage();
-            // Send an Intent with an action named "custom-event-name". The Intent sent should 
-            // be received by the ReceiverActivity.
-        }
-        
-        private void sendMessage() {
-            Intent intent = new Intent(getString(R.string.done_posted_intent));
-            
-            // You can also include some extra data.
-            intent.putExtra("message", true);
-            LocalBroadcastManager.getInstance(getApplicationContext()).sendBroadcast(intent);
-        }
-    }
-
-    
     
     
     public class NewDoneClass {
@@ -180,7 +136,7 @@ public class NewDone extends AppCompatActivity {
         private String done_date;
         private String team = "adityabhaskar";
         private String raw_text;
-        private String meta_data = "{\"from\":\"doneFromAndroid\"}";
+        private String meta_data = "{\"from\":\""+ getString(R.string.app_name) +"\"}";
     
         public NewDoneClass(String doneText, String doneDate, String teamName){
             this.raw_text = doneText;
@@ -204,7 +160,7 @@ public class NewDone extends AppCompatActivity {
             if (doneDate != null && !doneDate.isEmpty())
                 this.done_date = doneDate;
             else {
-                SimpleDateFormat sdf = new SimpleDateFormat(dateFormat);
+                SimpleDateFormat sdf = new SimpleDateFormat(dateFormat, Locale.US);
             
                 this.done_date = sdf.format(new Date());
             }
@@ -213,14 +169,14 @@ public class NewDone extends AppCompatActivity {
         public NewDoneClass(String doneText){
             this.raw_text = doneText;
             
-            SimpleDateFormat sdf = new SimpleDateFormat(dateFormat);
+            SimpleDateFormat sdf = new SimpleDateFormat(dateFormat, Locale.US);
             this.done_date = sdf.format(new Date());
         }
     
         public String getDone_date() {
             return done_date;
         }
-    
+        
         public void setDone_date(String done_date) {
             if (done_date != null && !done_date.isEmpty())
                 this.done_date = done_date;
@@ -239,3 +195,4 @@ public class NewDone extends AppCompatActivity {
 
 
 }
+

@@ -1,14 +1,13 @@
 <resources>
-    <string name="app_name">Done</string>
+    <string name="app_name">Done!</string>
     <string name="action_settings">Settings</string>
     <string name="title_activity_settings">Settings</string>
-    
-    <string name="done_posted_intent">donePosted</string>
 
     <!-- Strings related to New Done Activity -->
     <string name="done_edit_text_empty_error">Enter a completed task</string>
     <string name="done_saved_toast_message">Done saved!</string>
-    <string name="done_sent_toast_message">Done Sent.</string>
+    <string name="done__offline_saved_toast_message">Done saved offline!</string>
+    <string name="done_sent_toast_message">Sent.</string>
     <string name="new_done_hint">What did you do today?</string>
 
     <!-- Strings related to Settings -->
