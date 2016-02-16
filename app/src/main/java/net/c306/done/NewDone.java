@@ -5,6 +5,7 @@ import android.content.SharedPreferences;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.Menu;
@@ -85,8 +86,8 @@ public class NewDone extends AppCompatActivity {
             String doneAsJSON = gson.toJson(newDoneObj);
             
             //// DONE: 14/02/16 Save new done to SharedPreferences
-            
-            SharedPreferences settings = getSharedPreferences(getString(R.string.done_file_name_shared_preferences), 0);
+            SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(this);
+            //SharedPreferences settings = getSharedPreferences(getString(R.string.done_file_name_shared_preferences), 0);
             String pendingDonesArrayString = settings.getString(getString(R.string.pending_done_array_name), "");
             
             // Get pending Dones ArrayList as JSON String 

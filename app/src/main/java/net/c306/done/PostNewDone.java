@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.AsyncTask;
+import android.preference.PreferenceManager;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
@@ -42,11 +43,12 @@ public class PostNewDone extends AsyncTask<String, Void, String> {
         super.onPreExecute();
         
         //// TODO: 15/02/16 Load new dones and token from shared preferences, and save in class variables 
-        
-        SharedPreferences settings = context.getSharedPreferences(context.getString(R.string.done_file_name_shared_preferences), 0);
+        SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(context);
+        //SharedPreferences settings = context.getSharedPreferences(context.getString(R.string.done_file_name_shared_preferences), 0);
         
         String newDoneArrayString = settings.getString(context.getString(R.string.pending_done_array_name), "");
         authToken = settings.getString("authToken", "");
+        Log.wtf(context.getString(R.string.app_log_identifier) + " authToken", authToken);
         
         if(authToken.equals("")){
             Log.e(context.getString(R.string.app_log_identifier), "No Auth Token Found!");
@@ -79,7 +81,7 @@ public class PostNewDone extends AsyncTask<String, Void, String> {
                 //Connect
                 httpcon = (HttpURLConnection) ((new URL(url).openConnection()));
                 httpcon.setDoOutput(true);
-                httpcon.setRequestProperty("Authorization", authToken);
+                httpcon.setRequestProperty("Authorization", "Token " + authToken);
                 httpcon.setRequestProperty("Content-Type", "application/json");
                 httpcon.setRequestProperty("Accept", "application/json");
                 httpcon.setRequestMethod("POST");
@@ -158,7 +160,8 @@ public class PostNewDone extends AsyncTask<String, Void, String> {
         String pendingDonesArrayString = gson.toJson(pendingDonesArray, List.class);
         
         // Save remaining/empty pendingDoneList to SharedPrefs
-        SharedPreferences settings = context.getSharedPreferences(context.getString(R.string.done_file_name_shared_preferences), 0);
+        SharedPreferences settings= PreferenceManager.getDefaultSharedPreferences(context);
+        //SharedPreferences settings = context.getSharedPreferences(context.getString(R.string.done_file_name_shared_preferences), 0);
         SharedPreferences.Editor editor = settings.edit();
         
         editor.putString(context.getString(R.string.pending_done_array_name), pendingDonesArrayString);
