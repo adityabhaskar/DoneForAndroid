@@ -21,7 +21,7 @@
     </string>
 
     <string name="pref_title_auth_token">API Token</string>
-    <string name="pref_default_auth_token">9944b09199c62bcf9418ad846dd0e4bbdfc6ee4b</string>
+    <string name="pref_default_auth_token">9944b09...</string>
 
     <string name="pref_title_display_name">Display name</string>
     <string name="pref_default_display_name">John Smith</string>

@@ -63,8 +63,8 @@ public class MainActivity extends AppCompatActivity {
         LocalBroadcastManager.getInstance(this).registerReceiver(mMessageReceiver,
                 new IntentFilter(getString(R.string.done_posted_intent)));
         
-    
         //// TODO: 15/02/16 Update dones from server and update in sqllite 
+        new FetchDones(this).execute();
     }
     
     @Override
