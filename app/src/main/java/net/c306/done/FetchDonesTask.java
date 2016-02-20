@@ -147,7 +147,10 @@ public class FetchDonesTask extends AsyncTask<Void, Void, String> {
                     editor.apply();
                     Log.v(LOG_TAG, "LastUpdated: " + lastUpdated);
 */
-                    
+    
+                    if(resultStatus > 0 && null != result && !result.equals("")){
+                        return getDoneListFromJson(result).toString();
+                    }
                     break; // fine
                 
                 case HttpURLConnection.HTTP_GATEWAY_TIMEOUT:
@@ -173,6 +176,10 @@ public class FetchDonesTask extends AsyncTask<Void, Void, String> {
             result = e.getMessage();
             resultStatus = -1;
             e.printStackTrace();
+        } catch (JSONException e) {
+            result = e.getMessage();
+            resultStatus = -1;
+            e.printStackTrace();
         } finally {
             if (httpcon != null) {
                 httpcon.disconnect();
@@ -183,15 +190,6 @@ public class FetchDonesTask extends AsyncTask<Void, Void, String> {
                 } catch (final IOException e) {
                     Log.e(LOG_TAG, "Error closing stream", e);
                 }
-            }
-        }
-        
-        if(resultStatus > 0 && null != result && !result.equals("")){
-            try {
-                return getDoneListFromJson(result).toString();
-            } catch (JSONException e) {
-                Log.e(LOG_TAG, e.getMessage(), e);
-                e.printStackTrace();
             }
         }
         
@@ -285,6 +283,7 @@ public class FetchDonesTask extends AsyncTask<Void, Void, String> {
     @Override
     protected void onPostExecute(String result) {
         super.onPostExecute(result);
+        //mContext.getContentResolver().notifyChange(DoneListContract.DoneEntry.buildDoneListUri(), null);
         Log.v(LOG_TAG, "GET Result: " + result);
     }
     

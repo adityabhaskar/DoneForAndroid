@@ -1,4 +1,4 @@
-package net.c306.done;
+package net.c306.done.db;
 
 import android.content.AsyncTaskLoader;
 import android.content.Context;

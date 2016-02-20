@@ -64,11 +64,16 @@ public class DoneListContract {
         
         // .../dones/1234
         // Returns individual done
-        public static Uri buildDoneListUri(long id) {
+        public static Uri buildDoneListWithIdUri(long id) {
             return ContentUris.withAppendedId(CONTENT_URI, id);
         }
-        
-        
+    
+    
+        public static Uri buildDoneListUri() {
+            return CONTENT_URI;
+        }
+    
+    
         public static Uri buildDoneListWithTeam(String team, long startDate) {
             return CONTENT_URI.buildUpon().appendPath(team)
                     .appendQueryParameter(COLUMN_NAME_DONE_DATE, Long.toString(startDate)).build();

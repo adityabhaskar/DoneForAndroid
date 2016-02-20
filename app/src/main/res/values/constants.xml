@@ -6,5 +6,5 @@
     <string name="app_log_identifier">AppMessage</string>
     <string name="done_file_name_shared_preferences">PendingDonesFile</string>
     <string name="pending_done_array_name">newDones</string>
-    
+    <string name="space"> </string>
 </resources>

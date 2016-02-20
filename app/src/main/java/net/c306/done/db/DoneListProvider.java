@@ -220,7 +220,7 @@ public class DoneListProvider extends ContentProvider {
     
         long _id = db.insert(DoneListContract.DoneEntry.TABLE_NAME, null, values);
         if ( _id > 0 )
-            returnUri = DoneListContract.DoneEntry.buildDoneListUri(_id);
+            returnUri = DoneListContract.DoneEntry.buildDoneListWithIdUri(_id);
         else
             throw new android.database.SQLException("Failed to insert row into " + uri);
         

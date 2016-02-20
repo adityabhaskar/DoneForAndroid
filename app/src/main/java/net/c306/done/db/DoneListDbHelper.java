@@ -16,7 +16,7 @@ import net.c306.done.R;
 public class DoneListDbHelper extends SQLiteOpenHelper {
     
     // If you change the database schema, you must increment the database version.
-    public static final int DATABASE_VERSION = 2;
+    public static final int DATABASE_VERSION = 3;
     public static final String DATABASE_NAME = "DoneList.db";
     private static DoneListDbHelper sInstance;
     private static String LOG_TAG;
@@ -42,7 +42,7 @@ public class DoneListDbHelper extends SQLiteOpenHelper {
         SQL_CREATE_ENTRIES = "CREATE TABLE " + DoneListContract.DoneEntry.TABLE_NAME +
             "(" +
                 //Main Fields
-                DoneListContract.DoneEntry.COLUMN_NAME_ID + " INTEGER NOT NULL UNIQUE, " +
+                DoneListContract.DoneEntry.COLUMN_NAME_ID + " INTEGER NOT NULL UNIQUE PRIMARY KEY, " +
                 DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE + " INTEGER, " +
                 DoneListContract.DoneEntry.COLUMN_NAME_TEAM_SHORT_NAME + " TEXT NOT NULL, " +
                 DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT + " TEXT NOT NULL, " +
