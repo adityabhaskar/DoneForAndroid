@@ -16,11 +16,12 @@ import com.google.gson.Gson;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
-import java.util.Locale;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
-//// TODO: 20/02/16 If done text starts with yyyy-mm-dd, set date to that date instead of today 
 public class NewDone extends AppCompatActivity {
     
     private String LOG_TAG;
@@ -83,10 +84,38 @@ public class NewDone extends AppCompatActivity {
         
         if(doneText.isEmpty())
             doneEditText.setError(getString(R.string.done_edit_text_empty_error));
+        
         else {
             
-            //// DONE: 14/02/16 Convert done to JSON string with list as personal, date as Today
             NewDoneClass newDoneObj = new NewDoneClass(doneText);
+            
+            //// DONE: 20/02/16 If done text starts with yyyy-mm-dd, set date to that date instead of today
+            Pattern startsWithDatePattern = Pattern.compile("^(today|yesterday|((?:(\\d{4})(-?)(?:(?:(0[13578]|1[02]))(-?)(0[1-9]|[12]\\d|3[01])|(0[13456789]|1[012])(-?)(0[1-9]|[12]\\d|30)|(02)(-?)(0[1-9]|1\\d|2[0-8])))|([02468][048]|[13579][26])(-?)(0229))) ", Pattern.CASE_INSENSITIVE);
+            Matcher matcher = startsWithDatePattern.matcher(doneText);
+            
+            if(matcher.find()){
+                String dateOfDone = matcher.group().trim().toLowerCase();
+                switch (dateOfDone){
+                    case "yesterday": {
+                        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+                        Calendar c = Calendar.getInstance();
+                        c.setTime(new Date());
+                        c.add(Calendar.DATE, -1);  // get tasks from last 7 days
+                        dateOfDone = sdf.format(c.getTime());  // dt is now the new date
+                        
+                        break;
+                    }
+                    
+                    case "today": {
+                        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+                        dateOfDone = sdf.format(new Date());
+                        break;
+                    }
+                }
+                newDoneObj.setDone_date(dateOfDone);
+            }
+            
+            //// DONE: 14/02/16 Convert done to JSON string with list as personal, date as Today
             Gson gson = new Gson();
             String doneAsJSON = gson.toJson(newDoneObj);
             
@@ -161,7 +190,7 @@ public class NewDone extends AppCompatActivity {
             if (doneDate != null && !doneDate.isEmpty())
                 this.done_date = doneDate;
             else {
-                SimpleDateFormat sdf = new SimpleDateFormat(dateFormat, Locale.US);
+                SimpleDateFormat sdf = new SimpleDateFormat(dateFormat);
             
                 this.done_date = sdf.format(new Date());
             }
@@ -170,7 +199,7 @@ public class NewDone extends AppCompatActivity {
         public NewDoneClass(String doneText){
             this.raw_text = doneText;
             
-            SimpleDateFormat sdf = new SimpleDateFormat(dateFormat, Locale.US);
+            SimpleDateFormat sdf = new SimpleDateFormat(dateFormat);
             this.done_date = sdf.format(new Date());
         }
     

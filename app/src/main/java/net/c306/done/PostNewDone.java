@@ -116,8 +116,27 @@ public class PostNewDone extends AsyncTask<String, Void, String> {
                     
                     default:
                         Log.w(LOG_TAG + " Didn't Send Done" , " **unknown response code** - " + resultStatus + ": " + responseMessage);
+                        Log.wtf(LOG_TAG , " newDoneString - " + newDoneString);
+                        
+                        try {
+                            //Read      
+                            BufferedReader br = new BufferedReader(new InputStreamReader(httpcon.getInputStream(), "UTF-8"));
+    
+                            String line = null;
+                            StringBuilder sb = new StringBuilder();
+    
+                            while ((line = br.readLine()) != null) {
+                                sb.append(line);
+                            }
+    
+                            br.close();
+                            Log.wtf(LOG_TAG, "Response message: " + sb);
+                        } catch (Exception e){
+                            Log.wtf(LOG_TAG, e.toString());
+                        }
                 }
                 
+                Log.wtf(LOG_TAG , " newDoneString - " + newDoneString);
                 //Read      
                 BufferedReader br = new BufferedReader(new InputStreamReader(httpcon.getInputStream(),"UTF-8"));
                 

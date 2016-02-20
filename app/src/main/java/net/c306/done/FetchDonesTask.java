@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.preference.PreferenceManager;
+import android.text.Html;
 import android.util.Log;
 
 import com.google.gson.Gson;
@@ -223,7 +224,6 @@ public class FetchDonesTask extends AsyncTask<Void, Void, String> {
         
         for (int i = 0; i < donesListArray.length(); i++) {
             doneItemString = donesListArray.getJSONObject(i).toString();
-            //Log.v(LOG_TAG, (i+1) + ": " + doneItemString);
             
             doneItem = gson.fromJson(doneItemString, DoneItem.class);
             
@@ -244,7 +244,7 @@ public class FetchDonesTask extends AsyncTask<Void, Void, String> {
             doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_GOAL_COMPLETED, doneItem.goal_completed);
             doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_URL, doneItem.url);
             doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_TEAM, doneItem.team);
-            doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT, doneItem.raw_text);
+            doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT, Html.fromHtml(doneItem.raw_text).toString());
             doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_PERMALINK, doneItem.permalink);
             doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_IS_LOCAL, doneItem.is_local);
     

@@ -76,7 +76,7 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
         * */
         //SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
         //SharedPreferences.Editor editor = prefs.edit();
-        //editor.remove("lastUpdate");
+        //editor.remove("newDones");
         //editor.apply();
         
         // Register to receive messages.
