@@ -97,8 +97,12 @@ public class DoneListContract {
         public static String getTeamFromUri(Uri uri) {
             return uri.getPathSegments().get(1);
         }
-        
+    
         public static String getDateFromUri(Uri uri) {
+            return uri.getPathSegments().get(2);
+        }
+    
+        public static String getDoneIDFromUri(Uri uri) {
             return uri.getPathSegments().get(2);
         }
     }

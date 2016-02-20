@@ -1,9 +1,12 @@
 package net.c306.done;
 
+import android.app.LoaderManager;
 import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.CursorLoader;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.Loader;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
@@ -15,20 +18,22 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.AdapterView;
 import android.widget.ListView;
 
 import net.c306.done.db.DoneListContract;
 
-public class MainActivity extends AppCompatActivity {
+//// TODO: 20/02/16 Group dones under date headers in listView 
+public class MainActivity extends AppCompatActivity implements LoaderManager.LoaderCallbacks<Cursor>{
     
+    private static final int DONE_LIST_LOADER = 0;
+    private static final String SELECTED_KEY = "selected_position";
     private Snackbar newDoneSnackbar;
     private ListView listView;
     private Cursor cursor;
     private String LOG_TAG;
-    
     private DoneListAdapter mDoneListAdapter;
-    
-    
+    private int mPosition = ListView.INVALID_POSITION;
     // Our handler for received Intents. This will be called whenever an Intent
     // with an action named "custom-event-name" is broadcasted.
     // Src: http://stackoverflow.com/questions/8802157/how-to-use-localbroadcastmanager    
@@ -79,7 +84,13 @@ public class MainActivity extends AppCompatActivity {
                 new IntentFilter(getString(R.string.done_posted_intent)));
         
         
-        String sortOrder = DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE + " DESC";
+        //// DONE: 15/02/16 Update dones from server and update in sqllite 
+        new FetchDonesTask(this).execute();
+        
+        // Sort by done date, and then by last updated
+        String sortOrder = DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE + " DESC, " + 
+                           DoneListContract.DoneEntry.COLUMN_NAME_UPDATED + " DESC";
+        
         Uri donesUri = DoneListContract.DoneEntry.buildDoneListUri();
         String[] cursorProjectionString = new String[]{
                 DoneListContract.DoneEntry.COLUMN_NAME_ID + " AS _id",
@@ -100,22 +111,40 @@ public class MainActivity extends AppCompatActivity {
         
         listView.setAdapter(mDoneListAdapter);
         
-        // Initialize the Loader with id '1' and callbacks 'mCallbacks'.
+        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> adapterView, View view, int position, long l) {
+                // CursorAdapter returns a cursor at the correct position for getItem(), or null
+                // if it cannot seek to that position.
+                //Cursor cursor = (Cursor) adapterView.getItemAtPosition(position);
+                Log.v(LOG_TAG, "Item Clicked: " + position + ", l: " + l);
+                mPosition = position;
+            }
+        });
+    
+        // If there's instance state, mine it for useful information.
+        // The end-goal here is that the user never knows that turning their device sideways
+        // does crazy lifecycle related things.  It should feel like some stuff stretched out,
+        // or magically appeared to take advantage of room, but data or place in the app was never
+        // actually *lost*.
+        if (savedInstanceState != null && savedInstanceState.containsKey(SELECTED_KEY)) {
+            // The listview probably hasn't even been populated yet.  Actually perform the
+            // swapout in onLoadFinished.
+            mPosition = savedInstanceState.getInt(SELECTED_KEY);
+        }
+        
+        // Initialize the Loader with id DONE_LIST_LOADER and callbacks 'this'.
         // If the loader doesn't already exist, one is created. Otherwise,
         // the already created Loader is reused. In either case, the
         // LoaderManager will manage the Loader across the Activity/Fragment
         // lifecycle, will receive any new loads once they have completed,
-        // and will report this new data back to the 'mCallbacks' object.
-        //android.app.LoaderManager lm = getLoaderManager();
-        //lm.initLoader(LOADER_ID, null, mCallbacks);
-        
+        // and will report this new data back to the 'this' object.
+        getLoaderManager().initLoader(DONE_LIST_LOADER, null, this);
     }
     
     @Override
     protected void onStart() {
         super.onStart();
-        //// DONE: 15/02/16 Update dones from server and update in sqllite 
-        new FetchDonesTask(this).execute();
     }
     
     @Override
@@ -176,6 +205,62 @@ public class MainActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
     
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+        // When tablets rotate, the currently selected list item needs to be saved.
+        // When no item is selected, mPosition will be set to Listview.INVALID_POSITION,
+        // so check for that before storing.
+        if (mPosition != ListView.INVALID_POSITION) {
+            outState.putInt(SELECTED_KEY, mPosition);
+        }
+        super.onSaveInstanceState(outState);
+    }
     
+    
+    @Override
+    public Loader<Cursor> onCreateLoader(int id, Bundle args) {
+        // This is called when a new Loader needs to be created.  This
+        // fragment only uses one loader, so we don't care about checking the id.
+    
+        // To only show current and future dates, filter the query to return weather only for
+        // dates after or including today.
+    
+        // Sort order:  Ascending, by date.
+        String sortOrder = DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE + " DESC, " +
+                DoneListContract.DoneEntry.COLUMN_NAME_UPDATED + " DESC";
+    
+        Uri donesUri = DoneListContract.DoneEntry.buildDoneListUri();
+    
+        String[] cursorProjectionString = new String[]{
+                DoneListContract.DoneEntry.COLUMN_NAME_ID + " AS _id",
+                DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT,
+                DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE,
+                DoneListContract.DoneEntry.COLUMN_NAME_TEAM_SHORT_NAME
+        };
+    
+        Log.wtf(LOG_TAG, cursorProjectionString[0]);
+        
+        return new CursorLoader(this,
+                donesUri,
+                cursorProjectionString,
+                null,
+                null,
+                sortOrder);
+    }
+    
+    @Override
+    public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
+        mDoneListAdapter.swapCursor(data);
+        if (mPosition != ListView.INVALID_POSITION) {
+            // If we don't need to restart the loader, and there's a desired position to restore
+            // to, do so now.
+            listView.smoothScrollToPosition(mPosition);
+        }
+    }
+    
+    @Override
+    public void onLoaderReset(Loader<Cursor> loader) {
+        mDoneListAdapter.swapCursor(null);
+    }
     
 }

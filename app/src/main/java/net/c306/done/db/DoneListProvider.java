@@ -21,20 +21,29 @@ public class DoneListProvider extends ContentProvider {
     static final int DONES_WITH_DATE = 103;
     static final int DONES_WITH_TEAM_AND_DATE = 104;
     static final int TEAM = 300;
+    
     // The URI Matcher used by this content provider.
     private static final UriMatcher sUriMatcher = buildUriMatcher();
     private static final SQLiteQueryBuilder sDonesByTeamQueryBuilder;
+    
     //team_short_name = ?
-    private static final String sTeamSelection = 
-                    DoneListContract.DoneEntry.COLUMN_NAME_TEAM_SHORT_NAME+ " = ? ";
+    private static final String sDoneSelection =
+            DoneListContract.DoneEntry.COLUMN_NAME_ID+ " = ? ";
+    
+    //team_short_name = ?
+    private static final String sTeamSelection =
+            DoneListContract.DoneEntry.COLUMN_NAME_TEAM_SHORT_NAME+ " = ? ";
+    
     //team_short_name = ? AND done_date >= ?
     private static final String sTeamWithStartDateSelection =
                     DoneListContract.DoneEntry.COLUMN_NAME_TEAM_SHORT_NAME + " = ? AND " +
                     DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE+ " >= ? ";
+    
     //team_short_name = ? AND done_date = ?
     private static final String sTeamAndDateSelection =
                     DoneListContract.DoneEntry.COLUMN_NAME_TEAM_SHORT_NAME + " = ? AND " +
                     DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE + " = ? ";
+    
     //done_date = ?
     private static final String sDateSelection =
                     DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE + " = ? ";
@@ -67,6 +76,7 @@ public class DoneListProvider extends ContentProvider {
         
         // For each type of URI you want to add, create a corresponding code.
         matcher.addURI(authority, DoneListContract.PATH_DONES, DONES);
+        matcher.addURI(authority, DoneListContract.PATH_DONES + "/#", DONE_ITEM);
         matcher.addURI(authority, DoneListContract.PATH_DONES + "/null/*", DONES_WITH_DATE);
         matcher.addURI(authority, DoneListContract.PATH_DONES + "/*", DONES_WITH_TEAM);
         matcher.addURI(authority, DoneListContract.PATH_DONES + "/*/*", DONES_WITH_TEAM_AND_DATE);
@@ -137,6 +147,19 @@ public class DoneListProvider extends ContentProvider {
         );
     }
     
+    private Cursor getThisDone(Uri uri, String[] projection, String sortOrder) {
+        String id = DoneListContract.DoneEntry.getDoneIDFromUri(uri);
+        
+        return sDonesByTeamQueryBuilder.query(mOpenHelper.getReadableDatabase(),
+                projection,
+                sDoneSelection,
+                new String[]{id},
+                null,
+                null,
+                sortOrder
+        );
+    }
+    
     @Override
     public boolean onCreate() {
         mOpenHelper = DoneListDbHelper.getInstance(getContext());
@@ -199,8 +222,8 @@ public class DoneListProvider extends ContentProvider {
             }
             // "dones?id"
             case DONE_ITEM: {
-                //// TODO: 18/02/16 Return list of teams
-                retCursor = null;
+                //// DONE: 18/02/16 Return one done item
+                retCursor = getThisDone(uri, projection, sortOrder);
                 break;
             }
             

@@ -20,6 +20,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
+//// TODO: 20/02/16 If done text starts with yyyy-mm-dd, set date to that date instead of today 
 public class NewDone extends AppCompatActivity {
     
     private String LOG_TAG;
@@ -137,7 +138,7 @@ public class NewDone extends AppCompatActivity {
         private String team = "adityabhaskar";
         private String raw_text;
         private String meta_data = "{\"from\":\""+ getString(R.string.app_name) +"\"}";
-    
+        
         public NewDoneClass(String doneText, String doneDate, String teamName){
             this.raw_text = doneText;
         
