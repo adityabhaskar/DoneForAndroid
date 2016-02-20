@@ -28,14 +28,16 @@ public class PostNewDone extends AsyncTask<String, Void, String> {
     // Holds server response code, or -1 for error 
     private int resultStatus;
     // Holds application context, passed in constructor
-    private Context context;
+    private Context mContext;
     private Gson gson = new Gson();
     private List<String> pendingDonesArray = new ArrayList<String>();
     private String authToken;
+    private String LOG_TAG;
     private int sentDoneCounter = 0;
     
     public PostNewDone(Context c){
-        context = c;
+        mContext = c;
+        LOG_TAG = mContext.getString(R.string.app_log_identifier) + " " + FetchDonesTask.class.getSimpleName();
     }
     
     @Override
@@ -43,14 +45,13 @@ public class PostNewDone extends AsyncTask<String, Void, String> {
         super.onPreExecute();
         
         //// DONE: 15/02/16 Load new dones and token from shared preferences, and save in class variables 
-        SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(context);
-        //SharedPreferences settings = context.getSharedPreferences(context.getString(R.string.done_file_name_shared_preferences), 0);
+        SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(mContext);
         
-        String newDoneArrayString = settings.getString(context.getString(R.string.pending_done_array_name), "");
+        String newDoneArrayString = settings.getString(mContext.getString(R.string.pending_done_array_name), "");
         authToken = settings.getString("authToken", "");
         
         if(authToken.equals("")){
-            Log.e(context.getString(R.string.app_log_identifier), "No Auth Token Found!");
+            Log.e(LOG_TAG, "No Auth Token Found!");
             cancel(true);
         }
         
@@ -67,9 +68,6 @@ public class PostNewDone extends AsyncTask<String, Void, String> {
         final String url = "https://idonethis.com/api/v0.1/dones/";
         // Contains server response (or error message)
         String result = "";
-        
-        //Log.v(context.getString(R.string.app_log_identifier) + " pending dones #:", "" + pendingDonesArray.size());
-        //Log.v(context.getString(R.string.app_log_identifier) + " pending dones array:", "" + pendingDonesArray);
         
         String newDoneString;
         
@@ -96,13 +94,12 @@ public class PostNewDone extends AsyncTask<String, Void, String> {
                 //Response Code
                 resultStatus = httpcon.getResponseCode();
                 String responseMessage = httpcon.getResponseMessage();
-                //Log.wtf(context.getString(R.string.app_log_identifier) + " Sent Done", resultStatus + ": " + responseMessage);
                 
                 switch (resultStatus) {
                     case HttpURLConnection.HTTP_ACCEPTED:
                     case HttpURLConnection.HTTP_CREATED:
                     case HttpURLConnection.HTTP_OK:
-                        Log.v(context.getString(R.string.app_log_identifier) + " Sent Done" , " **OK** - " + resultStatus + ": " + responseMessage);
+                        Log.v(LOG_TAG + " Sent Done" , " **OK** - " + resultStatus + ": " + responseMessage);
                         // increment sent dones counter
                         sentDoneCounter += 1;
                         // remove current item from doneList 
@@ -110,15 +107,15 @@ public class PostNewDone extends AsyncTask<String, Void, String> {
                         break; // fine
                         
                     case HttpURLConnection.HTTP_GATEWAY_TIMEOUT:
-                        Log.w(context.getString(R.string.app_log_identifier) + " Didn't Send Done" , " **gateway timeout** - " + resultStatus + ": " + responseMessage);
+                        Log.w(LOG_TAG + " Didn't Send Done" , " **gateway timeout** - " + resultStatus + ": " + responseMessage);
                         break;
                     
                     case HttpURLConnection.HTTP_UNAVAILABLE:
-                        Log.w(context.getString(R.string.app_log_identifier) + " Didn't Send Done" , " **unavailable** - " + resultStatus + ": " + responseMessage);
+                        Log.w(LOG_TAG + " Didn't Send Done" , " **unavailable** - " + resultStatus + ": " + responseMessage);
                         break;// retry, server is unstable
                     
                     default:
-                        Log.w(context.getString(R.string.app_log_identifier) + " Didn't Send Done" , " **unknown response code** - " + resultStatus + ": " + responseMessage);
+                        Log.w(LOG_TAG + " Didn't Send Done" , " **unknown response code** - " + resultStatus + ": " + responseMessage);
                 }
                 
                 //Read      
@@ -160,28 +157,28 @@ public class PostNewDone extends AsyncTask<String, Void, String> {
         String pendingDonesArrayString = gson.toJson(pendingDonesArray, List.class);
         
         // Save remaining/empty pendingDoneList to SharedPrefs
-        SharedPreferences settings= PreferenceManager.getDefaultSharedPreferences(context);
-        //SharedPreferences settings = context.getSharedPreferences(context.getString(R.string.done_file_name_shared_preferences), 0);
+        SharedPreferences settings= PreferenceManager.getDefaultSharedPreferences(mContext);
+        //SharedPreferences settings = mContext.getSharedPreferences(mContext.getString(R.string.done_file_name_shared_preferences), 0);
         SharedPreferences.Editor editor = settings.edit();
         
-        editor.putString(context.getString(R.string.pending_done_array_name), pendingDonesArrayString);
+        editor.putString(mContext.getString(R.string.pending_done_array_name), pendingDonesArrayString);
         editor.apply();
         
-        
+        // Send message to MainActivity saying done(s) have been posted, so Snackbar can be shown/updated
         sendMessage(response);
-        // Send an Intent with an action named "custom-event-name". The Intent sent should 
-        // be received by the ReceiverActivity.
         
-        if(sentDoneCounter > 0)
-            new FetchDones(context).execute();
+        // If done(s) sent successfully, update local doneList from server
+        if(sentDoneCounter > 0) {
+            new FetchDonesTask(mContext).execute();
+        }
     }
     
     private void sendMessage(String message) {
-        Intent intent = new Intent(context.getString(R.string.done_posted_intent));
+        Intent intent = new Intent(mContext.getString(R.string.done_posted_intent));
         
         // You can also include some extra data.
         intent.putExtra("count", sentDoneCounter);
         intent.putExtra("message", message);
-        LocalBroadcastManager.getInstance(context.getApplicationContext()).sendBroadcast(intent);
+        LocalBroadcastManager.getInstance(mContext.getApplicationContext()).sendBroadcast(intent);
     }
 }

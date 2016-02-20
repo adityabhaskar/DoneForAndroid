@@ -22,10 +22,14 @@ import java.util.Locale;
 
 public class NewDone extends AppCompatActivity {
     
+    private String LOG_TAG;
+    
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_new_done);
+    
+        LOG_TAG = getString(R.string.app_log_identifier) + " " + FetchDonesTask.class.getSimpleName();
     }
     
     @Override
@@ -87,7 +91,6 @@ public class NewDone extends AppCompatActivity {
             
             //// DONE: 14/02/16 Save new done to SharedPreferences
             SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(this);
-            //SharedPreferences settings = getSharedPreferences(getString(R.string.done_file_name_shared_preferences), 0);
             String pendingDonesArrayString = settings.getString(getString(R.string.pending_done_array_name), "");
             
             // Get pending Dones ArrayList as JSON String 
@@ -101,17 +104,13 @@ public class NewDone extends AppCompatActivity {
             // Serialize ArrayList back to String for storage
             pendingDonesArrayString = gson.toJson(pendingDonesArray, List.class);
             
-            //Type listOfTestObject = new TypeToken<List<TestObject>>(){}.getType();
-            //String s = gson.toJson(list, listOfTestObject);
-            //List<TestObject> list2 = gson.fromJson(s, listOfTestObject);
-            
             // Save pending Done ArrayList to SharedPrefs
             SharedPreferences.Editor editor = settings.edit();
             editor.putString(getString(R.string.pending_done_array_name), pendingDonesArrayString);
             editor.apply();
             
-            Log.wtf(getString(R.string.app_log_identifier) + " Saved Done Text", doneAsJSON);
-            Log.wtf(getString(R.string.app_log_identifier) + " Pending List Size", "" + pendingDonesArray.size());
+            Log.v(LOG_TAG, "Saved Done Text" + doneAsJSON);
+            Log.v(LOG_TAG, "Pending List Size" + pendingDonesArray.size());
             
             //// DONE: 14/02/16 Start async task to send new done to server. On success, remove done from SharedPreferences
             if(isOnline()) {

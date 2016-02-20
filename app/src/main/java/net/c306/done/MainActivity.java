@@ -4,6 +4,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.database.Cursor;
 import android.os.Bundle;
 import android.support.design.widget.Snackbar;
 import android.support.v4.content.LocalBroadcastManager;
@@ -13,42 +14,38 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.ListView;
 
 public class MainActivity extends AppCompatActivity {
     
     private Snackbar newDoneSnackbar;
-    
+    private ListView listView;
+    private Cursor cursor;
+    private String LOG_TAG;
     // Our handler for received Intents. This will be called whenever an Intent
     // with an action named "custom-event-name" is broadcasted.
     // Src: http://stackoverflow.com/questions/8802157/how-to-use-localbroadcastmanager    
     private BroadcastReceiver mMessageReceiver = new BroadcastReceiver() {
+        
         @Override
         public void onReceive(Context context, Intent intent) {
             // Get count of messages sent - >0 means success
             int count = intent.getIntExtra("count", -1);
             String message = intent.getStringExtra("message");
             
-            if(count > 0){
-                if(newDoneSnackbar != null && newDoneSnackbar.isShown())
+            if (count > 0) {
+                if (newDoneSnackbar != null && newDoneSnackbar.isShown())
                     newDoneSnackbar.dismiss();
                 
                 newDoneSnackbar = Snackbar.make(findViewById(R.id.fab), (count > 1 ? count + " dones " : "Done ") + getString(R.string.done_sent_toast_message), Snackbar.LENGTH_LONG);
                 newDoneSnackbar.setAction("Action", null).show();
                 
-                Log.wtf(getString(R.string.app_log_identifier) + " BroadcastReceiver", "Got message: " + count + " " + message);
-                
-                //// TODO: 15/02/16 re-fetch list from server
-                
+                Log.v(LOG_TAG, "Broadcast Receiver - Got message: " + count + " " + message);
             } else {
-                Log.wtf(getString(R.string.app_log_identifier) + " BroadcastReceiver", "Got error: " + count);
-                
-                //// TODO: 15/02/16 Schedule another post attempt - on reconnection or timer
-                
+                Log.v(LOG_TAG, "Broadcast Receiver - Got error: " + count);
             }
-            
         }
     };
-    
     
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -57,14 +54,56 @@ public class MainActivity extends AppCompatActivity {
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
     
+        LOG_TAG = getString(R.string.app_log_identifier) + " " + FetchDonesTask.class.getSimpleName();
+        
+        /*
+        * 
+        * Precede these with deleting all entries ('delete from dones') from database to do a 
+        * fetchAll.
+        * 
+        * */
+        //SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        //SharedPreferences.Editor editor = prefs.edit();
+        //editor.remove("lastUpdate");
+        //editor.apply();
+        
         // Register to receive messages.
-        // We are registering an observer (mMessageReceiver) to receive Intents
-        // with actions named "custom-event-name".
         LocalBroadcastManager.getInstance(this).registerReceiver(mMessageReceiver,
                 new IntentFilter(getString(R.string.done_posted_intent)));
         
-        //// TODO: 15/02/16 Update dones from server and update in sqllite 
-        new FetchDones(this).execute();
+        //// DONE: 15/02/16 Update dones from server and update in sqllite 
+        new FetchDonesTask(this).execute();
+        
+        //listView = (ListView) findViewById(R.id.dones_list_view);
+    
+        // Initialize the adapter. Note that we pass a 'null' Cursor as the
+        // third argument. We will pass the adapter a Cursor only when the
+        // data has finished loading for the first time (i.e. when the
+        // LoaderManager delivers the data to onLoadFinished). Also note
+        // that we have passed the '0' flag as the last argument. This
+        // prevents the adapter from registering a ContentObserver for the
+        // Cursor (the CursorLoader will do this for us!).
+        //listViewAdapter = new DoneListAdapter(this, R.layout.list_row_layout, doneListCursor, 0);
+        
+        
+        // Associate the (now empty) adapter with the ListView.
+        //listView.setAdapter(listViewAdapter);
+    
+        // The Activity (which implements the LoaderCallbacks<Cursor>
+        // interface) is the callbacks object through which we will interact
+        // with the LoaderManager. The LoaderManager uses this object to
+        // instantiate the Loader and to notify the client when data is made
+        // available/unavailable.
+        //mCallbacks = this;
+    
+        // Initialize the Loader with id '1' and callbacks 'mCallbacks'.
+        // If the loader doesn't already exist, one is created. Otherwise,
+        // the already created Loader is reused. In either case, the
+        // LoaderManager will manage the Loader across the Activity/Fragment
+        // lifecycle, will receive any new loads once they have completed,
+        // and will report this new data back to the 'mCallbacks' object.
+        //android.app.LoaderManager lm = getLoaderManager();
+        //lm.initLoader(LOADER_ID, null, mCallbacks);
     }
     
     @Override
@@ -74,7 +113,7 @@ public class MainActivity extends AppCompatActivity {
         super.onDestroy();
     }
     
-    public void toNewDone(View view){
+    public void toNewDone(View view) {
         Intent newDoneIntent = new Intent(MainActivity.this, NewDone.class);
         startActivityForResult(newDoneIntent, 1);
         
@@ -82,22 +121,22 @@ public class MainActivity extends AppCompatActivity {
     
     protected void onActivityResult(int requestCode, int resultCode,
                                     Intent data) {
-        if(newDoneSnackbar != null && newDoneSnackbar.isShown())
+        if (newDoneSnackbar != null && newDoneSnackbar.isShown())
             newDoneSnackbar.dismiss();
         
-        switch (resultCode){
+        switch (resultCode) {
             case RESULT_OK:
                 newDoneSnackbar = Snackbar.make(findViewById(R.id.fab), R.string.done_saved_toast_message, Snackbar.LENGTH_LONG);
                 newDoneSnackbar.setAction("Action", null).show();
                 break;
             
             case R.integer.result_offline:
-                newDoneSnackbar = Snackbar.make(findViewById(R.id.fab), R.string.done__offline_saved_toast_message, Snackbar.LENGTH_LONG);
+                newDoneSnackbar = Snackbar.make(findViewById(R.id.fab), R.string.done_offline_saved_toast_message, Snackbar.LENGTH_LONG);
                 newDoneSnackbar.setAction("Action", null).show();
                 break;
             
             default:
-                Log.wtf(getString(R.string.app_log_identifier) + " Main Activity", "Result Code: " + resultCode);
+                Log.v(LOG_TAG, "Result Code: " + resultCode);
     
         }
     }
@@ -127,90 +166,5 @@ public class MainActivity extends AppCompatActivity {
     }
     
     
-    private void writeDoneToDb(String doneText){
-        // From http://developer.android.com/training/basics/data-storage/databases.html
-/*
-        DoneListDbHelper mDbHelper = new DoneListDbHelper(getApplicationContext());
-        
-        // Gets the data repository in write mode
-        SQLiteDatabase db = mDbHelper.getWritableDatabase();
-    
-        // Create a new map of values, where column names are the keys
-        ContentValues values = new ContentValues();
-        //values.put(DoneListContract.DoneEntry.COLUMN_NAME_ENTRY_ID, id);
-        //values.put(DoneListContract.DoneEntry.COLUMN_NAME_TITLE, title);
-    
-        // Insert the new row, returning the primary key value of the new row
-        long newRowId;
-        newRowId = db.insert(
-                DoneListContract.DoneEntry.TABLE_NAME,
-                DoneListContract.DoneEntry.COLUMN_NAME_NULLABLE,
-                values);
-        
-*/
-    }
-    
-    private String readDonesFromDb(){
-        // From http://developer.android.com/training/basics/data-storage/databases.html
-/*
-        DoneListDbHelper mDbHelper = new DoneListDbHelper(getApplicationContext());
-    
-        // Gets the data repository in read mode
-        SQLiteDatabase db = mDbHelper.getReadableDatabase();
-
-        // Define a projection that specifies which columns from the database
-        // you will actually use after this query.
-        String[] projection = {
-                DoneListContract.DoneEntry._ID,
-                DoneListContract.DoneEntry.COLUMN_NAME_TITLE,
-                //DoneListContract.DoneEntry.COLUMN_NAME_UPDATED,
-        };
-
-// How you want the results sorted in the resulting Cursor
-        String sortOrder =
-                DoneListContract.DoneEntry.COLUMN_NAME_UPDATED + " DESC";
-    
-        Cursor c = db.query(
-                DoneListContract.DoneEntry.TABLE_NAME,  // The table to query
-                projection,                               // The columns to return
-                selection,                                // The columns for the WHERE clause
-                selectionArgs,                            // The values for the WHERE clause
-                null,                                     // don't group the rows
-                null,                                     // don't filter by row groups
-                sortOrder                                 // The sort order
-        );
-    
-        cursor.moveToFirst();
-        long itemId = cursor.getLong(
-                cursor.getColumnIndexOrThrow(FeedEntry._ID)
-        );
-*/
-        return " ";
-    }
     
 }
-
-/*
-        //Fetch all entries, change keys to NewDone-id
-        SharedPreferences settings = getSharedPreferences(getString(R.string.done_file_name_shared_preferences), 0);
-        SharedPreferences.Editor editor = settings.edit();
-        
-        editor.putString("authToken", "");
-        editor.apply();
-        
-        Map<String, ?> prefs = settings.getAll();
-        for ( Map.Entry<String, ?> entry : prefs.entrySet()) {
-            String key = entry.getKey();
-            //if(key != "id"){
-            //    editor.putString("NewDone-" + key, entry.getValue().toString());
-            //    editor.remove(key);
-            //}
-            //Log.v(getString(R.string.app_log_identifier), key + ": \n" + entry.getValue());
-        }
-        editor.apply();
-        
-        prefs = settings.getAll();
-        for ( Map.Entry<String, ?> entry : prefs.entrySet()) {
-            Log.v(getString(R.string.app_log_identifier), entry.getKey() + ": \n" + entry.getValue());
-        }
-*/
