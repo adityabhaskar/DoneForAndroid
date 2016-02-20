@@ -23,7 +23,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-public class PostNewDone extends AsyncTask<String, Void, String> {
+public class PostNewDoneTask extends AsyncTask<String, Void, String> {
     
     // Holds server response code, or -1 for error 
     private int resultStatus;
@@ -35,7 +35,7 @@ public class PostNewDone extends AsyncTask<String, Void, String> {
     private String LOG_TAG;
     private int sentDoneCounter = 0;
     
-    public PostNewDone(Context c){
+    public PostNewDoneTask(Context c){
         mContext = c;
         LOG_TAG = mContext.getString(R.string.app_log_identifier) + " " + FetchDonesTask.class.getSimpleName();
     }
@@ -196,6 +196,7 @@ public class PostNewDone extends AsyncTask<String, Void, String> {
         Intent intent = new Intent(mContext.getString(R.string.done_posted_intent));
         
         // You can also include some extra data.
+        intent.putExtra("sender", "PostNewDoneTask");
         intent.putExtra("count", sentDoneCounter);
         intent.putExtra("message", message);
         LocalBroadcastManager.getInstance(mContext.getApplicationContext()).sendBroadcast(intent);

@@ -145,7 +145,7 @@ public class NewDone extends AppCompatActivity {
             //// DONE: 14/02/16 Start async task to send new done to server. On success, remove done from SharedPreferences
             if(isOnline()) {
                 //// DONE: 15/02/16 Don't send taskString to async task - let it read from storage and process all pending 
-                new PostNewDone(this).execute();
+                new PostNewDoneTask(this).execute();
                 setResult(RESULT_OK);
             
             } else{

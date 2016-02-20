@@ -7,11 +7,14 @@ import android.content.CursorLoader;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.Loader;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.support.design.widget.Snackbar;
 import android.support.v4.content.LocalBroadcastManager;
+import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
@@ -23,17 +26,25 @@ import android.widget.ListView;
 
 import net.c306.done.db.DoneListContract;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.Locale;
+
 //// TODO: 20/02/16 Group dones under date headers in listView 
-public class MainActivity extends AppCompatActivity implements LoaderManager.LoaderCallbacks<Cursor>{
+public class MainActivity extends AppCompatActivity implements LoaderManager.LoaderCallbacks<Cursor>, SwipeRefreshLayout.OnRefreshListener{
     
     private static final int DONE_LIST_LOADER = 0;
     private static final String SELECTED_KEY = "selected_position";
+    private static final int REFRESH_LIST_DELAY = -15; // Except for new dones, fetch only every 15 mins.
     private Snackbar newDoneSnackbar;
     private ListView listView;
     private Cursor cursor;
     private String LOG_TAG;
     private DoneListAdapter mDoneListAdapter;
     private int mPosition = ListView.INVALID_POSITION;
+    
     // Our handler for received Intents. This will be called whenever an Intent
     // with an action named "custom-event-name" is broadcasted.
     // Src: http://stackoverflow.com/questions/8802157/how-to-use-localbroadcastmanager    
@@ -41,20 +52,41 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
         
         @Override
         public void onReceive(Context context, Intent intent) {
-            // Get count of messages sent - >0 means success
-            int count = intent.getIntExtra("count", -1);
-            String message = intent.getStringExtra("message");
+            // Who is sending message?
+            String sender = intent.getStringExtra("sender");
             
-            if (count > 0) {
-                if (newDoneSnackbar != null && newDoneSnackbar.isShown())
-                    newDoneSnackbar.dismiss();
-                
-                newDoneSnackbar = Snackbar.make(findViewById(R.id.fab), (count > 1 ? count + " dones " : "Done ") + getString(R.string.done_sent_toast_message), Snackbar.LENGTH_LONG);
-                newDoneSnackbar.setAction("Action", null).show();
-                
-                Log.v(LOG_TAG, "Broadcast Receiver - Got message: " + count + " " + message);
-            } else {
-                Log.v(LOG_TAG, "Broadcast Receiver - Got error: " + count);
+            switch (sender){
+                case "FetchDonesTask":{
+                    // Get count of messages fetched - >0 means success
+                    int count = intent.getIntExtra("count", -1);
+                    
+                    SwipeRefreshLayout swp = (SwipeRefreshLayout) findViewById(R.id.swipe_refresh_layout);
+                    if(swp.isRefreshing())
+                        swp.setRefreshing(false);
+                    
+                    Log.v(LOG_TAG, "Broadcast Receiver - Fetched " + count + " messages");
+                    break;
+                }
+                case "PostNewDoneTask":{
+                    // Get count of messages sent - >0 means success
+                    int count = intent.getIntExtra("count", -1);
+                    String message = intent.getStringExtra("message");
+                    
+                    if (count > 0) {
+                        if (newDoneSnackbar != null && newDoneSnackbar.isShown())
+                            newDoneSnackbar.dismiss();
+                        
+                        newDoneSnackbar = Snackbar.make(findViewById(R.id.fab), (count > 1 ? count + " dones " : "Done ") + getString(R.string.done_sent_toast_message), Snackbar.LENGTH_LONG);
+                        newDoneSnackbar.setAction("Action", null).show();
+                        
+                        Log.v(LOG_TAG, "Broadcast Receiver - Got message: " + count + " " + message);
+                    } else {
+                        Log.v(LOG_TAG, "Broadcast Receiver - Got error: " + count);
+                    }
+                    break;
+                }
+                default:
+                    Log.w(LOG_TAG, "Broadcast receiver got message from unknown sender");
             }
         }
     };
@@ -68,44 +100,46 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
         
         LOG_TAG = getString(R.string.app_log_identifier) + " " + FetchDonesTask.class.getSimpleName();
         
+        // Register to receive messages.
+        LocalBroadcastManager.getInstance(this).registerReceiver(mMessageReceiver,
+                new IntentFilter(getString(R.string.done_posted_intent)));
+        
         /*
         * 
         * Precede these with deleting all entries ('delete from dones') from database to do a 
         * fetchAll.
         * 
         * */
-        //SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        String lastUpdated = prefs.getString(getString(R.string.last_updated_setting_name), "");
         //SharedPreferences.Editor editor = prefs.edit();
         //editor.remove("newDones");
         //editor.apply();
         
-        // Register to receive messages.
-        LocalBroadcastManager.getInstance(this).registerReceiver(mMessageReceiver,
-                new IntentFilter(getString(R.string.done_posted_intent)));
+        //// DONE: 15/02/16 Update dones from server and update in sqllite
+        //// DONE: 20/02/16 Execute fetch only if no fetch within last 15 minutes 
+        if(!lastUpdated.equals("")){
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.UK);
+            try {
+                Date lastUpdatedDate = sdf.parse(lastUpdated);
+                
+                Calendar c = Calendar.getInstance();
+                c.setTime(new Date());
+                c.add(Calendar.MINUTE, REFRESH_LIST_DELAY);  // create timestamp 15 mins back
+                if (lastUpdatedDate.before(c.getTime())) {
+                    new FetchDonesTask(this).execute();
+                }
+            } catch(ParseException e){
+                Log.w(LOG_TAG, "Couldn't parse lastUpdated: " + lastUpdated + ".");
+                new FetchDonesTask(this).execute();
+            }
+        } else {
+            Log.w(LOG_TAG, "No lastUpdated found, starting fetch.");
+            new FetchDonesTask(this).execute();
+        }
         
-        
-        //// DONE: 15/02/16 Update dones from server and update in sqllite 
-        new FetchDonesTask(this).execute();
-        
-        // Sort by done date, and then by last updated
-        String sortOrder = DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE + " DESC, " + 
-                           DoneListContract.DoneEntry.COLUMN_NAME_UPDATED + " DESC";
-        
-        Uri donesUri = DoneListContract.DoneEntry.buildDoneListUri();
-        String[] cursorProjectionString = new String[]{
-                DoneListContract.DoneEntry.COLUMN_NAME_ID + " AS _id",
-                DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT,
-                DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE,
-                DoneListContract.DoneEntry.COLUMN_NAME_TEAM_SHORT_NAME
-        };
-        Log.wtf(LOG_TAG, cursorProjectionString[0]);
-        
-        Cursor cur = getContentResolver().query(donesUri, cursorProjectionString, null, null, sortOrder);
-        
-        // The CursorAdapter will take data from our cursor and populate the ListView
-        // However, we cannot use FLAG_AUTO_REQUERY since it is deprecated, so we will end
-        // up with an empty list the first time we run.
-        mDoneListAdapter = new DoneListAdapter(this, R.layout.list_row_layout, cur, 0);
+        //mDoneListAdapter = new DoneListAdapter(this, R.layout.list_row_layout, cur, 0);
+        mDoneListAdapter = new DoneListAdapter(this, R.layout.list_row_layout, null, 0);
         
         listView = (ListView) findViewById(R.id.dones_list_view);
         
@@ -121,7 +155,7 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
                 mPosition = position;
             }
         });
-    
+        
         // If there's instance state, mine it for useful information.
         // The end-goal here is that the user never knows that turning their device sideways
         // does crazy lifecycle related things.  It should feel like some stuff stretched out,
@@ -140,6 +174,9 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
         // lifecycle, will receive any new loads once they have completed,
         // and will report this new data back to the 'this' object.
         getLoaderManager().initLoader(DONE_LIST_LOADER, null, this);
+    
+        SwipeRefreshLayout swp = (SwipeRefreshLayout) findViewById(R.id.swipe_refresh_layout);
+        swp.setOnRefreshListener(this);
     }
     
     @Override
@@ -224,21 +261,21 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
     
         // To only show current and future dates, filter the query to return weather only for
         // dates after or including today.
-    
+        
         // Sort order:  Ascending, by date.
         String sortOrder = DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE + " DESC, " +
                 DoneListContract.DoneEntry.COLUMN_NAME_UPDATED + " DESC";
-    
+        
         Uri donesUri = DoneListContract.DoneEntry.buildDoneListUri();
-    
+        
         String[] cursorProjectionString = new String[]{
                 DoneListContract.DoneEntry.COLUMN_NAME_ID + " AS _id",
                 DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT,
                 DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE,
                 DoneListContract.DoneEntry.COLUMN_NAME_TEAM_SHORT_NAME
         };
-    
-        Log.wtf(LOG_TAG, cursorProjectionString[0]);
+        
+        Log.wtf(LOG_TAG, "From Loader: " + cursorProjectionString[0]);
         
         return new CursorLoader(this,
                 donesUri,
@@ -254,6 +291,7 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
         if (mPosition != ListView.INVALID_POSITION) {
             // If we don't need to restart the loader, and there's a desired position to restore
             // to, do so now.
+            Log.v(LOG_TAG, "Scroll to " + mPosition);
             listView.smoothScrollToPosition(mPosition);
         }
     }
@@ -263,4 +301,10 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
         mDoneListAdapter.swapCursor(null);
     }
     
+    
+    @Override
+    public void onRefresh() {
+        Log.v(LOG_TAG, "Calling fetch from swipe to refresh");
+        new FetchDonesTask(this).execute();
+    }
 }

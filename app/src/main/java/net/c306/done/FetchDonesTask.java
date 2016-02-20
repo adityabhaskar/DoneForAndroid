@@ -2,9 +2,11 @@ package net.c306.done;
 
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.preference.PreferenceManager;
+import android.support.v4.content.LocalBroadcastManager;
 import android.text.Html;
 import android.util.Log;
 
@@ -42,8 +44,9 @@ public class FetchDonesTask extends AsyncTask<Void, Void, String> {
     private Context mContext;
     private String mAuthToken;
     private int resultStatus;
-    //private String lastUpdated = "";
-    
+    private String lastUpdated = "";
+    private SimpleDateFormat sdf;
+    private int fetchedDoneCounter = 0;
     
     public FetchDonesTask(Context c){
         mContext = c;
@@ -84,7 +87,7 @@ public class FetchDonesTask extends AsyncTask<Void, Void, String> {
         * */
         //String requestURL = URL + (lastUpdated.equals("") ? "" : "&updated_after=" + lastUpdated);
         
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.UK);
+        sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.UK);
         
         Calendar c = Calendar.getInstance();
         c.setTime(new Date());
@@ -138,16 +141,15 @@ public class FetchDonesTask extends AsyncTask<Void, Void, String> {
                     * Not to be used till we can get all updates from server, including deletes
                     * 
                     * */
-/*
                     // Update lastUpdate timestamp in SharedPrefs in case another fetchDone is triggered
-                    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.UK);
+                    sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.UK);
                     lastUpdated = sdf.format(new Date());
                     SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(mContext);
                     SharedPreferences.Editor editor = prefs.edit();
-                    editor.putString("lastUpdate", lastUpdated);
+                    editor.remove("lastUpdate");
+                    editor.putString(mContext.getString(R.string.last_updated_setting_name), lastUpdated);
                     editor.apply();
                     Log.v(LOG_TAG, "LastUpdated: " + lastUpdated);
-*/
     
                     if(resultStatus > 0 && null != result && !result.equals("")){
                         return getDoneListFromJson(result).toString();
@@ -254,7 +256,9 @@ public class FetchDonesTask extends AsyncTask<Void, Void, String> {
         Log.v(LOG_TAG, "Fetched " + cVVector.size() + " items");
         
         // add to database
-        if ( cVVector.size() > 0 ) {
+        if(cVVector.size() > 0) {
+            fetchedDoneCounter = cVVector.size();
+            
             ContentValues[] cvArray = new ContentValues[cVVector.size()];
             cVVector.toArray(cvArray);
             
@@ -266,7 +270,6 @@ public class FetchDonesTask extends AsyncTask<Void, Void, String> {
             
             // Add newly fetched entries to the server
             mContext.getContentResolver().bulkInsert(DoneListContract.DoneEntry.CONTENT_URI, cvArray);
-            
             
             //notifyWeather();
         }
@@ -285,15 +288,18 @@ public class FetchDonesTask extends AsyncTask<Void, Void, String> {
         super.onPostExecute(result);
         //mContext.getContentResolver().notifyChange(DoneListContract.DoneEntry.buildDoneListUri(), null);
         Log.v(LOG_TAG, "GET Result: " + result);
+        sendMessage("");
     }
     
-    class IDTJSONResponse{
-        public int count;
-        public String warnings;
-        public DoneItem[] results;
-        public String previous;
-        public String next;
-        public String ok;
+    private void sendMessage(String message) {
+        Intent intent = new Intent(mContext.getString(R.string.done_posted_intent));
+        
+        // You can also include some extra data.
+        intent.putExtra("sender", "FetchDonesTask");
+        intent.putExtra("count", fetchedDoneCounter);
+        //intent.putExtra("message", message);
+        LocalBroadcastManager.getInstance(mContext.getApplicationContext()).sendBroadcast(intent);
     }
+    
 }
 
