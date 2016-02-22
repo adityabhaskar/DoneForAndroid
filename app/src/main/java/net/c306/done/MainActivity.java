@@ -57,14 +57,21 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
             
             switch (sender){
                 case "FetchDonesTask":{
+                    // Get action - fetch started or finished
+                    String action = intent.getStringExtra("action");
                     // Get count of messages fetched - >0 means success
                     int count = intent.getIntExtra("count", -1);
                     
                     SwipeRefreshLayout swp = (SwipeRefreshLayout) findViewById(R.id.swipe_refresh_layout);
-                    if(swp.isRefreshing())
-                        swp.setRefreshing(false);
+    
+                    if (action == getString(R.string.fetch_started) && !swp.isRefreshing()) {
+                        swp.setRefreshing(true);
+                    } else if (action == getString(R.string.fetch_finished)) {
+                        if (swp.isRefreshing())
+                            swp.setRefreshing(false);
+                        Log.v(LOG_TAG, "Broadcast Receiver - Fetched " + count + " messages");
+                    }
                     
-                    Log.v(LOG_TAG, "Broadcast Receiver - Fetched " + count + " messages");
                     break;
                 }
                 case "PostNewDoneTask":{
@@ -176,6 +183,13 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
         getLoaderManager().initLoader(DONE_LIST_LOADER, null, this);
     
         SwipeRefreshLayout swp = (SwipeRefreshLayout) findViewById(R.id.swipe_refresh_layout);
+        swp.setColorSchemeResources(
+                R.color.colorAccent,
+                android.R.color.holo_blue_dark,
+                android.R.color.holo_green_dark,
+                android.R.color.holo_orange_dark,
+                R.color.colorPrimary
+        );
         swp.setOnRefreshListener(this);
     }
     

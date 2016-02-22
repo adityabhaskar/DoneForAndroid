@@ -8,4 +8,6 @@
     <string name="pending_done_array_name">newDones</string>
     <string name="space">  </string>
     <string name="last_updated_setting_name">lastUpdated</string>
+    <string name="fetch_started">fetchStarted</string>
+    <string name="fetch_finished">fetchFinished</string>
 </resources>

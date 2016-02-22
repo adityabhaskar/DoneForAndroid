@@ -65,8 +65,8 @@ public class FetchDonesTask extends AsyncTask<Void, Void, String> {
             Log.e(LOG_TAG, "No Auth Token Found!");
             cancel(true);
         }
-        
-        
+    
+        sendMessage(mContext.getString(R.string.fetch_started));        
         /*
         * Not to be used till we can get all updates from server, including deletes
         * 
@@ -288,7 +288,7 @@ public class FetchDonesTask extends AsyncTask<Void, Void, String> {
         super.onPostExecute(result);
         //mContext.getContentResolver().notifyChange(DoneListContract.DoneEntry.buildDoneListUri(), null);
         Log.v(LOG_TAG, "GET Result: " + result);
-        sendMessage("");
+        sendMessage(mContext.getString(R.string.fetch_finished));
     }
     
     private void sendMessage(String message) {
@@ -297,7 +297,7 @@ public class FetchDonesTask extends AsyncTask<Void, Void, String> {
         // You can also include some extra data.
         intent.putExtra("sender", "FetchDonesTask");
         intent.putExtra("count", fetchedDoneCounter);
-        //intent.putExtra("message", message);
+        intent.putExtra("action", message);
         LocalBroadcastManager.getInstance(mContext.getApplicationContext()).sendBroadcast(intent);
     }
     
