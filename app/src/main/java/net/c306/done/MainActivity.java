@@ -32,7 +32,8 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.Locale;
 
-//// TODO: 20/02/16 Group dones under date headers in listView 
+//// TODO: 20/02/16 Group dones under date headers in listView
+//// TODO: 22/02/16 Add date of done in small font under the done 
 public class MainActivity extends AppCompatActivity implements LoaderManager.LoaderCallbacks<Cursor>, SwipeRefreshLayout.OnRefreshListener{
     
     private static final int DONE_LIST_LOADER = 0;
@@ -184,11 +185,11 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
     
         SwipeRefreshLayout swp = (SwipeRefreshLayout) findViewById(R.id.swipe_refresh_layout);
         swp.setColorSchemeResources(
-                R.color.colorAccent,
+                R.color.accent,
                 android.R.color.holo_blue_dark,
                 android.R.color.holo_green_dark,
                 android.R.color.holo_orange_dark,
-                R.color.colorPrimary
+                R.color.primary
         );
         swp.setOnRefreshListener(this);
     }

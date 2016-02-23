@@ -3,18 +3,37 @@ package net.c306.done;
 import android.content.Context;
 import android.database.Cursor;
 import android.support.v4.widget.ResourceCursorAdapter;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.RelativeLayout;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import net.c306.done.db.DoneListContract;
 
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
+
 public class DoneListAdapter extends ResourceCursorAdapter{
+    
+    private SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+    private SimpleDateFormat sdf2 = (SimpleDateFormat) DateFormat.getDateInstance(DateFormat.DEFAULT);
+    private Calendar calendar = Calendar.getInstance();
+    private String LOG_TAG;
+    private int colorArray[] = {
+            //R.color.team3,
+            //R.color.team4,
+            R.color.team5,
+            //R.color.team6,
+            //R.color.team8
+    };
     
     public DoneListAdapter(Context context, int layout, Cursor c, int flags) {
         super(context, layout, c, flags);
+        LOG_TAG = context.getString(R.string.app_log_identifier) + " " + FetchDonesTask.class.getSimpleName();
     }
     
     /*
@@ -32,13 +51,37 @@ public class DoneListAdapter extends ResourceCursorAdapter{
     * */
     @Override
     public void bindView(View view, Context context, Cursor cursor) {
-        TextView rawText = (TextView) view.findViewById(R.id.rawText);
-        rawText.setText(cursor.getString(cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT)));
-        
+        // Set team colour
+        LinearLayout rl = (LinearLayout) view.findViewById(R.id.list_item);
+        int teamColor = (int) Math.round(Math.random() * (colorArray.length - 1));
+        Log.v(LOG_TAG, "Team Color: " + teamColor);
+        rl.setBackgroundResource(colorArray[teamColor]);
         //// TODO: 20/02/16 Set colour based on team of the task 
-        RelativeLayout rl = (RelativeLayout) view.findViewById(R.id.list_item);
-        rl.setBackgroundResource(android.R.color.holo_blue_dark);
-
-        //cursor.getString(cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE)) + 
+    
+        // Set text
+        TextView rawText = (TextView) view.findViewById(R.id.item_raw_text);
+        rawText.setText(cursor.getString(cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT)));
+    
+        // Set date
+        TextView dateTextView = (TextView) view.findViewById(R.id.item_date);
+        String doneDate = cursor.getString(cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE));
+    
+        calendar.setTime(new Date());
+        calendar.add(Calendar.DATE, -1);
+        String yesterday = sdf.format(calendar.getTime());
+        String today = sdf.format(new Date());
+    
+        if (doneDate.equals(yesterday))
+            doneDate = "Yesterday";
+        else if (doneDate.equals(today))
+            doneDate = "Today";
+        else {
+            calendar.set(Calendar.DATE, Integer.parseInt(doneDate.substring(8, 10)));
+            calendar.set(Calendar.MONTH, Integer.parseInt(doneDate.substring(5, 7)) - 1);
+            calendar.set(Calendar.YEAR, Integer.parseInt(doneDate.substring(0, 4)));
+            doneDate = sdf2.format(calendar.getTime());
+        }
+    
+        dateTextView.setText(doneDate);
     }
-}    
+}

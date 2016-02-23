@@ -2,7 +2,32 @@
 <resources>
     <!--<color name="colorPrimary">#3F51B5</color>-->
     <!--<color name="colorPrimaryDark">#303F9F</color>-->
-    <color name="colorPrimary">#616161</color>
-    <color name="colorPrimaryDark">#424242</color>
-    <color name="colorAccent">#FF4081</color>
+    <!--<color name="colorPrimary">#616161</color>-->
+    <!--<color name="colorPrimaryDark">#424242</color>-->
+    <!--<color name="colorPrimary">#eee8aa</color>-->
+    <!--<color name="colorPrimaryDark">#c1b327</color>-->
+    <!--<color name="colorAccent">#FF4081</color>-->
+    <!--<color name="colorPrimary">#c1b327</color>-->
+    <!--<color name="colorPrimaryDark">#a09520</color>-->
+    <!--<color name="colorAccent">#aab0ee</color>-->
+    <!--<color name="colorAccent">#8089e6</color> &lt;!&ndash;purple&ndash;&gt;-->
+    <!--<color name="colorAccent">#DD2C00</color> &lt;!&ndash;deeporange A700&ndash;&gt;-->
+
+    <color name="primary">#607D8B</color>
+    <color name="primary_dark">#455A64</color>
+    <color name="primary_light">#CFD8DC</color>
+    <color name="accent">#FF5722</color>
+    <color name="primary_text">#212121</color>
+    <color name="secondary_text">#727272</color>
+    <color name="icons">#FFFFFF</color>
+    <color name="divider">#B6B6B6</color>
+
+    <color name="teamPrimary">#eeaab0</color>
+    <color name="team2">#aaeee8</color>
+    <color name="team3">#eec6aa</color>
+    <color name="team4">#d2eeaa</color>
+    <color name="team5">#aad2ee</color>
+    <color name="team6">#616161</color>
+    <!--<color name="team7">#2eb82e</color>-->
+    <color name="team8">#eee8aa</color>
 </resources>

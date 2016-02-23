@@ -66,7 +66,9 @@ public class FetchDonesTask extends AsyncTask<Void, Void, String> {
             cancel(true);
         }
     
-        sendMessage(mContext.getString(R.string.fetch_started));        
+        sendMessage(mContext.getString(R.string.fetch_started));
+    
+        //// TODO: 22/02/16 Check if internet connection is available else cancel fetch 
         /*
         * Not to be used till we can get all updates from server, including deletes
         * 
