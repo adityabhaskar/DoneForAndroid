@@ -37,7 +37,7 @@ public class PostNewDoneTask extends AsyncTask<String, Void, String> {
     
     public PostNewDoneTask(Context c){
         mContext = c;
-        LOG_TAG = mContext.getString(R.string.app_log_identifier) + " " + FetchDonesTask.class.getSimpleName();
+        LOG_TAG = mContext.getString(R.string.app_log_identifier) + " " + PostNewDoneTask.class.getSimpleName();
     }
     
     @Override

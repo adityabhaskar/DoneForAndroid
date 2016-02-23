@@ -23,6 +23,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ListView;
+import android.widget.Toast;
 
 import net.c306.done.db.DoneListContract;
 
@@ -41,7 +42,6 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
     private static final int REFRESH_LIST_DELAY = -15; // Except for new dones, fetch only every 15 mins.
     private Snackbar newDoneSnackbar;
     private ListView listView;
-    private Cursor cursor;
     private String LOG_TAG;
     private DoneListAdapter mDoneListAdapter;
     private int mPosition = ListView.INVALID_POSITION;
@@ -66,11 +66,21 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
                     SwipeRefreshLayout swp = (SwipeRefreshLayout) findViewById(R.id.swipe_refresh_layout);
     
                     if (action == getString(R.string.fetch_started) && !swp.isRefreshing()) {
+                        //Log.v(LOG_TAG, "Refresh started, showing SWP");
                         swp.setRefreshing(true);
                     } else if (action == getString(R.string.fetch_finished)) {
                         if (swp.isRefreshing())
                             swp.setRefreshing(false);
-                        Log.v(LOG_TAG, "Broadcast Receiver - Fetched " + count + " messages");
+                        //Log.v(LOG_TAG, "Broadcast Receiver - Fetched " + count + " messages");
+                    } else if (action == getString(R.string.fetch_cancelled_offline)) {
+                        //Log.w(LOG_TAG, "Fetch cancelled because offline");
+                        if (swp.isRefreshing()) {
+                            //Log.v(LOG_TAG, "SWP is refreshing. Cancelling...");
+                            swp.setRefreshing(false);
+                        }
+        
+                        Toast t = Toast.makeText(getApplicationContext(), "Offline! Please check your connection.", Toast.LENGTH_SHORT);
+                        t.show();
                     }
                     
                     break;
@@ -105,8 +115,8 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
         setContentView(R.layout.activity_main);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-        
-        LOG_TAG = getString(R.string.app_log_identifier) + " " + FetchDonesTask.class.getSimpleName();
+    
+        LOG_TAG = getString(R.string.app_log_identifier) + " " + MainActivity.class.getSimpleName();
         
         // Register to receive messages.
         LocalBroadcastManager.getInstance(this).registerReceiver(mMessageReceiver,

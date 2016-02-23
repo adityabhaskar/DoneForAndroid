@@ -4,6 +4,8 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.AsyncTask;
 import android.preference.PreferenceManager;
 import android.support.v4.content.LocalBroadcastManager;
@@ -57,6 +59,13 @@ public class FetchDonesTask extends AsyncTask<Void, Void, String> {
     protected void onPreExecute() {
         super.onPreExecute();
     
+        if (!isOnline()) {
+            Log.v(LOG_TAG, "Offline, so cancelling fetch");
+            sendMessage(mContext.getString(R.string.fetch_cancelled_offline));
+            cancel(true);
+            return;
+        }
+        
         // Get authtoken from SharedPrefs
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(mContext);
         mAuthToken = prefs.getString("authToken", "");
@@ -301,6 +310,16 @@ public class FetchDonesTask extends AsyncTask<Void, Void, String> {
         intent.putExtra("count", fetchedDoneCounter);
         intent.putExtra("action", message);
         LocalBroadcastManager.getInstance(mContext.getApplicationContext()).sendBroadcast(intent);
+    }
+    
+    private boolean isOnline() {
+        ConnectivityManager cm =
+                (ConnectivityManager) mContext.getSystemService(Context.CONNECTIVITY_SERVICE);
+        
+        NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
+        
+        return activeNetwork != null &&
+                activeNetwork.isConnected();
     }
     
 }

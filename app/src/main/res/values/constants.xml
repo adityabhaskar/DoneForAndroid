@@ -10,4 +10,5 @@
     <string name="last_updated_setting_name">lastUpdated</string>
     <string name="fetch_started">fetchStarted</string>
     <string name="fetch_finished">fetchFinished</string>
+    <string name="fetch_cancelled_offline">fetchCancelledOffline</string>
 </resources>

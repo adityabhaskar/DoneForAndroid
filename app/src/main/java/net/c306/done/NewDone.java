@@ -31,7 +31,7 @@ public class NewDone extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_new_done);
     
-        LOG_TAG = getString(R.string.app_log_identifier) + " " + FetchDonesTask.class.getSimpleName();
+        LOG_TAG = getString(R.string.app_log_identifier) + " " + NewDone.class.getSimpleName();
     }
     
     @Override

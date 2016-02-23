@@ -3,7 +3,6 @@ package net.c306.done;
 import android.content.Context;
 import android.database.Cursor;
 import android.support.v4.widget.ResourceCursorAdapter;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -33,7 +32,7 @@ public class DoneListAdapter extends ResourceCursorAdapter{
     
     public DoneListAdapter(Context context, int layout, Cursor c, int flags) {
         super(context, layout, c, flags);
-        LOG_TAG = context.getString(R.string.app_log_identifier) + " " + FetchDonesTask.class.getSimpleName();
+        LOG_TAG = context.getString(R.string.app_log_identifier) + " " + DoneListAdapter.class.getSimpleName();
     }
     
     /*
@@ -54,7 +53,6 @@ public class DoneListAdapter extends ResourceCursorAdapter{
         // Set team colour
         LinearLayout rl = (LinearLayout) view.findViewById(R.id.list_item);
         int teamColor = (int) Math.round(Math.random() * (colorArray.length - 1));
-        Log.v(LOG_TAG, "Team Color: " + teamColor);
         rl.setBackgroundResource(colorArray[teamColor]);
         //// TODO: 20/02/16 Set colour based on team of the task 
     

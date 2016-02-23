@@ -7,7 +7,6 @@ import android.database.sqlite.SQLiteOpenHelper;
 import android.util.Log;
 
 import net.c306.done.DoneItem;
-import net.c306.done.FetchDonesTask;
 import net.c306.done.R;
 
 /**
@@ -33,7 +32,7 @@ public class DoneListDbHelper extends SQLiteOpenHelper {
         if (sInstance == null) {
             sInstance = new DoneListDbHelper(context.getApplicationContext());
         }
-        LOG_TAG = context.getString(R.string.app_log_identifier) + " " + FetchDonesTask.class.getSimpleName();
+        LOG_TAG = context.getString(R.string.app_log_identifier) + " " + DoneListDbHelper.class.getSimpleName();
         return sInstance;
     }
     
