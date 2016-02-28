@@ -9,7 +9,9 @@
     <string name="done_offline_saved_toast_message">Done saved offline!</string>
     <string name="done_sent_toast_message">Sent.</string>
     <string name="new_done_hint">What did you do today?</string>
-    
+
+    <string name="offline_toast_message">Offline! Will try again when connection available.</string>
+
     <!-- Strings related to Settings -->
     
     <!-- Example General settings -->

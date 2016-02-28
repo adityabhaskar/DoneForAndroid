@@ -1,14 +1,18 @@
-package net.c306.done;
+package net.c306.done.idonethis;
 
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.AsyncTask;
 import android.preference.PreferenceManager;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
 import com.google.gson.Gson;
+
+import net.c306.done.R;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -43,12 +47,21 @@ public class PostNewDoneTask extends AsyncTask<String, Void, String> {
     @Override
     protected void onPreExecute() {
         super.onPreExecute();
+    
+        //// DONE: 22/02/16 Check if internet connection is available else cancel fetch 
+        if (!isOnline()) {
+            Log.v(LOG_TAG, "Offline, so cancelling token check");
+            //Toast.makeText(mContext, "Offline, will confirm token when connected.", Toast.LENGTH_SHORT).show();
+            sendMessage("Offline", mContext.getString(R.string.postnewdone_cancelled_offline));
+            cancel(true);
+            return;
+        }
         
         //// DONE: 15/02/16 Load new dones and token from shared preferences, and save in class variables 
         SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(mContext);
         
         String newDoneArrayString = settings.getString(mContext.getString(R.string.pending_done_array_name), "");
-        authToken = settings.getString("authToken", "");
+        authToken = settings.getString(mContext.getString(R.string.auth_token), "");
         
         if(authToken.equals("")){
             Log.e(LOG_TAG, "No Auth Token Found!");
@@ -99,24 +112,31 @@ public class PostNewDoneTask extends AsyncTask<String, Void, String> {
                     case HttpURLConnection.HTTP_ACCEPTED:
                     case HttpURLConnection.HTTP_CREATED:
                     case HttpURLConnection.HTTP_OK:
-                        Log.v(LOG_TAG + " Sent Done" , " **OK** - " + resultStatus + ": " + responseMessage);
+                        Log.v(LOG_TAG, "Sent Done" + " **OK** - " + resultStatus + ": " + responseMessage);
                         // increment sent dones counter
                         sentDoneCounter += 1;
                         // remove current item from doneList 
                         iterator.remove();
                         break; // fine
-                        
+    
                     case HttpURLConnection.HTTP_GATEWAY_TIMEOUT:
-                        Log.w(LOG_TAG + " Didn't Send Done" , " **gateway timeout** - " + resultStatus + ": " + responseMessage);
-                        break;
-                    
                     case HttpURLConnection.HTTP_UNAVAILABLE:
-                        Log.w(LOG_TAG + " Didn't Send Done" , " **unavailable** - " + resultStatus + ": " + responseMessage);
-                        break;// retry, server is unstable
+                        Log.w(LOG_TAG, "Didn't Send Done" + " **gateway timeout / unavailable** - " + resultStatus + ": " + responseMessage);
+                        sendMessage("Server/gateway unavailable", mContext.getString(R.string.postnewdone_other_error));
+                        cancel(true);
+                        return null;
+    
+                    case HttpURLConnection.HTTP_FORBIDDEN:
+                    case HttpURLConnection.HTTP_UNAUTHORIZED:
+                        Log.w(LOG_TAG, "Didn't Send Done" + " **unauthorised** - " + resultStatus + ": " + responseMessage);
+                        sendMessage(null, mContext.getString(R.string.postnewdone_unauth));
+                        cancel(true);
+                        return null;
                     
                     default:
-                        Log.w(LOG_TAG + " Didn't Send Done" , " **unknown response code** - " + resultStatus + ": " + responseMessage);
-                        Log.wtf(LOG_TAG , " newDoneString - " + newDoneString);
+                        Log.w(LOG_TAG, "Didn't Send Done" + " **unknown response code** - " + resultStatus + ": " + responseMessage);
+                        //Log.wtf(LOG_TAG , " newDoneString - " + newDoneString);
+                        sendMessage(null, mContext.getString(R.string.postnewdone_other_error));
                         
                         try {
                             //Read      
@@ -131,8 +151,12 @@ public class PostNewDoneTask extends AsyncTask<String, Void, String> {
     
                             br.close();
                             Log.wtf(LOG_TAG, "Response message: " + sb);
+                            cancel(true);
+                            return sb.toString();
                         } catch (Exception e){
                             Log.wtf(LOG_TAG, e.toString());
+                            cancel(true);
+                            return null;
                         }
                 }
                 
@@ -161,7 +185,6 @@ public class PostNewDoneTask extends AsyncTask<String, Void, String> {
                 resultStatus = -1;
                 e.printStackTrace();
             }
-            
         }
         
         
@@ -184,21 +207,35 @@ public class PostNewDoneTask extends AsyncTask<String, Void, String> {
         editor.apply();
         
         // Send message to MainActivity saying done(s) have been posted, so Snackbar can be shown/updated
-        sendMessage(response);
+        if (response != null) {
+            sendMessage(response, mContext.getString(R.string.postnewdone_finished));
+        }
         
         // If done(s) sent successfully, update local doneList from server
         if(sentDoneCounter > 0) {
-            new FetchDonesTask(mContext).execute();
+            new FetchDonesTask(mContext, R.string.main_activity_listener_intent).execute();
         }
     }
     
-    private void sendMessage(String message) {
-        Intent intent = new Intent(mContext.getString(R.string.done_posted_intent));
+    private void sendMessage(String message, String action) {
+        Intent intent = new Intent(mContext.getString(R.string.main_activity_listener_intent));
         
         // You can also include some extra data.
         intent.putExtra("sender", "PostNewDoneTask");
+        intent.putExtra("action", action);
         intent.putExtra("count", sentDoneCounter);
         intent.putExtra("message", message);
         LocalBroadcastManager.getInstance(mContext.getApplicationContext()).sendBroadcast(intent);
     }
+    
+    private boolean isOnline() {
+        ConnectivityManager cm =
+                (ConnectivityManager) mContext.getSystemService(Context.CONNECTIVITY_SERVICE);
+        
+        NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
+        
+        return activeNetwork != null &&
+                activeNetwork.isConnected();
+    }
+    
 }

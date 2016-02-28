@@ -1,14 +1,51 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!--Save non-translating internal constant values here-->
-    <integer name="result_offline">-10</integer>
-    <string name="done_posted_intent">donePosted</string>
     <string name="app_log_identifier">AppMessage</string>
-    <string name="done_file_name_shared_preferences">PendingDonesFile</string>
+
+    <integer name="result_offline">-10</integer>
+
+    <string name="main_activity_listener_intent">mainActivityListenerIntent</string>
+    <string name="settings_activity_listener_intent">settingsActivityListenerIntent</string>
     <string name="pending_done_array_name">newDones</string>
-    <string name="space">  </string>
+
+    <!-- SharedPreferences string names -->
+    <string name="auth_token">authToken</string>
     <string name="last_updated_setting_name">lastUpdated</string>
-    <string name="fetch_started">fetchStarted</string>
-    <string name="fetch_finished">fetchFinished</string>
-    <string name="fetch_cancelled_offline">fetchCancelledOffline</string>
+    <string name="pending_actions">pendingActions</string>
+
+    <!-- Pending actions string names -->
+    <string name="pending_action_authenticate_token">pendingActionAuthenticateToken</string>
+    <string name="pending_action_fetch_teams">pendingActionFetchTeams</string>
+    <string name="pending_action_fetch_dones">pendingActionFetchDones</string>
+    <string name="pending_action_post_dones">pendingActionPostDones</string>
+    <string name="pending_action_edit_dones">pendingActionEditDones</string>
+    <string name="pending_action_delete_dones">pendingActionDeleteDones</string>
+
+    <!-- Local Broadcast identifier strings-->
+    <string name="check_token_started">checkTokenRequest_Started</string>
+    <string name="check_token_successful">checkTokenRequest_Successful</string>
+    <string name="check_token_failed">checkTokenRequest_Failed</string>
+    <string name="check_token_cancelled_offline">checkTokenRequest_CancelledOffline</string>
+    <string name="check_token_other_error">checkTokenOtherError</string>
+
+    <string name="fetch_tasks_started">fetchStarted</string>
+    <string name="fetch_tasks_finished">fetchFinished</string>
+    <string name="fetch_tasks_unauth">fetchUnAuth</string>
+    <string name="fetch_tasks_cancelled_offline">fetchCancelledOffline</string>
+    <string name="fetch_tasks_other_error">fetchOtherError</string>
+
+    <string name="fetch_teams_started">fetchTeamsStarted</string>
+    <string name="fetch_teams_finished">fetchTeamsFinished</string>
+    <string name="fetch_teams_unauth">fetchTeamsUnAuth</string>
+    <string name="fetch_teams_cancelled_offline">fetchTeamsCancelledOffline</string>
+    <string name="fetch_teams_other_error">fetchTeamsOtherError</string>
+
+    <string name="postnewdone_started">postNewDoneStarted</string>
+    <string name="postnewdone_finished">postNewDoneFinished</string>
+    <string name="postnewdone_unauth">postNewDoneUnAuth</string>
+    <string name="postnewdone_cancelled_offline">postNewDoneCancelledOffline</string>
+    <string name="postnewdone_other_error">postNewDoneOtherError</string>
+
+
 </resources>

@@ -14,6 +14,8 @@ import android.widget.EditText;
 
 import com.google.gson.Gson;
 
+import net.c306.done.idonethis.PostNewDoneTask;
+
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;

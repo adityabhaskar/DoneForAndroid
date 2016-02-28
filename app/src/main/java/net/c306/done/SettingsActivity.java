@@ -2,8 +2,11 @@ package net.c306.done;
 
 
 import android.annotation.TargetApi;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.media.Ringtone;
 import android.media.RingtoneManager;
@@ -16,9 +19,15 @@ import android.preference.PreferenceActivity;
 import android.preference.PreferenceFragment;
 import android.preference.PreferenceManager;
 import android.preference.RingtonePreference;
+import android.support.design.widget.Snackbar;
+import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.ActionBar;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.MenuItem;
+import android.widget.Toast;
+
+import net.c306.done.idonethis.CheckTokenTask;
 
 import java.util.List;
 
@@ -33,7 +42,8 @@ import java.util.List;
  * href="http://developer.android.com/guide/topics/ui/settings.html">Settings
  * API Guide</a> for more information on developing a Settings UI.
  */
-public class SettingsActivity extends AppCompatPreferenceActivity {
+public class SettingsActivity extends AppCompatPreferenceActivity implements SharedPreferences.OnSharedPreferenceChangeListener {
+    
     /**
      * A preference value change listener that updates the preference's summary
      * to reflect its new value.
@@ -85,6 +95,91 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
             return true;
         }
     };
+    private String LOG_TAG;
+    private Snackbar settingsSnackbar;
+    // Our handler for received Intents. This will be called whenever an Intent
+    // with an action named "custom-event-name" is broadcasted.
+    // Src: http://stackoverflow.com/questions/8802157/how-to-use-localbroadcastmanager    
+    private BroadcastReceiver mMessageReceiver = new BroadcastReceiver() {
+        
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            // Who is sending message?
+            String sender = intent.getStringExtra("sender");
+            String action = intent.getStringExtra("action");
+            String message = intent.getStringExtra("message");
+            
+            switch (sender) {
+                
+                case "CheckTokenTask":
+                    if (action.equals(getString(R.string.check_token_started))) {
+                        // Do nothing for now
+                        
+                    } else if (action.equals(getString(R.string.check_token_successful))) {
+                        
+                        Toast.makeText(getApplicationContext(), "User " + message + " authenticated. Thank you!", Toast.LENGTH_LONG).show();
+                        Log.v(LOG_TAG, "Broadcast Receiver - User " + message + " authenticated.");
+                        
+                    } else if (action.equals(getString(R.string.check_token_failed))) {
+                        
+                        Toast.makeText(getApplicationContext(), "Authentication failed! Please check auth token provided.", Toast.LENGTH_LONG).show();
+                        Log.v(LOG_TAG, "Broadcast Receiver - Authentication failed! " + message);
+                        
+                    } else if (action.equals(getString(R.string.check_token_cancelled_offline))) {
+                        
+                        Toast.makeText(getApplicationContext(), "Offline! Will check authentication when online.", Toast.LENGTH_LONG).show();
+                        Log.v(LOG_TAG, "Broadcast Receiver - Offline. Check again later. " + message);
+                        
+                    } else if (action.equals(getString(R.string.check_token_other_error))) {
+                        
+                        Toast.makeText(getApplicationContext(), "Server error. Will try again later.", Toast.LENGTH_LONG).show();
+                        Log.v(LOG_TAG, "Broadcast Receiver - Some other error happened while checking auth: " + message);
+                        
+                    } else {
+                        
+                        Log.v(LOG_TAG, "Broadcast Receiver - Unknown response: " + message);
+                        
+                    }
+                    
+                    break;
+                
+                
+                case "FetchTeamsTask":
+                    if (action.equals(getString(R.string.fetch_teams_started))) {
+                        // Do nothing for now
+                        
+                    } else if (action.equals(getString(R.string.fetch_teams_finished))) {
+                        
+                        Log.v(LOG_TAG, "Broadcast Receiver - Teams fetched" + message);
+                        
+                    } else if (action.equals(getString(R.string.fetch_teams_unauth))) {
+                        
+                        Log.v(LOG_TAG, "Broadcast Receiver - Authentication failed in teamFetch! " + message);
+                        
+                    } else if (action.equals(getString(R.string.fetch_teams_cancelled_offline))) {
+                        
+                        Log.v(LOG_TAG, "Broadcast Receiver - Offline. Will Check again later. " + message);
+                        
+                    } else if (action.equals(getString(R.string.fetch_teams_other_error))) {
+                        
+                        Log.v(LOG_TAG, "Broadcast Receiver - Some other error happened while checking auth: " + message);
+                        
+                    } else {
+                        
+                        Log.v(LOG_TAG, "Broadcast Receiver - Unknown response: " + message);
+                        
+                    }
+                    
+                    break;
+                
+                default:
+                    Log.w(LOG_TAG, "Broadcast receiver got message from unknown sender: " +
+                            intent.getStringExtra("message") +
+                            " - " +
+                            intent.getStringExtra("action"));
+            }
+        }
+    };
     
     /**
      * Helper method to determine if the device has an extra-large screen. For
@@ -120,6 +215,42 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setupActionBar();
+        LOG_TAG = getString(R.string.app_log_identifier) + " " + SettingsActivity.class.getSimpleName();
+    
+    }
+    
+    @Override
+    protected void onResume() {
+        super.onResume();
+        
+        PreferenceManager.getDefaultSharedPreferences(this)
+                .registerOnSharedPreferenceChangeListener(this);
+        
+        // Register to receive messages.
+        LocalBroadcastManager.getInstance(this).registerReceiver(mMessageReceiver,
+                new IntentFilter(getString(R.string.settings_activity_listener_intent)));
+        
+    }
+    
+    @Override
+    protected void onPause() {
+        super.onPause();
+        
+        PreferenceManager.getDefaultSharedPreferences(this)
+                .unregisterOnSharedPreferenceChangeListener(this);
+        
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(mMessageReceiver);
+    }
+    
+    /*
+    * Implementing method to handle change in preferences, and test for valid authToken
+    * */
+    @Override
+    public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
+        Log.wtf(LOG_TAG, "Got pref change: " + key);
+        if (key.equals(getString(R.string.auth_token))) {
+            new CheckTokenTask(this).execute();
+        }
     }
     
     /**
@@ -250,4 +381,5 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
             return super.onOptionsItemSelected(item);
         }
     }
+    
 }

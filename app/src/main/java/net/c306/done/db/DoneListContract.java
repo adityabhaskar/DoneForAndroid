@@ -26,10 +26,31 @@ public class DoneListContract {
     // as the ContentProvider hasn't been given any information on what to do with "givemeroot".
     // At least, let's hope not.  Don't be that dev, reader.  Don't be that dev.
     public static final String PATH_DONES = "dones";
+    public static final String PATH_TEAMS = "teams";
     
     // To prevent someone from accidentally instantiating the contract class,
     // give it an empty constructor.
     public DoneListContract() {}
+    
+    public static abstract class TeamEntry implements BaseColumns {
+        public static final String TABLE_NAME = "teams";
+        
+        public static final String COLUMN_NAME_ID = "id";
+        public static final String COLUMN_NAME_URL = "url";
+        public static final String COLUMN_NAME_NAME = "name";
+        public static final String COLUMN_NAME_SHORT_NAME = "short_name";
+        public static final String COLUMN_NAME_DONES = "dones";
+        public static final String COLUMN_NAME_IS_PERSONAL = "is_personal";
+        public static final String COLUMN_NAME_PERMALINK = "permalink";
+        
+        public static final Uri CONTENT_URI = BASE_CONTENT_URI.buildUpon().appendPath(PATH_TEAMS).build();
+        
+        public static final String CONTENT_TYPE =
+                ContentResolver.CURSOR_DIR_BASE_TYPE + "/" + CONTENT_AUTHORITY + "/" + PATH_TEAMS;
+        public static final String CONTENT_ITEM_TYPE =
+                ContentResolver.CURSOR_ITEM_BASE_TYPE + "/" + CONTENT_AUTHORITY + "/" + PATH_TEAMS;
+        
+    }
     
     /* Inner class that defines the table contents */
     public static abstract class DoneEntry implements BaseColumns {

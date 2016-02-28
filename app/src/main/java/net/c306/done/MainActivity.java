@@ -26,6 +26,7 @@ import android.widget.ListView;
 import android.widget.Toast;
 
 import net.c306.done.db.DoneListContract;
+import net.c306.done.idonethis.FetchDonesTask;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -34,7 +35,7 @@ import java.util.Date;
 import java.util.Locale;
 
 //// TODO: 20/02/16 Group dones under date headers in listView
-//// TODO: 22/02/16 Add date of done in small font under the done 
+//// DONE: 22/02/16 Add date of done in small font under the done 
 public class MainActivity extends AppCompatActivity implements LoaderManager.LoaderCallbacks<Cursor>, SwipeRefreshLayout.OnRefreshListener{
     
     private static final int DONE_LIST_LOADER = 0;
@@ -65,42 +66,60 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
                     
                     SwipeRefreshLayout swp = (SwipeRefreshLayout) findViewById(R.id.swipe_refresh_layout);
     
-                    if (action == getString(R.string.fetch_started) && !swp.isRefreshing()) {
+                    if (action.equals(getString(R.string.fetch_tasks_started)) && !swp.isRefreshing()) {
                         //Log.v(LOG_TAG, "Refresh started, showing SWP");
                         swp.setRefreshing(true);
-                    } else if (action == getString(R.string.fetch_finished)) {
+                    } else if (action.equals(getString(R.string.fetch_tasks_finished))) {
                         if (swp.isRefreshing())
                             swp.setRefreshing(false);
                         //Log.v(LOG_TAG, "Broadcast Receiver - Fetched " + count + " messages");
-                    } else if (action == getString(R.string.fetch_cancelled_offline)) {
+                    } else if (action.equals(getString(R.string.fetch_tasks_cancelled_offline))) {
                         //Log.w(LOG_TAG, "Fetch cancelled because offline");
                         if (swp.isRefreshing()) {
                             //Log.v(LOG_TAG, "SWP is refreshing. Cancelling...");
                             swp.setRefreshing(false);
                         }
         
-                        Toast t = Toast.makeText(getApplicationContext(), "Offline! Please check your connection.", Toast.LENGTH_SHORT);
+                        Toast t = Toast.makeText(getApplicationContext(), R.string.offline_toast_message, Toast.LENGTH_SHORT);
                         t.show();
                     }
                     
                     break;
                 }
                 case "PostNewDoneTask":{
+                    String action = intent.getStringExtra("action");
                     // Get count of messages sent - >0 means success
-                    int count = intent.getIntExtra("count", -1);
                     String message = intent.getStringExtra("message");
-                    
-                    if (count > 0) {
-                        if (newDoneSnackbar != null && newDoneSnackbar.isShown())
-                            newDoneSnackbar.dismiss();
-                        
-                        newDoneSnackbar = Snackbar.make(findViewById(R.id.fab), (count > 1 ? count + " dones " : "Done ") + getString(R.string.done_sent_toast_message), Snackbar.LENGTH_LONG);
-                        newDoneSnackbar.setAction("Action", null).show();
-                        
-                        Log.v(LOG_TAG, "Broadcast Receiver - Got message: " + count + " " + message);
+    
+                    if (action.equals(getString(R.string.postnewdone_started))) {
+                        // Do nothing for now
+        
+                    } else if (action.equals(getString(R.string.postnewdone_finished))) {
+        
+                        int count = intent.getIntExtra("count", -1);
+        
+                        if (count > 0) {
+                            if (newDoneSnackbar != null && newDoneSnackbar.isShown())
+                                newDoneSnackbar.dismiss();
+            
+                            newDoneSnackbar = Snackbar.make(findViewById(R.id.fab), (count > 1 ? count + " dones " : "Done ") + getString(R.string.done_sent_toast_message), Snackbar.LENGTH_LONG);
+                            newDoneSnackbar.setAction("Action", null).show();
+                            //} else {
+                            //    Log.v(LOG_TAG, "Broadcast Receiver - Got error: " + count);
+                        }
+                        //Log.v(LOG_TAG, "Broadcast Receiver - Fetched " + count + " messages");
+        
+                    } else if (action.equals(getString(R.string.postnewdone_cancelled_offline))) {
+        
+                        Log.v(LOG_TAG, "Broadcast Receiver - Offline. Will post done when connected");
+        
+                    } else if (action.equals(getString(R.string.postnewdone_unauth))) {
+                        Log.w(LOG_TAG, "Broadcast Receiver - Unauthorised. Check auth token!");
+                        // TODO: 27/02/16 Reset token, and show warning bar on top of screen to show offline/unauthorised status 
                     } else {
-                        Log.v(LOG_TAG, "Broadcast Receiver - Got error: " + count);
+                        Log.v(LOG_TAG, "Broadcast Receiver - Some other error happened while posting done: " + intent.getIntExtra("count", -1));
                     }
+    
                     break;
                 }
                 default:
@@ -118,10 +137,6 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
     
         LOG_TAG = getString(R.string.app_log_identifier) + " " + MainActivity.class.getSimpleName();
         
-        // Register to receive messages.
-        LocalBroadcastManager.getInstance(this).registerReceiver(mMessageReceiver,
-                new IntentFilter(getString(R.string.done_posted_intent)));
-        
         /*
         * 
         * Precede these with deleting all entries ('delete from dones') from database to do a 
@@ -130,6 +145,7 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
         * */
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
         String lastUpdated = prefs.getString(getString(R.string.last_updated_setting_name), "");
+        Log.v(LOG_TAG, "Last Updated: " + lastUpdated);
         //SharedPreferences.Editor editor = prefs.edit();
         //editor.remove("newDones");
         //editor.apply();
@@ -145,15 +161,15 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
                 c.setTime(new Date());
                 c.add(Calendar.MINUTE, REFRESH_LIST_DELAY);  // create timestamp 15 mins back
                 if (lastUpdatedDate.before(c.getTime())) {
-                    new FetchDonesTask(this).execute();
+                    new FetchDonesTask(this, R.string.main_activity_listener_intent).execute();
                 }
             } catch(ParseException e){
                 Log.w(LOG_TAG, "Couldn't parse lastUpdated: " + lastUpdated + ".");
-                new FetchDonesTask(this).execute();
+                new FetchDonesTask(this, R.string.main_activity_listener_intent).execute();
             }
         } else {
             Log.w(LOG_TAG, "No lastUpdated found, starting fetch.");
-            new FetchDonesTask(this).execute();
+            new FetchDonesTask(this, R.string.main_activity_listener_intent).execute();
         }
         
         //mDoneListAdapter = new DoneListAdapter(this, R.layout.list_row_layout, cur, 0);
@@ -162,17 +178,6 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
         listView = (ListView) findViewById(R.id.dones_list_view);
         
         listView.setAdapter(mDoneListAdapter);
-        
-        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> adapterView, View view, int position, long l) {
-                // CursorAdapter returns a cursor at the correct position for getItem(), or null
-                // if it cannot seek to that position.
-                //Cursor cursor = (Cursor) adapterView.getItemAtPosition(position);
-                Log.v(LOG_TAG, "Item Clicked: " + position + ", l: " + l);
-                mPosition = position;
-            }
-        });
         
         // If there's instance state, mine it for useful information.
         // The end-goal here is that the user never knows that turning their device sideways
@@ -201,19 +206,41 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
                 android.R.color.holo_orange_dark,
                 R.color.primary
         );
+    
+        //new CheckTokenTask(this).execute();
+    }
+    
+    @Override
+    protected void onResume() {
+        super.onResume();
+    
+        // Register to receive messages.
+        LocalBroadcastManager.getInstance(this).registerReceiver(mMessageReceiver,
+                new IntentFilter(getString(R.string.main_activity_listener_intent)));
+    
+        // Register to save click location (for now), and edit/delete buttons later
+        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> adapterView, View view, int position, long l) {
+                // CursorAdapter returns a cursor at the correct position for getItem(), or null
+                // if it cannot seek to that position.
+                //Cursor cursor = (Cursor) adapterView.getItemAtPosition(position);
+                Log.v(LOG_TAG, "Item Clicked: " + position + ", l: " + l);
+                mPosition = position;
+            }
+        });
+    
+        // Register to get on swiped events
+        SwipeRefreshLayout swp = (SwipeRefreshLayout) findViewById(R.id.swipe_refresh_layout);
         swp.setOnRefreshListener(this);
     }
     
     @Override
-    protected void onStart() {
-        super.onStart();
-    }
-    
-    @Override
-    protected void onDestroy() {
+    protected void onPause() {
+        super.onPause();
+        
         // Unregister since the activity is about to be closed.
         LocalBroadcastManager.getInstance(this).unregisterReceiver(mMessageReceiver);
-        super.onDestroy();
     }
     
     public void toNewDone(View view) {
@@ -330,6 +357,6 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
     @Override
     public void onRefresh() {
         Log.v(LOG_TAG, "Calling fetch from swipe to refresh");
-        new FetchDonesTask(this).execute();
+        new FetchDonesTask(this, R.string.main_activity_listener_intent).execute();
     }
 }
