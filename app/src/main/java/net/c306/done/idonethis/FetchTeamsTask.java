@@ -54,7 +54,7 @@ public class FetchTeamsTask extends AsyncTask<Void, Void, String> {
         
         //// DONE: 22/02/16 Check if internet connection is available else cancel fetch 
         if (!isOnline()) {
-            Log.v(LOG_TAG, "Offline, so cancelling fetch");
+            Log.w(LOG_TAG, "Offline, so cancelling fetch");
             sendMessage("Offline", mContext.getString(R.string.fetch_teams_cancelled_offline));
             
             Utils.addToPendingActions(mContext, mContext.getString(R.string.pending_action_fetch_teams));
@@ -107,7 +107,7 @@ public class FetchTeamsTask extends AsyncTask<Void, Void, String> {
             
             switch (resultStatus) {
                 case HttpURLConnection.HTTP_OK:
-                    Log.v(LOG_TAG, Thread.currentThread().getStackTrace()[2].getLineNumber() + " Got teams " + " **OK** - " + resultStatus + ": " + responseMessage);
+                    Log.v(LOG_TAG, " Got teams - " + resultStatus + ": " + responseMessage);
                     
                     //Read      
                     br = new BufferedReader(new InputStreamReader(httpcon.getInputStream(), "UTF-8"));
@@ -137,19 +137,19 @@ public class FetchTeamsTask extends AsyncTask<Void, Void, String> {
                 
                 case HttpURLConnection.HTTP_GATEWAY_TIMEOUT:
                 case HttpURLConnection.HTTP_UNAVAILABLE:
-                    Log.w(LOG_TAG, "Couldn't fetch teams" + " **server unavailable/unreachable** - " + resultStatus + ": " + responseMessage);
+                    Log.w(LOG_TAG, "Couldn't fetch teams - " + resultStatus + ": " + responseMessage);
                     sendMessage(responseMessage, mContext.getString(R.string.fetch_teams_other_error));
                     result = null;
                     break;
                 
                 case HttpURLConnection.HTTP_UNAUTHORIZED:
-                    Log.w(LOG_TAG + " Authcode invalid", " **invalid auth code** - " + resultStatus + ": " + responseMessage);
+                    Log.w(LOG_TAG, " Authcode invalid - " + resultStatus + ": " + responseMessage);
                     sendMessage(responseMessage, mContext.getString(R.string.fetch_teams_unauth));
                     result = null;
                     break;
                 
                 default:
-                    Log.w(LOG_TAG, "Couldn't fetch teams" + " **unknown response code** - " + resultStatus + ": " + responseMessage);
+                    Log.w(LOG_TAG, "Couldn't fetch teams - " + resultStatus + ": " + responseMessage);
                     sendMessage(responseMessage, mContext.getString(R.string.fetch_teams_other_error));
                     result = null;
             }

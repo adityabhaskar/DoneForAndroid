@@ -140,9 +140,9 @@ public class NewDone extends AppCompatActivity {
             SharedPreferences.Editor editor = settings.edit();
             editor.putString(getString(R.string.pending_done_array_name), pendingDonesArrayString);
             editor.apply();
-            
-            Log.v(LOG_TAG, "Saved Done Text" + doneAsJSON);
-            Log.v(LOG_TAG, "Pending List Size" + pendingDonesArray.size());
+    
+            Log.v(LOG_TAG, "Saved Done Text: " + doneAsJSON);
+            Log.v(LOG_TAG, "Pending List Size: " + pendingDonesArray.size());
             
             //// DONE: 14/02/16 Start async task to send new done to server. On success, remove done from SharedPreferences
             if(isOnline()) {

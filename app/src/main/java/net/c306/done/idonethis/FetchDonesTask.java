@@ -59,7 +59,7 @@ public class FetchDonesTask extends AsyncTask<Void, Void, String> {
     
         //// DONE: 22/02/16 Check if internet connection is available else cancel fetch 
         if (!isOnline()) {
-            Log.v(LOG_TAG, "Offline, so cancelling fetch");
+            Log.w(LOG_TAG, "Offline, so cancelling fetch");
             sendMessage("Offline", mContext.getString(R.string.fetch_tasks_cancelled_offline));
     
             Utils.addToPendingActions(mContext, mContext.getString(R.string.pending_action_fetch_dones));
@@ -135,7 +135,7 @@ public class FetchDonesTask extends AsyncTask<Void, Void, String> {
                 case HttpURLConnection.HTTP_ACCEPTED:
                 case HttpURLConnection.HTTP_CREATED:
                 case HttpURLConnection.HTTP_OK:
-                    Log.v(LOG_TAG + " Sent Done" , " **OK** - " + resultStatus + ": " + responseMessage);
+                    Log.v(LOG_TAG, "Got Done List - " + resultStatus + ": " + responseMessage);
                     
                     //Read      
                     br = new BufferedReader(new InputStreamReader(httpcon.getInputStream(),"UTF-8"));
@@ -166,7 +166,7 @@ public class FetchDonesTask extends AsyncTask<Void, Void, String> {
                         SharedPreferences.Editor editor = prefs.edit();
                         editor.putString(mContext.getString(R.string.last_updated_setting_name), lastUpdated);
                         editor.apply();
-                        Log.v(LOG_TAG, "LastUpdated: " + lastUpdated);
+                        Log.v(LOG_TAG, "New LastUpdated Time: " + lastUpdated);
         
                         result = getDoneListFromJson(result).toString();
                         
@@ -176,19 +176,19 @@ public class FetchDonesTask extends AsyncTask<Void, Void, String> {
                 
                 case HttpURLConnection.HTTP_GATEWAY_TIMEOUT:
                 case HttpURLConnection.HTTP_UNAVAILABLE:
-                    Log.w(LOG_TAG, "Couldn't fetch dones" + " **server unavailable/unreachable** - " + resultStatus + ": " + responseMessage);
+                    Log.w(LOG_TAG, "Couldn't fetch dones - " + resultStatus + ": " + responseMessage);
                     sendMessage(responseMessage, mContext.getString(R.string.fetch_tasks_other_error));
                     result = null;
                     break;
     
                 case HttpURLConnection.HTTP_UNAUTHORIZED:
-                    Log.w(LOG_TAG + " Authcode invalid", " **invalid auth code** - " + resultStatus + ": " + responseMessage);
+                    Log.w(LOG_TAG, "Authcode invalid - " + resultStatus + ": " + responseMessage);
                     sendMessage(responseMessage, mContext.getString(R.string.fetch_tasks_unauth));
                     result = null;
                     break;
                 
                 default:
-                    Log.w(LOG_TAG, "Couldn't fetch dones" + " **unknown response code** - " + resultStatus + ": " + responseMessage);
+                    Log.w(LOG_TAG, "Couldn't fetch dones" + resultStatus + ": " + responseMessage);
                     sendMessage(responseMessage, mContext.getString(R.string.fetch_tasks_other_error));
                     result = null;
                     

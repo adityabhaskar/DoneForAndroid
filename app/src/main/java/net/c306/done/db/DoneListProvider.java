@@ -136,11 +136,11 @@ public class DoneListProvider extends ContentProvider {
         );
     }
     
-    private Cursor getAllDones(Uri uri, String[] projection, String sortOrder) {
+    private Cursor getAllDones(Uri uri, String[] projection, String selection, String[] selectionArgs, String sortOrder) {
         return sDonesByTeamQueryBuilder.query(mOpenHelper.getReadableDatabase(),
                 projection,
-                null,
-                null,
+                selection,
+                selectionArgs,
                 null,
                 null,
                 sortOrder
@@ -217,7 +217,7 @@ public class DoneListProvider extends ContentProvider {
             // "dones"
             case DONES: {
                 //// DONE: 18/02/16 Return default list of dones 
-                retCursor = getAllDones(uri, projection, sortOrder);
+                retCursor = getAllDones(uri, projection, selection, selectionArgs, sortOrder);
                 break;
             }
             // "dones?id"

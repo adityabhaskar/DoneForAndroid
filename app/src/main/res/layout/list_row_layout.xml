@@ -1,37 +1,54 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-              android:id="@+id/list_item"
-              android:layout_width="fill_parent"
-              android:layout_height="wrap_content"
-              android:minHeight="?android:attr/listPreferredItemHeight"
-              android:orientation="vertical"
-              android:paddingStart="8dp">
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/list_item"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="?android:attr/activatedBackgroundIndicator"
+    android:minHeight="?android:attr/listPreferredItemHeight">
 
-    <TextView
-        android:id="@+id/item_raw_text"
+    <View
+        android:id="@+id/team_color_patch"
+        android:layout_width="8dp"
+        android:layout_height="match_parent"
+        android:background="@color/teamPrimary"
+        />
+
+    <LinearLayout
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:background="?android:attr/colorBackground"
-        android:gravity="center_vertical"
-        android:paddingEnd="16dp"
-        android:paddingStart="16dp"
-        android:paddingTop="8dp"
-        android:text="@string/app_log_identifier"
-        android:textColor="@android:color/secondary_text_light"
-        android:textSize="16sp"/>
+        android:layout_gravity="fill"
+        android:orientation="vertical"
+        >
 
-    <TextView
-        android:id="@+id/item_date"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="?android:attr/colorBackground"
-        android:padding="8dp"
-        android:paddingEnd="16dp"
-        android:paddingStart="16dp"
-        android:text="date"
-        android:textAppearance="?android:attr/textAppearanceSmall"
-        android:textColor="@android:color/tertiary_text_light"
-        />
+        <TextView
+            android:id="@+id/item_raw_text"
+            android:layout_width="fill_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:gravity="center_vertical"
+            android:paddingEnd="16dp"
+            android:paddingStart="16dp"
+            android:paddingTop="8dp"
+            android:text="@string/app_log_identifier"
+            android:textColor="@android:color/secondary_text_light"
+            android:textSize="16sp"/>
+
+
+        <TextView
+            android:id="@+id/item_date"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="8dp"
+            android:paddingEnd="16dp"
+            android:paddingStart="16dp"
+            android:text="date"
+            android:textAppearance="?android:attr/textAppearanceSmall"
+            android:textColor="@android:color/tertiary_text_light"
+            />
+
+
+    </LinearLayout>
+
 
 </LinearLayout>

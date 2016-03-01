@@ -18,14 +18,17 @@ import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
+import android.view.ActionMode;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.AbsListView;
 import android.widget.AdapterView;
 import android.widget.ListView;
 import android.widget.Toast;
 
 import net.c306.done.db.DoneListContract;
+import net.c306.done.idonethis.DoneActions;
 import net.c306.done.idonethis.FetchDonesTask;
 
 import java.text.ParseException;
@@ -34,15 +37,24 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.Locale;
 
-//// TODO: 20/02/16 Group dones under date headers in listView
-//// DONE: 22/02/16 Add date of done in small font under the done 
-public class MainActivity extends AppCompatActivity implements LoaderManager.LoaderCallbacks<Cursor>, SwipeRefreshLayout.OnRefreshListener{
+// TODO: 20/02/16 Group dones under date headers in listView
+// DONE: 22/02/16 Add date of done in small font under the done
+// TODO: 28/02/16 Add edit functions 
+// DONE: 28/02/16 Add delete functions 
+public class MainActivity
+        extends
+        AppCompatActivity
+        implements
+        LoaderManager.LoaderCallbacks<Cursor>,
+        SwipeRefreshLayout.OnRefreshListener,
+        AbsListView.MultiChoiceModeListener,
+        AdapterView.OnItemClickListener {
     
     private static final int DONE_LIST_LOADER = 0;
     private static final String SELECTED_KEY = "selected_position";
     private static final int REFRESH_LIST_DELAY = -15; // Except for new dones, fetch only every 15 mins.
     private Snackbar newDoneSnackbar;
-    private ListView listView;
+    private ListView mListView;
     private String LOG_TAG;
     private DoneListAdapter mDoneListAdapter;
     private int mPosition = ListView.INVALID_POSITION;
@@ -67,16 +79,13 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
                     SwipeRefreshLayout swp = (SwipeRefreshLayout) findViewById(R.id.swipe_refresh_layout);
     
                     if (action.equals(getString(R.string.fetch_tasks_started)) && !swp.isRefreshing()) {
-                        //Log.v(LOG_TAG, "Refresh started, showing SWP");
                         swp.setRefreshing(true);
                     } else if (action.equals(getString(R.string.fetch_tasks_finished))) {
-                        if (swp.isRefreshing())
-                            swp.setRefreshing(false);
-                        //Log.v(LOG_TAG, "Broadcast Receiver - Fetched " + count + " messages");
-                    } else if (action.equals(getString(R.string.fetch_tasks_cancelled_offline))) {
-                        //Log.w(LOG_TAG, "Fetch cancelled because offline");
                         if (swp.isRefreshing()) {
-                            //Log.v(LOG_TAG, "SWP is refreshing. Cancelling...");
+                            swp.setRefreshing(false);
+                        }
+                    } else if (action.equals(getString(R.string.fetch_tasks_cancelled_offline))) {
+                        if (swp.isRefreshing()) {
                             swp.setRefreshing(false);
                         }
         
@@ -104,10 +113,7 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
             
                             newDoneSnackbar = Snackbar.make(findViewById(R.id.fab), (count > 1 ? count + " dones " : "Done ") + getString(R.string.done_sent_toast_message), Snackbar.LENGTH_LONG);
                             newDoneSnackbar.setAction("Action", null).show();
-                            //} else {
-                            //    Log.v(LOG_TAG, "Broadcast Receiver - Got error: " + count);
                         }
-                        //Log.v(LOG_TAG, "Broadcast Receiver - Fetched " + count + " messages");
         
                     } else if (action.equals(getString(R.string.postnewdone_cancelled_offline))) {
         
@@ -174,10 +180,10 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
         
         //mDoneListAdapter = new DoneListAdapter(this, R.layout.list_row_layout, cur, 0);
         mDoneListAdapter = new DoneListAdapter(this, R.layout.list_row_layout, null, 0);
-        
-        listView = (ListView) findViewById(R.id.dones_list_view);
-        
-        listView.setAdapter(mDoneListAdapter);
+    
+        mListView = (ListView) findViewById(R.id.dones_list_view);
+    
+        mListView.setAdapter(mDoneListAdapter);
         
         // If there's instance state, mine it for useful information.
         // The end-goal here is that the user never knows that turning their device sideways
@@ -219,17 +225,9 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
                 new IntentFilter(getString(R.string.main_activity_listener_intent)));
     
         // Register to save click location (for now), and edit/delete buttons later
-        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> adapterView, View view, int position, long l) {
-                // CursorAdapter returns a cursor at the correct position for getItem(), or null
-                // if it cannot seek to that position.
-                //Cursor cursor = (Cursor) adapterView.getItemAtPosition(position);
-                Log.v(LOG_TAG, "Item Clicked: " + position + ", l: " + l);
-                mPosition = position;
-            }
-        });
-    
+        mListView.setOnItemClickListener(this);
+        mListView.setMultiChoiceModeListener(this);
+        
         // Register to get on swiped events
         SwipeRefreshLayout swp = (SwipeRefreshLayout) findViewById(R.id.swipe_refresh_layout);
         swp.setOnRefreshListener(this);
@@ -305,6 +303,92 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
         super.onSaveInstanceState(outState);
     }
     
+    /*
+    * AdapterView.OnItemClickListener
+    * */
+    @Override
+    public void onItemClick(AdapterView<?> adapterView, View view, int position, long l) {
+        // CursorAdapter returns a cursor at the correct position for getItem(), or null
+        // if it cannot seek to that position.
+        //Cursor cursor = (Cursor) adapterView.getItemAtPosition(position);
+        mPosition = position;
+        
+        mListView.setItemChecked(position, !mListView.isItemChecked(position));
+    }
+    
+    /*
+    *  AbsListView.MultiChoiceModeListener methods
+    * */
+    
+    @Override
+    public void onItemCheckedStateChanged(ActionMode mode, int position, long id, boolean checked) {
+        // Here you can do something when items are selected/de-selected,
+        // such as update the title in the CAB
+        int checkedCount = mListView.getCheckedItemCount();
+        mode.setTitle(checkedCount + " tasks selected");
+        
+        if (checkedCount == 2 && checked) {
+            // add edit
+            mode.invalidate();
+        } else if (checkedCount == 1 && !checked) {
+            // remove edit
+            mode.invalidate();
+        }
+    }
+    
+    @Override
+    public boolean onCreateActionMode(ActionMode mode, Menu menu) {
+        // Inflate the menu for the CAB
+        getMenuInflater().inflate(R.menu.listview_context, menu);
+        return true;
+    }
+    
+    @Override
+    public boolean onPrepareActionMode(ActionMode mode, Menu menu) {
+        // Here you can perform updates to the CAB due to
+        // an invalidate() request
+        // DONE: 28/02/16 Hide edit button
+        menu.findItem(R.id.menu_edit_done).setVisible(mListView.getCheckedItemCount() <= 1);
+        return true;
+    }
+    
+    @Override
+    public boolean onActionItemClicked(ActionMode mode, MenuItem item) {
+        // Respond to clicks on the actions in the CAB
+        switch (item.getItemId()) {
+            case R.id.menu_delete_done:
+                deleteSelectedItems();
+                mode.finish(); // Action picked, so close the CAB
+                return true;
+            case R.id.menu_edit_done:
+                //editSelectedItems();
+                Log.v(LOG_TAG, "Edit selected item");
+                mode.finish(); // Action picked, so close the CAB
+                return true;
+            default:
+                return false;
+        }
+        //return false;
+    }
+    
+    private void deleteSelectedItems() {
+        long[] ids = mListView.getCheckedItemIds();
+        Log.v(LOG_TAG, "Delete selected items: " + ids.length);
+        
+        // DONE: 28/02/16 Make delete asynctask with selected ids, fetchdones on success
+        new DoneActions(this).delete(ids);
+        //new DeleteDonesTask(this, ids).execute();
+    }
+    
+    @Override
+    public void onDestroyActionMode(ActionMode mode) {
+        // Here you can make any necessary updates to the activity when
+        // the CAB is removed. By default, selected items are deselected/unchecked.
+    }
+    
+    /*
+    *  LoaderManager.LoaderCallbacks<Cursor> methods
+    * */
     
     @Override
     public Loader<Cursor> onCreateLoader(int id, Bundle args) {
@@ -327,8 +411,6 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
                 DoneListContract.DoneEntry.COLUMN_NAME_TEAM_SHORT_NAME
         };
         
-        Log.wtf(LOG_TAG, "From Loader: " + cursorProjectionString[0]);
-        
         return new CursorLoader(this,
                 donesUri,
                 cursorProjectionString,
@@ -343,8 +425,8 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
         if (mPosition != ListView.INVALID_POSITION) {
             // If we don't need to restart the loader, and there's a desired position to restore
             // to, do so now.
-            Log.v(LOG_TAG, "Scroll to " + mPosition);
-            listView.smoothScrollToPosition(mPosition);
+            //Log.v(LOG_TAG, "Scroll to " + mPosition);
+            mListView.smoothScrollToPosition(mPosition);
         }
     }
     
@@ -354,6 +436,9 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
     }
     
     
+    /*
+    *          SwipeRefreshLayout.OnRefreshListener methods
+    * */
     @Override
     public void onRefresh() {
         Log.v(LOG_TAG, "Calling fetch from swipe to refresh");

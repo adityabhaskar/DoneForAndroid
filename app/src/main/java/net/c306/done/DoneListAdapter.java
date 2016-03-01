@@ -6,7 +6,6 @@ import android.support.v4.widget.ResourceCursorAdapter;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import net.c306.done.db.DoneListContract;
@@ -51,9 +50,10 @@ public class DoneListAdapter extends ResourceCursorAdapter{
     @Override
     public void bindView(View view, Context context, Cursor cursor) {
         // Set team colour
-        LinearLayout rl = (LinearLayout) view.findViewById(R.id.list_item);
+        View teamSpace = view.findViewById(R.id.team_color_patch);
         int teamColor = (int) Math.round(Math.random() * (colorArray.length - 1));
-        rl.setBackgroundResource(colorArray[teamColor]);
+        teamSpace.setBackgroundResource(colorArray[teamColor]);
+        
         //// TODO: 20/02/16 Set colour based on team of the task 
     
         // Set text

@@ -171,7 +171,7 @@ public class CheckTokenTask extends AsyncTask<Void, Void, String> {
         
         if (null != username && !username.equals("")) {
             // Save username in shared preferences
-            editor.putString("username", username);
+            editor.putString(mContext.getString(R.string.username), username);
             editor.apply();
             
             Log.v(LOG_TAG, "Received username: " + username);

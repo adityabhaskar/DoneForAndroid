@@ -50,7 +50,7 @@ public class PostNewDoneTask extends AsyncTask<String, Void, String> {
     
         //// DONE: 22/02/16 Check if internet connection is available else cancel fetch 
         if (!isOnline()) {
-            Log.v(LOG_TAG, "Offline, so cancelling token check");
+            Log.w(LOG_TAG, "Offline, so cancelling token check");
             //Toast.makeText(mContext, "Offline, will confirm token when connected.", Toast.LENGTH_SHORT).show();
             sendMessage("Offline", mContext.getString(R.string.postnewdone_cancelled_offline));
             cancel(true);
@@ -112,7 +112,7 @@ public class PostNewDoneTask extends AsyncTask<String, Void, String> {
                     case HttpURLConnection.HTTP_ACCEPTED:
                     case HttpURLConnection.HTTP_CREATED:
                     case HttpURLConnection.HTTP_OK:
-                        Log.v(LOG_TAG, "Sent Done" + " **OK** - " + resultStatus + ": " + responseMessage);
+                        Log.v(LOG_TAG, "Sent Done - " + resultStatus + ": " + responseMessage);
                         // increment sent dones counter
                         sentDoneCounter += 1;
                         // remove current item from doneList 
@@ -121,21 +121,20 @@ public class PostNewDoneTask extends AsyncTask<String, Void, String> {
     
                     case HttpURLConnection.HTTP_GATEWAY_TIMEOUT:
                     case HttpURLConnection.HTTP_UNAVAILABLE:
-                        Log.w(LOG_TAG, "Didn't Send Done" + " **gateway timeout / unavailable** - " + resultStatus + ": " + responseMessage);
+                        Log.w(LOG_TAG, "Didn't Send Done - " + resultStatus + ": " + responseMessage);
                         sendMessage("Server/gateway unavailable", mContext.getString(R.string.postnewdone_other_error));
                         cancel(true);
                         return null;
     
                     case HttpURLConnection.HTTP_FORBIDDEN:
                     case HttpURLConnection.HTTP_UNAUTHORIZED:
-                        Log.w(LOG_TAG, "Didn't Send Done" + " **unauthorised** - " + resultStatus + ": " + responseMessage);
+                        Log.w(LOG_TAG, "Didn't Send Done - " + resultStatus + ": " + responseMessage);
                         sendMessage(null, mContext.getString(R.string.postnewdone_unauth));
                         cancel(true);
                         return null;
                     
                     default:
-                        Log.w(LOG_TAG, "Didn't Send Done" + " **unknown response code** - " + resultStatus + ": " + responseMessage);
-                        //Log.wtf(LOG_TAG , " newDoneString - " + newDoneString);
+                        Log.w(LOG_TAG, "Didn't Send Done - " + resultStatus + ": " + responseMessage);
                         sendMessage(null, mContext.getString(R.string.postnewdone_other_error));
                         
                         try {
@@ -160,7 +159,6 @@ public class PostNewDoneTask extends AsyncTask<String, Void, String> {
                         }
                 }
                 
-                Log.wtf(LOG_TAG , " newDoneString - " + newDoneString);
                 //Read      
                 BufferedReader br = new BufferedReader(new InputStreamReader(httpcon.getInputStream(),"UTF-8"));
                 
@@ -170,7 +168,7 @@ public class PostNewDoneTask extends AsyncTask<String, Void, String> {
                 while ((line = br.readLine()) != null) {
                     sb.append(line);
                 }
-        
+    
                 br.close();
                 result += sb.toString() + "\n";
                 
@@ -186,7 +184,8 @@ public class PostNewDoneTask extends AsyncTask<String, Void, String> {
                 e.printStackTrace();
             }
         }
-        
+    
+        Log.v(LOG_TAG, "Response from server: " + result);
         
         return result;
     }

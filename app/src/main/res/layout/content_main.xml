@@ -13,6 +13,8 @@
     <ListView xmlns:android="http://schemas.android.com/apk/res/android"
               android:id="@+id/dones_list_view"
               android:layout_width="wrap_content"
-              android:layout_height="wrap_content" />
+              android:layout_height="wrap_content"
+              android:choiceMode="multipleChoiceModal"
+              android:listSelector="@drawable/list_item_background"/>
     
 </android.support.v4.widget.SwipeRefreshLayout>

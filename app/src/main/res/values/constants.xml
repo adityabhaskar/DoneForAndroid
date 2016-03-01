@@ -13,6 +13,7 @@
     <string name="auth_token">authToken</string>
     <string name="last_updated_setting_name">lastUpdated</string>
     <string name="pending_actions">pendingActions</string>
+    <string name="username">username</string>
 
     <!-- Pending actions string names -->
     <string name="pending_action_authenticate_token">pendingActionAuthenticateToken</string>

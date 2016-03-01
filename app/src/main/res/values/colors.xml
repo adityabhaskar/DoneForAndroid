@@ -21,6 +21,8 @@
     <color name="secondary_text">#727272</color>
     <color name="icons">#FFFFFF</color>
     <color name="divider">#B6B6B6</color>
+    <color name="list_primary_bg">#FAFAFA</color>
+    <color name="list_selected_bg">#CFD8DC</color>
 
     <color name="teamPrimary">#eeaab0</color>
     <color name="team2">#aaeee8</color>

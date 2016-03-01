@@ -12,6 +12,11 @@
 
     <string name="offline_toast_message">Offline! Will try again when connection available.</string>
 
+    <!-- Strings related to Contextual Action Bar -->
+    <string name="edit_task">Edit</string>
+    <string name="delete_task">Delete</string>
+
+
     <!-- Strings related to Settings -->
     
     <!-- Example General settings -->
