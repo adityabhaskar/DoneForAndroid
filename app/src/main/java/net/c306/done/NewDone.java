@@ -104,13 +104,18 @@ public class NewDone extends AppCompatActivity {
                         c.setTime(new Date());
                         c.add(Calendar.DATE, -1);  // get tasks from last 7 days
                         dateOfDone = sdf.format(c.getTime());  // dt is now the new date
-                        
+    
+                        String rawText = newDoneObj.getRaw_text().replaceFirst("[yY]esterday +", "").trim();
+                        newDoneObj.setRaw_text(rawText.substring(0, 1).toUpperCase() + rawText.substring(1));
                         break;
                     }
                     
                     case "today": {
                         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
                         dateOfDone = sdf.format(new Date());
+    
+                        String rawText = newDoneObj.getRaw_text().replaceFirst("[tT]oday +", "").trim();
+                        newDoneObj.setRaw_text(rawText.substring(0, 1).toUpperCase() + rawText.substring(1));
                         break;
                     }
                 }
@@ -214,14 +219,18 @@ public class NewDone extends AppCompatActivity {
                 this.done_date = done_date;
         }
     
-        public void setRaw_text(String raw_text) {
-            if (raw_text != null && !raw_text.isEmpty())
-                this.raw_text = raw_text;
-        }
-    
         public void setTeamName(String teamName) {
             if (teamName != null && !teamName.isEmpty())
                 this.team = teamName;
+        }
+    
+        public String getRaw_text() {
+            return raw_text;
+        }
+    
+        public void setRaw_text(String raw_text) {
+            if (raw_text != null && !raw_text.isEmpty())
+                this.raw_text = raw_text;
         }
     }
 
