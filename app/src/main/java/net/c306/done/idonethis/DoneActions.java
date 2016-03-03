@@ -32,17 +32,15 @@ public class DoneActions {
         mUsername = prefs.getString(mContext.getString(R.string.username), null);
     }
     
+/*
     public boolean add(DoneItem doneItem) {
-        // TODO: 29/02/16 Add to local database with isLocal = true
-        // TODO: 29/02/16 If online, submit to server, update local database from server
-        // TODO: 29/02/16 If offline, add to pending
         return false;
     }
+*/
     
     public boolean edit(DoneItem doneItem) {
-        // TODO: 29/02/16 For each, if owner is same as user, edit in local database with isLocal = true
+        // TODO: 29/02/16 For each, if owner is same as user, edit in local database with isLocal = true, editedFields = '[...]'
         // TODO: 29/02/16 If online, submit to server, update local database from server
-        // TODO: 29/02/16 If offline, add to pending
         // TODO: 29/02/16 For any, if owner was not the same as user, show error toast
         return false;
     }

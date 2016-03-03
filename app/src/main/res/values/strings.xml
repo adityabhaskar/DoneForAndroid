@@ -5,9 +5,10 @@
 
     <!-- Strings related to New Done Activity -->
     <string name="done_edit_text_empty_error">Enter a completed task</string>
-    <string name="done_saved_toast_message">Done saved!</string>
-    <string name="done_offline_saved_toast_message">Done saved offline!</string>
-    <string name="done_sent_toast_message">Sent.</string>
+    <string name="done_saved_toast_message">Task saved!</string>
+    <string name="done_offline_saved_toast_message">Task saved offline!</string>
+    <string name="done_sent_toast_message">sent.</string>
+    <string name="done_deleted_toast_message">deleted.</string>
     <string name="new_done_hint">What did you do today?</string>
 
     <string name="offline_toast_message">Offline! Will try again when connection available.</string>
@@ -79,7 +80,4 @@
     <string name="pref_title_vibrate">Vibrate</string>
     
     
-    <!-- SyncAdapter related -->
-    <string name="sync_account_type">done.c306.net</string>
-    <string name="content_authority">net.c306.done.app</string>
 </resources>

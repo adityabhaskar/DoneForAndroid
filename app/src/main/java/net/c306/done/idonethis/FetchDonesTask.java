@@ -4,6 +4,7 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.database.Cursor;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.AsyncTask;
@@ -44,12 +45,13 @@ public class FetchDonesTask extends AsyncTask<Void, Void, String> {
     private Context mContext;
     private String mAuthToken;
     private int mIntentId; // Id that identifies which listener to send intent to - MainActivity or SettingsActivity
-    private String lastUpdated = "";
     private int fetchedDoneCounter = 0;
+    private boolean mFromPostNewDone = false;
     
-    public FetchDonesTask(Context c, int intentId) {
+    public FetchDonesTask(Context c, int intentId, boolean fromPostNewDone) {
         mContext = c;
         mIntentId = intentId;
+        mFromPostNewDone = fromPostNewDone;
         LOG_TAG = mContext.getString(R.string.app_log_identifier) + " " + FetchDonesTask.class.getSimpleName();
     }
     
@@ -77,6 +79,26 @@ public class FetchDonesTask extends AsyncTask<Void, Void, String> {
             sendMessage("No auth token found!", mContext.getString(R.string.fetch_tasks_unauth));
             cancel(true);
             return;
+        }
+    
+        // Check to prevent cyclicity
+        if (!mFromPostNewDone) {
+            // Check if there are any unsent local tasks  
+            Cursor cursor = mContext.getContentResolver().query(
+                    DoneListContract.DoneEntry.buildDoneListUri(),
+                    new String[]{DoneListContract.DoneEntry.COLUMN_NAME_ID},
+                    DoneListContract.DoneEntry.COLUMN_NAME_IS_LOCAL + " IS 'true'",
+                    null,
+                    null
+            );
+        
+            if (cursor != null && cursor.getCount() > 0) {
+                Log.v(LOG_TAG, "Found " + cursor.getCount() + " unsent tasks, post them before fetching");
+                cancel(true);
+                new PostNewDoneTask(mContext).execute(true);
+                cursor.close();
+                return;
+            }
         }
     
         sendMessage("Starting fetch... ", mContext.getString(R.string.fetch_tasks_started));
@@ -161,7 +183,7 @@ public class FetchDonesTask extends AsyncTask<Void, Void, String> {
                         * */
                         // Update lastUpdate timestamp in SharedPrefs in case another fetchDone is triggered
                         sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.UK);
-                        lastUpdated = sdf.format(new Date());
+                        String lastUpdated = sdf.format(new Date());
                         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(mContext);
                         SharedPreferences.Editor editor = prefs.edit();
                         editor.putString(mContext.getString(R.string.last_updated_setting_name), lastUpdated);
@@ -282,7 +304,10 @@ public class FetchDonesTask extends AsyncTask<Void, Void, String> {
             * To be used only till we can get all updates from server, including deletes
             * 
             * */
-            mContext.getContentResolver().delete(DoneListContract.DoneEntry.CONTENT_URI, null, null);
+            // Delete non-local dones from local, to be replaced by freshly retrieved ones
+            mContext.getContentResolver().delete(DoneListContract.DoneEntry.CONTENT_URI,
+                    DoneListContract.DoneEntry.COLUMN_NAME_IS_LOCAL + " IS 'false'",
+                    null);
             
             // Add newly fetched entries to the server
             mContext.getContentResolver().bulkInsert(DoneListContract.DoneEntry.CONTENT_URI, cvArray);

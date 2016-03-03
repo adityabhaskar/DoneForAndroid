@@ -1,43 +1,44 @@
 package net.c306.done.idonethis;
 
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.database.Cursor;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.AsyncTask;
 import android.preference.PreferenceManager;
 import android.support.v4.content.LocalBroadcastManager;
+import android.text.TextUtils;
 import android.util.Log;
 
 import com.google.gson.Gson;
 
 import net.c306.done.R;
+import net.c306.done.db.DoneListContract;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
-import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
-import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Iterator;
+import java.util.Date;
 import java.util.List;
 
-public class PostNewDoneTask extends AsyncTask<String, Void, String> {
+
+public class PostNewDoneTask extends AsyncTask<Boolean, Void, Integer> {
     
-    // Holds server response code, or -1 for error 
-    private int resultStatus;
     // Holds application context, passed in constructor
     private Context mContext;
     private Gson gson = new Gson();
-    private List<String> pendingDonesArray = new ArrayList<String>();
     private String authToken;
     private String LOG_TAG;
-    private int sentDoneCounter = 0;
+    private boolean mFromPreFetch = false;
     
     public PostNewDoneTask(Context c){
         mContext = c;
@@ -48,175 +49,205 @@ public class PostNewDoneTask extends AsyncTask<String, Void, String> {
     protected void onPreExecute() {
         super.onPreExecute();
     
-        //// DONE: 22/02/16 Check if internet connection is available else cancel fetch 
+        // Check if internet connection is available else cancel fetch 
         if (!isOnline()) {
             Log.w(LOG_TAG, "Offline, so cancelling token check");
-            //Toast.makeText(mContext, "Offline, will confirm token when connected.", Toast.LENGTH_SHORT).show();
-            sendMessage("Offline", mContext.getString(R.string.postnewdone_cancelled_offline));
+            sendMessage("Offline", mContext.getString(R.string.postnewdone_cancelled_offline), 0);
+            saveActionToPending();
             cancel(true);
             return;
         }
         
-        //// DONE: 15/02/16 Load new dones and token from shared preferences, and save in class variables 
         SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(mContext);
         
-        String newDoneArrayString = settings.getString(mContext.getString(R.string.pending_done_array_name), "");
         authToken = settings.getString(mContext.getString(R.string.auth_token), "");
         
         if(authToken.equals("")){
             Log.e(LOG_TAG, "No Auth Token Found!");
             cancel(true);
+            return;
         }
-        
-        // Get pending Dones ArrayList as JSON String 
-        if(!newDoneArrayString.equals("")){
-            pendingDonesArray = gson.fromJson(newDoneArrayString, ArrayList.class);
-        }
+    
+        sendMessage("Starting to send... ", mContext.getString(R.string.postnewdone_started), 0);
+    }
+    
+    private void saveActionToPending() {
+        // TODO: If unsuccessful, add to pending
     }
     
     @Override
-    protected String doInBackground(String... doneJSON) {
+    protected Integer doInBackground(Boolean... fromPreFetch) {
         
         HttpURLConnection httpcon;
         final String url = "https://idonethis.com/api/v0.1/dones/";
         // Contains server response (or error message)
         String result = "";
+    
+        String newDoneString = null;
+        NewDoneClass newDoneObj = null;
+        List<Integer> sentDonesList = new ArrayList<>();
+    
+        this.mFromPreFetch = fromPreFetch[0];
+    
+        // Get unsent dones from database
+        Cursor cursor = mContext.getContentResolver().query(
+                DoneListContract.DoneEntry.buildDoneListUri(),                  // URI
+                new String[]{                                                   // Projection
+                        DoneListContract.DoneEntry.COLUMN_NAME_ID,
+                        DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT,
+                        DoneListContract.DoneEntry.COLUMN_NAME_TEAM_SHORT_NAME,
+                        DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE
+                },
+                DoneListContract.DoneEntry.COLUMN_NAME_IS_LOCAL + " IS 'true'", // Selection
+                null,                                                           // Selection Args
+                null                                                            // Sort Order
+        );
+    
+        if (cursor != null) {
         
-        String newDoneString;
+            int resultStatus;
+            int columnIndexID = cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_ID);
+            int columnIndexRawText = cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT);
+            int columnIndexDoneDate = cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE);
+            int columnIndexTeamShortName = cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_TEAM_SHORT_NAME);
         
-        for (Iterator<String> iterator = pendingDonesArray.iterator(); iterator.hasNext(); ) {
-            newDoneString = iterator.next();
+            Log.wtf(LOG_TAG, "Got " + cursor.getCount() + " pending dones");
+        
+            // Iterate over unsent dones 
+            while (cursor.moveToNext()) {
             
-            try{
-                //Connect
-                httpcon = (HttpURLConnection) ((new URL(url).openConnection()));
-                httpcon.setDoOutput(true);
-                httpcon.setRequestProperty("Authorization", "Token " + authToken);
-                httpcon.setRequestProperty("Content-Type", "application/json");
-                httpcon.setRequestProperty("Accept", "application/json");
-                httpcon.setRequestMethod("POST");
-                httpcon.connect();
+                // Get next done
+                newDoneObj = new NewDoneClass(
+                        cursor.getString(columnIndexRawText),
+                        cursor.getString(columnIndexDoneDate),
+                        cursor.getString(columnIndexTeamShortName)
+                );
+            
+                // Convert to json
+                newDoneString = gson.toJson(newDoneObj, NewDoneClass.class);
+                Log.wtf(LOG_TAG, "Unsent done: " + newDoneString);
+            
+                // Send
+                try {
+                    //Connect
+                    httpcon = (HttpURLConnection) ((new URL(url).openConnection()));
+                    httpcon.setDoOutput(true);
+                    httpcon.setRequestProperty("Authorization", "Token " + authToken);
+                    httpcon.setRequestProperty("Content-Type", "application/json");
+                    httpcon.setRequestProperty("Accept", "application/json");
+                    httpcon.setRequestMethod("POST");
+                    httpcon.connect();
                 
-                //Write         
-                OutputStream os = httpcon.getOutputStream();
-                BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(os, "UTF-8"));
-                writer.write(newDoneString);
-                writer.close();
-                os.close();
+                    //Write         
+                    OutputStream os = httpcon.getOutputStream();
+                    BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(os, "UTF-8"));
+                    writer.write(newDoneString);
+                    writer.close();
+                    os.close();
                 
-                //Response Code
-                resultStatus = httpcon.getResponseCode();
-                String responseMessage = httpcon.getResponseMessage();
+                    //Response Code
+                    resultStatus = httpcon.getResponseCode();
+                    String responseMessage = httpcon.getResponseMessage();
                 
-                switch (resultStatus) {
-                    case HttpURLConnection.HTTP_ACCEPTED:
-                    case HttpURLConnection.HTTP_CREATED:
-                    case HttpURLConnection.HTTP_OK:
-                        Log.v(LOG_TAG, "Sent Done - " + resultStatus + ": " + responseMessage);
-                        // increment sent dones counter
-                        sentDoneCounter += 1;
-                        // remove current item from doneList 
-                        iterator.remove();
-                        break; // fine
-    
-                    case HttpURLConnection.HTTP_GATEWAY_TIMEOUT:
-                    case HttpURLConnection.HTTP_UNAVAILABLE:
-                        Log.w(LOG_TAG, "Didn't Send Done - " + resultStatus + ": " + responseMessage);
-                        sendMessage("Server/gateway unavailable", mContext.getString(R.string.postnewdone_other_error));
-                        cancel(true);
-                        return null;
-    
-                    case HttpURLConnection.HTTP_FORBIDDEN:
-                    case HttpURLConnection.HTTP_UNAUTHORIZED:
-                        Log.w(LOG_TAG, "Didn't Send Done - " + resultStatus + ": " + responseMessage);
-                        sendMessage(null, mContext.getString(R.string.postnewdone_unauth));
-                        cancel(true);
-                        return null;
+                    switch (resultStatus) {
+                        case HttpURLConnection.HTTP_ACCEPTED:
+                        case HttpURLConnection.HTTP_CREATED:
+                        case HttpURLConnection.HTTP_OK:
+                            Log.v(LOG_TAG, "Sent Done - " + resultStatus + ": " + responseMessage);
+                            // Add id to sentDonesList
+                            sentDonesList.add(cursor.getInt(columnIndexID));
+                            break; // fine
                     
-                    default:
-                        Log.w(LOG_TAG, "Didn't Send Done - " + resultStatus + ": " + responseMessage);
-                        sendMessage(null, mContext.getString(R.string.postnewdone_other_error));
-                        
-                        try {
-                            //Read      
-                            BufferedReader br = new BufferedReader(new InputStreamReader(httpcon.getInputStream(), "UTF-8"));
-    
-                            String line = null;
-                            StringBuilder sb = new StringBuilder();
-    
-                            while ((line = br.readLine()) != null) {
-                                sb.append(line);
-                            }
-    
-                            br.close();
-                            Log.wtf(LOG_TAG, "Response message: " + sb);
-                            cancel(true);
-                            return sb.toString();
-                        } catch (Exception e){
-                            Log.wtf(LOG_TAG, e.toString());
-                            cancel(true);
+                        case HttpURLConnection.HTTP_GATEWAY_TIMEOUT:
+                        case HttpURLConnection.HTTP_UNAVAILABLE:
+                            Log.w(LOG_TAG, "Didn't Send Done - " + resultStatus + ": " + responseMessage);
+                            //sendMessage("Server/gateway unavailable", mContext.getString(R.string.postnewdone_other_error));
+                            //cancel(true);
                             return null;
-                        }
+                    
+                        case HttpURLConnection.HTTP_FORBIDDEN:
+                        case HttpURLConnection.HTTP_UNAUTHORIZED:
+                            Log.w(LOG_TAG, "Didn't Send Done - " + resultStatus + ": " + responseMessage);
+                            //sendMessage(null, mContext.getString(R.string.postnewdone_unauth));
+                            //cancel(true);
+                            return null;
+                    
+                        default:
+                            Log.w(LOG_TAG, "Didn't Send Done - " + resultStatus + ": " + responseMessage);
+                            //sendMessage(null, mContext.getString(R.string.postnewdone_other_error));
+                    }
+                
+                    //Read      
+                    BufferedReader br = new BufferedReader(new InputStreamReader(httpcon.getInputStream(), "UTF-8"));
+                
+                    String line = null;
+                    StringBuilder sb = new StringBuilder();
+                
+                    while ((line = br.readLine()) != null) {
+                        sb.append(line).append("\n");
+                    }
+                
+                    result += sb.toString() + "\n";
+                
+                    br.close();
+                    httpcon.disconnect();
+                
+                } catch (Exception e) {
+                    result = e.getMessage();
+                    e.printStackTrace();
                 }
-                
-                //Read      
-                BufferedReader br = new BufferedReader(new InputStreamReader(httpcon.getInputStream(),"UTF-8"));
-                
-                String line = null;
-                StringBuilder sb = new StringBuilder();
-                
-                while ((line = br.readLine()) != null) {
-                    sb.append(line);
-                }
-    
-                br.close();
-                result += sb.toString() + "\n";
-                
-                httpcon.disconnect();
-                
-            } catch (UnsupportedEncodingException e) {
-                result = e.getMessage();
-                resultStatus = -1;
-                e.printStackTrace();
-            } catch (IOException e) {
-                result = e.getMessage();
-                resultStatus = -1;
-                e.printStackTrace();
             }
+        
+            if (sentDonesList.size() < cursor.getCount())
+                saveActionToPending();
+            else {
+                //Reset counter for 
+                SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(mContext);
+                SharedPreferences.Editor editor = prefs.edit();
+                editor.remove(mContext.getString(R.string.localDoneIdCounter));
+                editor.apply();
+            }
+        
+            cursor.close();
+        
+        
+            // Set is_local to false for ids in sentDonesList
+        
+            ContentValues updateValues = new ContentValues();
+            updateValues.put(DoneListContract.DoneEntry.COLUMN_NAME_IS_LOCAL, "false");
+        
+            String sentDonesIdString = TextUtils.join(",", sentDonesList);
+        
+            mContext.getContentResolver().update(
+                    DoneListContract.DoneEntry.CONTENT_URI,
+                    updateValues,
+                    DoneListContract.DoneEntry.COLUMN_NAME_ID + " IN (" + sentDonesIdString + ")",
+                    null
+            );
         }
     
         Log.v(LOG_TAG, "Response from server: " + result);
-        
-        return result;
+    
+        return sentDonesList.size();
     }
     
     @Override
-    protected void onPostExecute(String response) {
-        super.onPostExecute(response);
-        
-        // Serialize pendingDonesArray back to String for storage
-        String pendingDonesArrayString = gson.toJson(pendingDonesArray, List.class);
-        
-        // Save remaining/empty pendingDoneList to SharedPrefs
-        SharedPreferences settings= PreferenceManager.getDefaultSharedPreferences(mContext);
-        //SharedPreferences settings = mContext.getSharedPreferences(mContext.getString(R.string.done_file_name_shared_preferences), 0);
-        SharedPreferences.Editor editor = settings.edit();
-        
-        editor.putString(mContext.getString(R.string.pending_done_array_name), pendingDonesArrayString);
-        editor.apply();
-        
-        // Send message to MainActivity saying done(s) have been posted, so Snackbar can be shown/updated
-        if (response != null) {
-            sendMessage(response, mContext.getString(R.string.postnewdone_finished));
+    protected void onPostExecute(Integer sentCount) {
+        super.onPostExecute(sentCount);
+    
+        if (sentCount > 0) {
+            // Send message to MainActivity saying done(s) have been posted, so Snackbar can be shown/updated
+            sendMessage("Sent " + sentCount + " tasks.", mContext.getString(R.string.postnewdone_finished), sentCount);
         }
-        
-        // If done(s) sent successfully, update local doneList from server
-        if(sentDoneCounter > 0) {
-            new FetchDonesTask(mContext, R.string.main_activity_listener_intent).execute();
+    
+        if (mFromPreFetch || sentCount > 0) {
+            // Update local doneList from server
+            new FetchDonesTask(mContext, R.string.main_activity_listener_intent, true).execute();
         }
     }
     
-    private void sendMessage(String message, String action) {
+    
+    private void sendMessage(String message, String action, int sentDoneCounter) {
         Intent intent = new Intent(mContext.getString(R.string.main_activity_listener_intent));
         
         // You can also include some extra data.
@@ -235,6 +266,72 @@ public class PostNewDoneTask extends AsyncTask<String, Void, String> {
         
         return activeNetwork != null &&
                 activeNetwork.isConnected();
+    }
+    
+    public class NewDoneClass {
+        private transient final String dateFormat = "yyyy-MM-dd";
+        private String done_date;
+        private String team = "adityabhaskar";
+        private String raw_text;
+        private String meta_data = "{\"from\":\"" + mContext.getString(R.string.app_name) + "\"}";
+        
+        public NewDoneClass(String doneText, String doneDate, String teamName) {
+            this.raw_text = doneText;
+            
+            if (doneDate != null && !doneDate.isEmpty())
+                this.done_date = doneDate;
+            else {
+                SimpleDateFormat sdf = new SimpleDateFormat(dateFormat);
+                
+                this.done_date = sdf.format(new Date());
+            }
+            
+            if (teamName != null && !teamName.isEmpty())
+                this.team = teamName;
+            
+        }
+        
+        public NewDoneClass(String doneText, String doneDate) {
+            this.raw_text = doneText;
+            
+            if (doneDate != null && !doneDate.isEmpty())
+                this.done_date = doneDate;
+            else {
+                SimpleDateFormat sdf = new SimpleDateFormat(dateFormat);
+                
+                this.done_date = sdf.format(new Date());
+            }
+        }
+        
+        public NewDoneClass(String doneText) {
+            this.raw_text = doneText;
+            
+            SimpleDateFormat sdf = new SimpleDateFormat(dateFormat);
+            this.done_date = sdf.format(new Date());
+        }
+        
+        public String getDone_date() {
+            return done_date;
+        }
+        
+        public void setDone_date(String done_date) {
+            if (done_date != null && !done_date.isEmpty())
+                this.done_date = done_date;
+        }
+        
+        public void setTeamName(String teamName) {
+            if (teamName != null && !teamName.isEmpty())
+                this.team = teamName;
+        }
+        
+        public String getRaw_text() {
+            return raw_text;
+        }
+        
+        public void setRaw_text(String raw_text) {
+            if (raw_text != null && !raw_text.isEmpty())
+                this.raw_text = raw_text;
+        }
     }
     
 }

@@ -226,8 +226,8 @@ public class FetchTeamsTask extends AsyncTask<Void, Void, String> {
             
             ContentValues[] cvArray = new ContentValues[cVVector.size()];
             cVVector.toArray(cvArray);
-            
-            // TODO: 27/02/16 Add newly fetched entries to the database  
+    
+            // TODO: 27/02/16 Add newly fetched teams to the database  
             //mContext.getContentResolver().bulkInsert(DoneListContract.DoneEntry.CONTENT_URI, cvArray);
         }
         
@@ -243,8 +243,8 @@ public class FetchTeamsTask extends AsyncTask<Void, Void, String> {
             sendMessage(result, mContext.getString(R.string.fetch_teams_finished));
             
             Utils.removeFromPendingActions(mContext, mContext.getString(R.string.pending_action_fetch_teams));
-            
-            new FetchDonesTask(mContext, R.string.settings_activity_listener_intent).execute();
+    
+            new FetchDonesTask(mContext, R.string.settings_activity_listener_intent, false).execute();
         } else {
             Utils.addToPendingActions(mContext, mContext.getString(R.string.pending_action_fetch_teams));
         }

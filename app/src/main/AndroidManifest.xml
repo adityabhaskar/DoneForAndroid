@@ -22,7 +22,7 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".NewDone"
+            android:name=".NewDoneActivity"
             android:parentActivityName=".MainActivity">
         </activity>
         <activity

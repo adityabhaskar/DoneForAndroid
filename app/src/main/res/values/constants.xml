@@ -14,6 +14,7 @@
     <string name="last_updated_setting_name">lastUpdated</string>
     <string name="pending_actions">pendingActions</string>
     <string name="username">username</string>
+    <string name="localDoneIdCounter">localDoneIdCounter</string>
 
     <!-- Pending actions string names -->
     <string name="pending_action_authenticate_token">pendingActionAuthenticateToken</string>
@@ -24,6 +25,13 @@
     <string name="pending_action_delete_dones">pendingActionDeleteDones</string>
 
     <!-- Local Broadcast identifier strings-->
+    <string name="task_started">task_Started</string>
+    <string name="task_successful">task_Successful</string>
+    <string name="task_failed">task_Failed</string>
+    <string name="task_unauth">task_Unauthorised</string>
+    <string name="task_cancelled_offline">task_CancelledOffline</string>
+    <string name="task_other_error">task_OtherError</string>
+
     <string name="check_token_started">checkTokenRequest_Started</string>
     <string name="check_token_successful">checkTokenRequest_Successful</string>
     <string name="check_token_failed">checkTokenRequest_Failed</string>
@@ -48,5 +56,7 @@
     <string name="postnewdone_cancelled_offline">postNewDoneCancelledOffline</string>
     <string name="postnewdone_other_error">postNewDoneOtherError</string>
 
-
+    <!-- SyncAdapter related -->
+    <string name="sync_account_type">done.c306.net</string>
+    <string name="content_authority">net.c306.done.app</string>
 </resources>

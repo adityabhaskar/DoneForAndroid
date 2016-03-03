@@ -215,6 +215,7 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setupActionBar();
+    
         LOG_TAG = getString(R.string.app_log_identifier) + " " + SettingsActivity.class.getSimpleName();
     
     }

@@ -38,9 +38,7 @@ import java.util.Date;
 import java.util.Locale;
 
 // TODO: 20/02/16 Group dones under date headers in listView
-// DONE: 22/02/16 Add date of done in small font under the done
 // TODO: 28/02/16 Add edit functions 
-// DONE: 28/02/16 Add delete functions 
 public class MainActivity
         extends
         AppCompatActivity
@@ -53,7 +51,7 @@ public class MainActivity
     private static final int DONE_LIST_LOADER = 0;
     private static final String SELECTED_KEY = "selected_position";
     private static final int REFRESH_LIST_DELAY = -15; // Except for new dones, fetch only every 15 mins.
-    private Snackbar newDoneSnackbar;
+    private Snackbar mSnackbar;
     private ListView mListView;
     private String LOG_TAG;
     private DoneListAdapter mDoneListAdapter;
@@ -108,11 +106,11 @@ public class MainActivity
                         int count = intent.getIntExtra("count", -1);
         
                         if (count > 0) {
-                            if (newDoneSnackbar != null && newDoneSnackbar.isShown())
-                                newDoneSnackbar.dismiss();
+                            if (mSnackbar != null && mSnackbar.isShown())
+                                mSnackbar.dismiss();
             
-                            newDoneSnackbar = Snackbar.make(findViewById(R.id.fab), (count > 1 ? count + " dones " : "Done ") + getString(R.string.done_sent_toast_message), Snackbar.LENGTH_LONG);
-                            newDoneSnackbar.setAction("Action", null).show();
+                            mSnackbar = Snackbar.make(findViewById(R.id.fab), (count > 1 ? count + " tasks " : "Task ") + getString(R.string.done_sent_toast_message), Snackbar.LENGTH_LONG);
+                            mSnackbar.setAction("Action", null).show();
                         }
         
                     } else if (action.equals(getString(R.string.postnewdone_cancelled_offline))) {
@@ -128,8 +126,45 @@ public class MainActivity
     
                     break;
                 }
+                case "DeleteDonesTask": {
+        
+                    String action = intent.getStringExtra("action");
+        
+                    if (action.equals(getString(R.string.task_started))) {
+                        // Do nothing for now
+            
+                    } else if (action.equals(getString(R.string.task_successful))) {
+            
+                        Log.v(LOG_TAG, "Broadcast Receiver - " + intent.getIntExtra("count", -1) + " tasks deleted.");
+            
+                    } else if (action.equals(getString(R.string.offline_toast_message))) {
+            
+                        Log.v(LOG_TAG, "Broadcast Receiver - Offline. Will post done when connected");
+            
+                    } else if (action.equals(getString(R.string.postnewdone_unauth))) {
+                        Log.w(LOG_TAG, "Broadcast Receiver - Unauthorised. Check auth token!");
+            
+                        // Show warning snack bar on to show offline/unauthorised status 
+                        if (mSnackbar != null && mSnackbar.isShown())
+                            mSnackbar.dismiss();
+            
+                        mSnackbar = Snackbar.make(findViewById(R.id.fab), "Authorisation failed! Please check token.", Snackbar.LENGTH_LONG);
+                        mSnackbar.setAction("Settings", new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+                                Intent settingsIntent = new Intent(MainActivity.this, SettingsActivity.class);
+                                startActivity(settingsIntent);
+                            }
+                        }).show();
+                    } else {
+                        Log.w(LOG_TAG, "Broadcast Receiver - Some other error happened while posting done: " + intent.getIntExtra("count", -1));
+                    }
+        
+                    break;
+                }
+                
                 default:
-                    Log.w(LOG_TAG, "Broadcast receiver got message from unknown sender");
+                    Log.w(LOG_TAG, "Broadcast receiver got message from unknown sender" + intent.getStringExtra("message"));
             }
         }
     };
@@ -142,7 +177,7 @@ public class MainActivity
         setSupportActionBar(toolbar);
     
         LOG_TAG = getString(R.string.app_log_identifier) + " " + MainActivity.class.getSimpleName();
-        
+    
         /*
         * 
         * Precede these with deleting all entries ('delete from dones') from database to do a 
@@ -167,15 +202,15 @@ public class MainActivity
                 c.setTime(new Date());
                 c.add(Calendar.MINUTE, REFRESH_LIST_DELAY);  // create timestamp 15 mins back
                 if (lastUpdatedDate.before(c.getTime())) {
-                    new FetchDonesTask(this, R.string.main_activity_listener_intent).execute();
+                    new FetchDonesTask(this, R.string.main_activity_listener_intent, false).execute();
                 }
             } catch(ParseException e){
                 Log.w(LOG_TAG, "Couldn't parse lastUpdated: " + lastUpdated + ".");
-                new FetchDonesTask(this, R.string.main_activity_listener_intent).execute();
+                new FetchDonesTask(this, R.string.main_activity_listener_intent, false).execute();
             }
         } else {
             Log.w(LOG_TAG, "No lastUpdated found, starting fetch.");
-            new FetchDonesTask(this, R.string.main_activity_listener_intent).execute();
+            new FetchDonesTask(this, R.string.main_activity_listener_intent, false).execute();
         }
         
         //mDoneListAdapter = new DoneListAdapter(this, R.layout.list_row_layout, cur, 0);
@@ -242,30 +277,32 @@ public class MainActivity
     }
     
     public void toNewDone(View view) {
-        Intent newDoneIntent = new Intent(MainActivity.this, NewDone.class);
+        Intent newDoneIntent = new Intent(MainActivity.this, NewDoneActivity.class);
         startActivityForResult(newDoneIntent, 1);
     }
     
     protected void onActivityResult(int requestCode, int resultCode,
                                     Intent data) {
-        if (newDoneSnackbar != null && newDoneSnackbar.isShown())
-            newDoneSnackbar.dismiss();
+/*
+        if (mSnackbar != null && mSnackbar.isShown())
+            mSnackbar.dismiss();
         
         switch (resultCode) {
             case RESULT_OK:
-                newDoneSnackbar = Snackbar.make(findViewById(R.id.fab), R.string.done_saved_toast_message, Snackbar.LENGTH_LONG);
-                newDoneSnackbar.setAction("Action", null).show();
+                mSnackbar = Snackbar.make(findViewById(R.id.fab), R.string.done_saved_toast_message, Snackbar.LENGTH_LONG);
+                mSnackbar.setAction("Action", null).show();
                 break;
             
             case R.integer.result_offline:
-                newDoneSnackbar = Snackbar.make(findViewById(R.id.fab), R.string.done_offline_saved_toast_message, Snackbar.LENGTH_LONG);
-                newDoneSnackbar.setAction("Action", null).show();
+                mSnackbar = Snackbar.make(findViewById(R.id.fab), R.string.done_offline_saved_toast_message, Snackbar.LENGTH_LONG);
+                mSnackbar.setAction("Action", null).show();
                 break;
             
             default:
                 Log.v(LOG_TAG, "Result Code: " + resultCode);
     
         }
+*/
     }
     
     @Override
@@ -374,10 +411,16 @@ public class MainActivity
     private void deleteSelectedItems() {
         long[] ids = mListView.getCheckedItemIds();
         Log.v(LOG_TAG, "Delete selected items: " + ids.length);
+    
+        // Delete selected ids from database, then from server, finishing with updating tasks from server on success
+        int deletedCount = new DoneActions(this).delete(ids);
+    
+        if (mSnackbar != null && mSnackbar.isShown())
+            mSnackbar.dismiss();
+    
+        mSnackbar = Snackbar.make(findViewById(R.id.fab), (deletedCount > 1 ? deletedCount + " tasks " : "Task ") + getString(R.string.done_deleted_toast_message), Snackbar.LENGTH_SHORT);
+        mSnackbar.setAction("Action", null).show();
         
-        // DONE: 28/02/16 Make delete asynctask with selected ids, fetchdones on success
-        new DoneActions(this).delete(ids);
-        //new DeleteDonesTask(this, ids).execute();
     }
     
     @Override
@@ -408,7 +451,8 @@ public class MainActivity
                 DoneListContract.DoneEntry.COLUMN_NAME_ID + " AS _id",
                 DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT,
                 DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE,
-                DoneListContract.DoneEntry.COLUMN_NAME_TEAM_SHORT_NAME
+                DoneListContract.DoneEntry.COLUMN_NAME_TEAM_SHORT_NAME,
+                DoneListContract.DoneEntry.COLUMN_NAME_IS_LOCAL
         };
         
         return new CursorLoader(this,
@@ -442,6 +486,6 @@ public class MainActivity
     @Override
     public void onRefresh() {
         Log.v(LOG_TAG, "Calling fetch from swipe to refresh");
-        new FetchDonesTask(this, R.string.main_activity_listener_intent).execute();
+        new FetchDonesTask(this, R.string.main_activity_listener_intent, false).execute();
     }
 }

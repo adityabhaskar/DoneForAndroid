@@ -15,7 +15,7 @@ import net.c306.done.R;
 public class DoneListDbHelper extends SQLiteOpenHelper {
     
     // If you change the database schema, you must increment the database version.
-    public static final int DATABASE_VERSION = 3;
+    public static final int DATABASE_VERSION = 4;
     public static final String DATABASE_NAME = "DoneList.db";
     private static DoneListDbHelper sInstance;
     private static String LOG_TAG;
@@ -49,17 +49,17 @@ public class DoneListDbHelper extends SQLiteOpenHelper {
                 //Other Fields
                 DoneListContract.DoneEntry.COLUMN_NAME_CREATED + " INTEGER, " +
                 DoneListContract.DoneEntry.COLUMN_NAME_UPDATED + " INTEGER, " +
-                DoneListContract.DoneEntry.COLUMN_NAME_MARKEDUP_TEXT + " TEXT NOT NULL, " +
-                DoneListContract.DoneEntry.COLUMN_NAME_OWNER + " TEXT NOT NULL, " +
+                DoneListContract.DoneEntry.COLUMN_NAME_MARKEDUP_TEXT + " TEXT, " +
+                DoneListContract.DoneEntry.COLUMN_NAME_OWNER + " TEXT, " +
                 DoneListContract.DoneEntry.COLUMN_NAME_TAGS + " TEXT, " +
                 DoneListContract.DoneEntry.COLUMN_NAME_LIKES + " TEXT, " +
                 DoneListContract.DoneEntry.COLUMN_NAME_COMMENTS + " TEXT, " +
                 DoneListContract.DoneEntry.COLUMN_NAME_META_DATA + " TEXT, " +
                 DoneListContract.DoneEntry.COLUMN_NAME_IS_GOAL + " TEXT, " +
                 DoneListContract.DoneEntry.COLUMN_NAME_GOAL_COMPLETED + " TEXT, " +
-                DoneListContract.DoneEntry.COLUMN_NAME_URL + " TEXT NOT NULL, " +
-                DoneListContract.DoneEntry.COLUMN_NAME_TEAM + " TEXT NOT NULL, " +
-                DoneListContract.DoneEntry.COLUMN_NAME_PERMALINK + " TEXT NOT NULL " +
+                DoneListContract.DoneEntry.COLUMN_NAME_URL + " TEXT, " +
+                DoneListContract.DoneEntry.COLUMN_NAME_TEAM + " TEXT, " +
+                DoneListContract.DoneEntry.COLUMN_NAME_PERMALINK + " TEXT " +
             ")";
         db.execSQL(SQL_CREATE_ENTRIES);
     }

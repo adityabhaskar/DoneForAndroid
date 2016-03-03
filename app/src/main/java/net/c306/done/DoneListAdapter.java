@@ -2,6 +2,7 @@ package net.c306.done;
 
 import android.content.Context;
 import android.database.Cursor;
+import android.support.v4.content.ContextCompat;
 import android.support.v4.widget.ResourceCursorAdapter;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -60,6 +61,12 @@ public class DoneListAdapter extends ResourceCursorAdapter{
         TextView rawText = (TextView) view.findViewById(R.id.item_raw_text);
         rawText.setText(cursor.getString(cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT)));
     
+        if (cursor.getString(cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_IS_LOCAL)).equals("true"))
+            rawText.setTextColor(ContextCompat.getColor(mContext, R.color.secondary_text));
+        else
+            rawText.setTextColor(ContextCompat.getColor(mContext, R.color.primary_text));
+        
+        
         // Set date
         TextView dateTextView = (TextView) view.findViewById(R.id.item_date);
         String doneDate = cursor.getString(cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE));

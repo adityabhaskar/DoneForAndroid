@@ -43,9 +43,9 @@ public class DeleteDonesTask extends AsyncTask<long[], Void, String> {
         
         //// DONE: 22/02/16 Check if internet connection is available else cancel fetch 
         if (!isOnline()) {
-            // TODO: 29/02/16 If offline, add to pending - do in DeleteDonesTask
+            // TODO: 29/02/16 If offline, add to pending
             Log.w(LOG_TAG, "Offline, so cancelling token check");
-            sendMessage("Offline", mContext.getString(R.string.postnewdone_cancelled_offline));
+            sendMessage("Offline", mContext.getString(R.string.task_cancelled_offline));
             cancel(true);
             return;
         }
@@ -58,13 +58,13 @@ public class DeleteDonesTask extends AsyncTask<long[], Void, String> {
         
         if (authToken.equals("")) {
             Log.e(LOG_TAG, "No Auth Token Found!");
-            sendMessage("No auth token found!", mContext.getString(R.string.fetch_teams_unauth));
+            sendMessage("No auth token found!", mContext.getString(R.string.task_unauth));
             cancel(true);
             return;
         }
         
         Log.v(LOG_TAG, "Starting delete...");
-        sendMessage("Starting delete...", mContext.getString(R.string.fetch_teams_started));
+        sendMessage("Starting delete...", mContext.getString(R.string.task_started));
     }
     
     @Override
@@ -106,20 +106,20 @@ public class DeleteDonesTask extends AsyncTask<long[], Void, String> {
                     case HttpURLConnection.HTTP_GATEWAY_TIMEOUT:
                     case HttpURLConnection.HTTP_UNAVAILABLE:
                         Log.w(LOG_TAG, "Didn't delete task - " + resultStatus + ": " + responseMessage);
-                        //sendMessage("Server/gateway unavailable", mContext.getString(R.string.postnewdone_other_error));
+                        //sendMessage("Server/gateway unavailable", mContext.getString(R.string.task_other_error));
                         //cancel(true);
                         return null;
                     
                     case HttpURLConnection.HTTP_FORBIDDEN:
                     case HttpURLConnection.HTTP_UNAUTHORIZED:
                         Log.w(LOG_TAG, "Didn't delete task - " + resultStatus + ": " + responseMessage);
-                        //sendMessage(null, mContext.getString(R.string.postnewdone_unauth));
+                        //sendMessage(null, mContext.getString(R.string.task_unauth));
                         //cancel(true);
                         return null;
                     
                     default:
                         Log.w(LOG_TAG, "Didn't delete task - " + resultStatus + ": " + responseMessage);
-                        //sendMessage(null, mContext.getString(R.string.postnewdone_other_error));
+                        //sendMessage(null, mContext.getString(R.string.task_other_error));
                     
                 }
                 
@@ -165,9 +165,9 @@ public class DeleteDonesTask extends AsyncTask<long[], Void, String> {
         // If done(s) sent successfully, update local doneList from server
         if (deletedCounter > 0) {
             // Send message to MainActivity saying done(s) have been posted, so Snackbar can be shown/updated
-            sendMessage(response, mContext.getString(R.string.postnewdone_finished));
-            
-            new FetchDonesTask(mContext, R.string.main_activity_listener_intent).execute();
+            sendMessage(response, mContext.getString(R.string.task_successful));
+    
+            new FetchDonesTask(mContext, R.string.main_activity_listener_intent, false).execute();
         }
     }
     
