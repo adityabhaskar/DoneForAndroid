@@ -1,60 +1,34 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!--Save non-translating internal constant values here-->
-    <string name="app_log_identifier">AppMessage</string>
+    <string name="APP_LOG_IDENTIFIER">AppMessage</string>
 
-    <integer name="result_offline">-10</integer>
+    <string name="DONE_LOCAL_BROADCAST_LISTENER_INTENT">mainActivityListenerIntent</string>
 
-    <string name="main_activity_listener_intent">mainActivityListenerIntent</string>
-    <string name="settings_activity_listener_intent">settingsActivityListenerIntent</string>
-    <string name="pending_done_array_name">newDones</string>
+    <!-- For dev only, till team selection in settings is implemented -->
+    <string name="DEV_TEAM_NAME">adityabhaskar</string>
 
     <!-- SharedPreferences string names -->
-    <string name="auth_token">authToken</string>
-    <string name="last_updated_setting_name">lastUpdated</string>
-    <string name="pending_actions">pendingActions</string>
-    <string name="username">username</string>
-    <string name="localDoneIdCounter">localDoneIdCounter</string>
-
-    <!-- Pending actions string names -->
-    <string name="pending_action_authenticate_token">pendingActionAuthenticateToken</string>
-    <string name="pending_action_fetch_teams">pendingActionFetchTeams</string>
-    <string name="pending_action_fetch_dones">pendingActionFetchDones</string>
-    <string name="pending_action_post_dones">pendingActionPostDones</string>
-    <string name="pending_action_edit_dones">pendingActionEditDones</string>
-    <string name="pending_action_delete_dones">pendingActionDeleteDones</string>
+    <string name="AUTH_TOKEN">authToken</string>
+    <string name="VALID_TOKEN">validToken</string>
+    <string name="LAST_UPDATED_SETTING_NAME">lastUpdated</string>
+    <string name="PENDING_ACTIONS">pendingActions</string>
+    <string name="USERNAME">username</string>
+    <string name="LOCAL_DONE_ID_COUNTER">localDoneIdCounter</string>
 
     <!-- Local Broadcast identifier strings-->
-    <string name="task_started">task_Started</string>
-    <string name="task_successful">task_Successful</string>
-    <string name="task_failed">task_Failed</string>
-    <string name="task_unauth">task_Unauthorised</string>
-    <string name="task_cancelled_offline">task_CancelledOffline</string>
-    <string name="task_other_error">task_OtherError</string>
+    <string name="TASK_STARTED">task_Started</string>
+    <string name="TASK_SUCCESSFUL">task_Successful</string>
+    <string name="TASK_FAILED">task_Failed</string>
+    <string name="TASK_UNAUTH">task_Unauthorised</string>
+    <string name="TASK_CANCELLED_OFFLINE">task_CancelledOffline</string>
+    <string name="TASK_OTHER_ERROR">task_OtherError</string>
 
-    <string name="check_token_started">checkTokenRequest_Started</string>
-    <string name="check_token_successful">checkTokenRequest_Successful</string>
-    <string name="check_token_failed">checkTokenRequest_Failed</string>
-    <string name="check_token_cancelled_offline">checkTokenRequest_CancelledOffline</string>
-    <string name="check_token_other_error">checkTokenOtherError</string>
-
-    <string name="fetch_tasks_started">fetchStarted</string>
-    <string name="fetch_tasks_finished">fetchFinished</string>
-    <string name="fetch_tasks_unauth">fetchUnAuth</string>
-    <string name="fetch_tasks_cancelled_offline">fetchCancelledOffline</string>
-    <string name="fetch_tasks_other_error">fetchOtherError</string>
-
-    <string name="fetch_teams_started">fetchTeamsStarted</string>
-    <string name="fetch_teams_finished">fetchTeamsFinished</string>
-    <string name="fetch_teams_unauth">fetchTeamsUnAuth</string>
-    <string name="fetch_teams_cancelled_offline">fetchTeamsCancelledOffline</string>
-    <string name="fetch_teams_other_error">fetchTeamsOtherError</string>
-
-    <string name="postnewdone_started">postNewDoneStarted</string>
-    <string name="postnewdone_finished">postNewDoneFinished</string>
-    <string name="postnewdone_unauth">postNewDoneUnAuth</string>
-    <string name="postnewdone_cancelled_offline">postNewDoneCancelledOffline</string>
-    <string name="postnewdone_other_error">postNewDoneOtherError</string>
+    <string name="CHECK_TOKEN_STARTED">checkTokenRequest_Started</string>
+    <string name="CHECK_TOKEN_SUCCESSFUL">checkTokenRequest_Successful</string>
+    <string name="CHECK_TOKEN_FAILED">checkTokenRequest_Failed</string>
+    <string name="CHECK_TOKEN_CANCELLED_OFFLINE">checkTokenRequest_CancelledOffline</string>
+    <string name="CHECK_TOKEN_OTHER_ERROR">checkTokenOtherError</string>
 
     <!-- SyncAdapter related -->
     <string name="sync_account_type">done.c306.net</string>

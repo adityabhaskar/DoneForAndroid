@@ -15,7 +15,7 @@ import net.c306.done.R;
 public class DoneListDbHelper extends SQLiteOpenHelper {
     
     // If you change the database schema, you must increment the database version.
-    public static final int DATABASE_VERSION = 4;
+    public static final int DATABASE_VERSION = 5;
     public static final String DATABASE_NAME = "DoneList.db";
     private static DoneListDbHelper sInstance;
     private static String LOG_TAG;
@@ -32,7 +32,7 @@ public class DoneListDbHelper extends SQLiteOpenHelper {
         if (sInstance == null) {
             sInstance = new DoneListDbHelper(context.getApplicationContext());
         }
-        LOG_TAG = context.getString(R.string.app_log_identifier) + " " + DoneListDbHelper.class.getSimpleName();
+        LOG_TAG = context.getString(R.string.APP_LOG_IDENTIFIER) + " " + DoneListDbHelper.class.getSimpleName();
         return sInstance;
     }
     
@@ -40,13 +40,16 @@ public class DoneListDbHelper extends SQLiteOpenHelper {
         //// DONE: 18/02/16 Create query for dones table creation 
         SQL_CREATE_ENTRIES = "CREATE TABLE " + DoneListContract.DoneEntry.TABLE_NAME +
             "(" +
-                //Main Fields
+                // Main Fields
                 DoneListContract.DoneEntry.COLUMN_NAME_ID + " INTEGER NOT NULL UNIQUE PRIMARY KEY, " +
                 DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE + " INTEGER, " +
                 DoneListContract.DoneEntry.COLUMN_NAME_TEAM_SHORT_NAME + " TEXT NOT NULL, " +
                 DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT + " TEXT NOT NULL, " +
+                // Action Manager fields
                 DoneListContract.DoneEntry.COLUMN_NAME_IS_LOCAL + " TEXT NOT NULL DEFAULT 'FALSE', " +
-                //Other Fields
+                DoneListContract.DoneEntry.COLUMN_NAME_IS_DELETED + " TEXT NOT NULL DEFAULT 'FALSE', " +
+                DoneListContract.DoneEntry.COLUMN_NAME_EDITED_FIELDS + " TEXT, " +
+                // Other Fields
                 DoneListContract.DoneEntry.COLUMN_NAME_CREATED + " INTEGER, " +
                 DoneListContract.DoneEntry.COLUMN_NAME_UPDATED + " INTEGER, " +
                 DoneListContract.DoneEntry.COLUMN_NAME_MARKEDUP_TEXT + " TEXT, " +

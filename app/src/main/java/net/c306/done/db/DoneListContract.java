@@ -82,6 +82,8 @@ public class DoneListContract {
         public static final String COLUMN_NAME_RAW_TEXT = "raw_text";
         public static final String COLUMN_NAME_PERMALINK = "permalink";
         public static final String COLUMN_NAME_IS_LOCAL = "is_local";
+        public static final String COLUMN_NAME_IS_DELETED = "is_deleted";
+        public static final String COLUMN_NAME_EDITED_FIELDS = "edited_fields";
         
         // .../dones/1234
         // Returns individual done

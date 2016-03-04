@@ -2,11 +2,9 @@ package net.c306.done.idonethis;
 
 import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.AsyncTask;
-import android.preference.PreferenceManager;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
@@ -34,7 +32,7 @@ public class CheckTokenTask extends AsyncTask<Void, Void, String> {
     
     public CheckTokenTask(Context c) {
         mContext = c;
-        LOG_TAG = mContext.getString(R.string.app_log_identifier) + " " + CheckTokenTask.class.getSimpleName();
+        LOG_TAG = mContext.getString(R.string.APP_LOG_IDENTIFIER) + " " + this.getClass().getSimpleName();
     }
     
     @Override
@@ -44,24 +42,24 @@ public class CheckTokenTask extends AsyncTask<Void, Void, String> {
         // DONE: 22/02/16 Check if internet connection is available else cancel fetch 
         if (!isOnline()) {
             Log.v(LOG_TAG, "Offline, so cancelling token check");
-            
-            sendMessage("Offline", mContext.getString(R.string.check_token_cancelled_offline));
-            
-            Utils.addToPendingActions(mContext, mContext.getString(R.string.pending_action_authenticate_token), 0);
+    
+            sendMessage("Offline", R.string.CHECK_TOKEN_CANCELLED_OFFLINE);
             
             cancel(true);
             return;
         }
         
         // Get authtoken from SharedPrefs
-        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(mContext);
-        mAuthToken = prefs.getString(mContext.getString(R.string.auth_token), "");
-        
-        if (mAuthToken.equals("")) {
+        mAuthToken = Utils.getAuthTokenWithoutValidityCheck(mContext);
+    
+        if (mAuthToken == null) {
             Log.e(LOG_TAG, "No Auth Token Found!");
-            sendMessage("Empty Token", mContext.getString(R.string.check_token_failed));
+            sendMessage("Empty Token", R.string.CHECK_TOKEN_FAILED);
             cancel(true);
         }
+    
+        // Reset validity to false before starting check
+        Utils.setTokenValidity(mContext, false);
     }
     
     @Override
@@ -91,6 +89,8 @@ public class CheckTokenTask extends AsyncTask<Void, Void, String> {
             switch (resultStatus) {
                 case HttpURLConnection.HTTP_OK:
                     Log.v(LOG_TAG + " Token accepted", " **OK** - " + resultStatus + ": " + responseMessage);
+                    // Set as valid
+                    Utils.setTokenValidity(mContext, true);
                     
                     //Read      
                     br = new BufferedReader(new InputStreamReader(httpcon.getInputStream(), "UTF-8"));
@@ -112,22 +112,18 @@ public class CheckTokenTask extends AsyncTask<Void, Void, String> {
                     
                     break; // fine
                 
-                case HttpURLConnection.HTTP_GATEWAY_TIMEOUT:
-                case HttpURLConnection.HTTP_UNAVAILABLE:
-                    Log.w(LOG_TAG + " Couldn't check done", " **gateway timeout** - " + resultStatus + ": " + responseMessage);
-                    sendMessage(responseMessage, mContext.getString(R.string.check_token_other_error));
-                    result = null;
-                    break;
-                
                 case HttpURLConnection.HTTP_UNAUTHORIZED:
                     Log.w(LOG_TAG + " Authcode invalid", " **invalid auth code** - " + resultStatus + ": " + responseMessage);
-                    sendMessage(responseMessage, mContext.getString(R.string.check_token_failed));
+                    // Set as invalid
+                    Utils.setTokenValidity(mContext, false);
+    
+                    sendMessage(responseMessage, R.string.CHECK_TOKEN_FAILED);
                     result = null;
                     break;
                 
                 default:
                     Log.w(LOG_TAG + " Authcode invalid", " **unknown response code** - " + resultStatus + ": " + responseMessage);
-                    sendMessage(responseMessage, mContext.getString(R.string.check_token_other_error));
+                    sendMessage(responseMessage, R.string.CHECK_TOKEN_OTHER_ERROR);
                     result = null;
                 
             }
@@ -135,7 +131,7 @@ public class CheckTokenTask extends AsyncTask<Void, Void, String> {
         } catch (Exception e) {
             e.printStackTrace();
             Log.e(LOG_TAG, e.getMessage());
-            sendMessage(e.getMessage(), mContext.getString(R.string.check_token_other_error));
+            sendMessage(e.getMessage(), R.string.CHECK_TOKEN_OTHER_ERROR);
             result = null;
         } finally {
             if (httpcon != null) {
@@ -154,60 +150,49 @@ public class CheckTokenTask extends AsyncTask<Void, Void, String> {
     }
     
     
-    /**
-     * Take the String representing the complete forecast in JSON Format and
-     * pull out the data we need to construct the Strings needed for the wireframes.
-     *
-     * Fortunately parsing is easy:  constructor takes the JSON string and converts it
-     * into an Object hierarchy for us.
-     */
     private String getUsernameFromJson(String userDetailsJsonStr) throws JSONException {
         
         JSONObject masterObj = new JSONObject(userDetailsJsonStr);
         String username = masterObj.getString("user");
         
-        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(mContext);
-        SharedPreferences.Editor editor = prefs.edit();
-        
         if (null != username && !username.equals("")) {
+    
             // Save username in shared preferences
-            editor.putString(mContext.getString(R.string.username), username);
-            editor.apply();
+            Utils.setUsername(mContext, username);
             
             Log.v(LOG_TAG, "Received username: " + username);
             
         } else {
-            
-            editor.remove("username");
+    
+            Utils.setUsername(mContext, null);
+            Utils.setTokenValidity(mContext, false);
             
         }
+    
         return username;
     }
     
     
     //Result should be a) username or b) null
     @Override
-    protected void onPostExecute(String result) {
-        super.onPostExecute(result);
-        
-        if (result != null) {
+    protected void onPostExecute(String username) {
+        super.onPostExecute(username);
+    
+        if (username != null) {
             // Notify any local listeners about successful login
-            sendMessage(result, mContext.getString(R.string.check_token_successful));
-            
-            Utils.removeFromPendingActions(mContext, mContext.getString(R.string.pending_action_authenticate_token));
-            
-            // DONE: 27/02/16 Fetch teams
+            sendMessage(username, R.string.CHECK_TOKEN_SUCCESSFUL);
+        
+            // Fetch teams
             new FetchTeamsTask(mContext).execute();
-        } else {
-            Utils.addToPendingActions(mContext, mContext.getString(R.string.pending_action_authenticate_token), 0);
+            
         }
     }
     
-    private void sendMessage(String message, String action) {
-        Intent intent = new Intent(mContext.getString(R.string.settings_activity_listener_intent));
+    private void sendMessage(String message, int action) {
+        Intent intent = new Intent(mContext.getString(R.string.DONE_LOCAL_BROADCAST_LISTENER_INTENT));
         
         // You can also include some extra data.
-        intent.putExtra("sender", "CheckTokenTask");
+        intent.putExtra("sender", this.getClass().getSimpleName());
         intent.putExtra("action", action);
         intent.putExtra("message", message);
         LocalBroadcastManager.getInstance(mContext.getApplicationContext()).sendBroadcast(intent);

@@ -22,7 +22,7 @@ public class DoneItem {
     public String url;
     public String team;
     public String permalink;
-    public String is_local = "false";
+    public String is_local = "FALSE";
     
     public class DoneTags{
         public int id;

@@ -4,17 +4,18 @@ import android.app.LoaderManager;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.CursorLoader;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.Loader;
-import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
-import android.preference.PreferenceManager;
 import android.support.design.widget.Snackbar;
+import android.support.v4.content.ContextCompat;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v4.widget.SwipeRefreshLayout;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
@@ -30,6 +31,7 @@ import android.widget.Toast;
 import net.c306.done.db.DoneListContract;
 import net.c306.done.idonethis.DoneActions;
 import net.c306.done.idonethis.FetchDonesTask;
+import net.c306.done.idonethis.PostNewDoneTask;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -38,7 +40,6 @@ import java.util.Date;
 import java.util.Locale;
 
 // TODO: 20/02/16 Group dones under date headers in listView
-// TODO: 28/02/16 Add edit functions 
 public class MainActivity
         extends
         AppCompatActivity
@@ -64,108 +65,84 @@ public class MainActivity
         
         @Override
         public void onReceive(Context context, Intent intent) {
-            // Who is sending message?
+    
+            int action = intent.getIntExtra("action", -1);
             String sender = intent.getStringExtra("sender");
-            
-            switch (sender){
-                case "FetchDonesTask":{
-                    // Get action - fetch started or finished
-                    String action = intent.getStringExtra("action");
-                    // Get count of messages fetched - >0 means success
-                    int count = intent.getIntExtra("count", -1);
-                    
-                    SwipeRefreshLayout swp = (SwipeRefreshLayout) findViewById(R.id.swipe_refresh_layout);
+            String message = intent.getStringExtra("message");
     
-                    if (action.equals(getString(R.string.fetch_tasks_started)) && !swp.isRefreshing()) {
-                        swp.setRefreshing(true);
-                    } else if (action.equals(getString(R.string.fetch_tasks_finished))) {
-                        if (swp.isRefreshing()) {
-                            swp.setRefreshing(false);
-                        }
-                    } else if (action.equals(getString(R.string.fetch_tasks_cancelled_offline))) {
-                        if (swp.isRefreshing()) {
-                            swp.setRefreshing(false);
-                        }
+    
+            // If fetch finished, and refresher showing, stop it
+            if (sender.equals(FetchDonesTask.class.getSimpleName()) && action != R.string.TASK_STARTED) {
         
-                        Toast t = Toast.makeText(getApplicationContext(), R.string.offline_toast_message, Toast.LENGTH_SHORT);
-                        t.show();
-                    }
-                    
-                    break;
+                SwipeRefreshLayout swp = (SwipeRefreshLayout) findViewById(R.id.swipe_refresh_layout);
+        
+                if (swp.isRefreshing()) {
+                    swp.setRefreshing(false);
                 }
-                case "PostNewDoneTask":{
-                    String action = intent.getStringExtra("action");
-                    // Get count of messages sent - >0 means success
-                    String message = intent.getStringExtra("message");
+        
+            }
     
-                    if (action.equals(getString(R.string.postnewdone_started))) {
-                        // Do nothing for now
+            switch (action) {
+                case R.string.TASK_UNAUTH:
+                    // Unauthorised, i.e. token issues, show snackbar
+            
+                    Log.w(LOG_TAG, "Broadcast Receiver - Unauthorised! " + message);
+            
+                    // Reset token status
+                    Utils.setTokenValidity(getApplicationContext(), false);
+            
+                    // Show warning snack bar on to show offline/unauthorised status 
+                    if (mSnackbar != null && mSnackbar.isShown())
+                        mSnackbar.dismiss();
+            
+                    mSnackbar = Snackbar.make(findViewById(R.id.fab), "Authorisation failed! Please check token.", Snackbar.LENGTH_LONG);
+            
+                    mSnackbar.setAction("Settings", new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            Intent settingsIntent = new Intent(MainActivity.this, SettingsActivity.class);
+                            startActivity(settingsIntent);
+                        }
+                    })
+                            .setActionTextColor(ContextCompat.getColor(getApplicationContext(), android.R.color.primary_text_dark))
+                            .show();
+                    break;
         
-                    } else if (action.equals(getString(R.string.postnewdone_finished))) {
-        
+                case R.string.TASK_SUCCESSFUL:
+                    if (sender.equals(PostNewDoneTask.class.getSimpleName())) {
+                        // PostDone successful, show snackbar
                         int count = intent.getIntExtra("count", -1);
-        
+                
                         if (count > 0) {
                             if (mSnackbar != null && mSnackbar.isShown())
                                 mSnackbar.dismiss();
-            
+                    
                             mSnackbar = Snackbar.make(findViewById(R.id.fab), (count > 1 ? count + " tasks " : "Task ") + getString(R.string.done_sent_toast_message), Snackbar.LENGTH_LONG);
                             mSnackbar.setAction("Action", null).show();
                         }
-        
-                    } else if (action.equals(getString(R.string.postnewdone_cancelled_offline))) {
-        
-                        Log.v(LOG_TAG, "Broadcast Receiver - Offline. Will post done when connected");
-        
-                    } else if (action.equals(getString(R.string.postnewdone_unauth))) {
-                        Log.w(LOG_TAG, "Broadcast Receiver - Unauthorised. Check auth token!");
-                        // TODO: 27/02/16 Reset token, and show warning bar on top of screen to show offline/unauthorised status 
-                    } else {
-                        Log.v(LOG_TAG, "Broadcast Receiver - Some other error happened while posting done: " + intent.getIntExtra("count", -1));
                     }
-    
                     break;
-                }
-                case "DeleteDonesTask": {
         
-                    String action = intent.getStringExtra("action");
-        
-                    if (action.equals(getString(R.string.task_started))) {
-                        // Do nothing for now
-            
-                    } else if (action.equals(getString(R.string.task_successful))) {
-            
-                        Log.v(LOG_TAG, "Broadcast Receiver - " + intent.getIntExtra("count", -1) + " tasks deleted.");
-            
-                    } else if (action.equals(getString(R.string.offline_toast_message))) {
-            
-                        Log.v(LOG_TAG, "Broadcast Receiver - Offline. Will post done when connected");
-            
-                    } else if (action.equals(getString(R.string.postnewdone_unauth))) {
-                        Log.w(LOG_TAG, "Broadcast Receiver - Unauthorised. Check auth token!");
-            
-                        // Show warning snack bar on to show offline/unauthorised status 
-                        if (mSnackbar != null && mSnackbar.isShown())
-                            mSnackbar.dismiss();
-            
-                        mSnackbar = Snackbar.make(findViewById(R.id.fab), "Authorisation failed! Please check token.", Snackbar.LENGTH_LONG);
-                        mSnackbar.setAction("Settings", new View.OnClickListener() {
-                            @Override
-                            public void onClick(View v) {
-                                Intent settingsIntent = new Intent(MainActivity.this, SettingsActivity.class);
-                                startActivity(settingsIntent);
-                            }
-                        }).show();
-                    } else {
-                        Log.w(LOG_TAG, "Broadcast Receiver - Some other error happened while posting done: " + intent.getIntExtra("count", -1));
-                    }
-        
-                    break;
-                }
+                case R.string.TASK_STARTED:
+                    if (sender.equals(FetchDonesTask.class.getSimpleName())) {
                 
-                default:
-                    Log.w(LOG_TAG, "Broadcast receiver got message from unknown sender" + intent.getStringExtra("message"));
+                        SwipeRefreshLayout swp = (SwipeRefreshLayout) findViewById(R.id.swipe_refresh_layout);
+                
+                        if (!swp.isRefreshing()) {
+                            // If fetch started, and refresher not showing, start it
+                            swp.setRefreshing(true);
+                        }
+                    }
+                    break;
+        
+                case R.string.TASK_CANCELLED_OFFLINE:
+                    if (sender.equals(FetchDonesTask.class.getSimpleName())) {
+                        Toast.makeText(getApplicationContext(), R.string.offline_toast_message, Toast.LENGTH_SHORT)
+                                .show();
+                    }
             }
+    
+            Log.v(LOG_TAG, "Sender: " + sender + "\nAction: " + getString(action) + "\nMessage: " + message);
         }
     };
     
@@ -176,24 +153,20 @@ public class MainActivity
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
     
-        LOG_TAG = getString(R.string.app_log_identifier) + " " + MainActivity.class.getSimpleName();
-    
+        LOG_TAG = getString(R.string.APP_LOG_IDENTIFIER) + " " + this.getClass().getSimpleName();
+        
         /*
         * 
         * Precede these with deleting all entries ('delete from dones') from database to do a 
         * fetchAll.
         * 
         * */
-        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
-        String lastUpdated = prefs.getString(getString(R.string.last_updated_setting_name), "");
+        String lastUpdated = Utils.getLastUpdated(this);
         Log.v(LOG_TAG, "Last Updated: " + lastUpdated);
-        //SharedPreferences.Editor editor = prefs.edit();
-        //editor.remove("newDones");
-        //editor.apply();
-        
-        //// DONE: 15/02/16 Update dones from server and update in sqllite
-        //// DONE: 20/02/16 Execute fetch only if no fetch within last 15 minutes 
-        if(!lastUpdated.equals("")){
+    
+        // Update dones from server and update in sqllite
+        // Execute fetch only if no fetch within last 15 minutes 
+        if (lastUpdated != null) {
             SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.UK);
             try {
                 Date lastUpdatedDate = sdf.parse(lastUpdated);
@@ -202,15 +175,15 @@ public class MainActivity
                 c.setTime(new Date());
                 c.add(Calendar.MINUTE, REFRESH_LIST_DELAY);  // create timestamp 15 mins back
                 if (lastUpdatedDate.before(c.getTime())) {
-                    new FetchDonesTask(this, R.string.main_activity_listener_intent, false).execute();
+                    new FetchDonesTask(this, false).execute();
                 }
             } catch(ParseException e){
                 Log.w(LOG_TAG, "Couldn't parse lastUpdated: " + lastUpdated + ".");
-                new FetchDonesTask(this, R.string.main_activity_listener_intent, false).execute();
+                new FetchDonesTask(this, false).execute();
             }
         } else {
             Log.w(LOG_TAG, "No lastUpdated found, starting fetch.");
-            new FetchDonesTask(this, R.string.main_activity_listener_intent, false).execute();
+            new FetchDonesTask(this, false).execute();
         }
         
         //mDoneListAdapter = new DoneListAdapter(this, R.layout.list_row_layout, cur, 0);
@@ -257,7 +230,7 @@ public class MainActivity
     
         // Register to receive messages.
         LocalBroadcastManager.getInstance(this).registerReceiver(mMessageReceiver,
-                new IntentFilter(getString(R.string.main_activity_listener_intent)));
+                new IntentFilter(getString(R.string.DONE_LOCAL_BROADCAST_LISTENER_INTENT)));
     
         // Register to save click location (for now), and edit/delete buttons later
         mListView.setOnItemClickListener(this);
@@ -279,30 +252,6 @@ public class MainActivity
     public void toNewDone(View view) {
         Intent newDoneIntent = new Intent(MainActivity.this, NewDoneActivity.class);
         startActivityForResult(newDoneIntent, 1);
-    }
-    
-    protected void onActivityResult(int requestCode, int resultCode,
-                                    Intent data) {
-/*
-        if (mSnackbar != null && mSnackbar.isShown())
-            mSnackbar.dismiss();
-        
-        switch (resultCode) {
-            case RESULT_OK:
-                mSnackbar = Snackbar.make(findViewById(R.id.fab), R.string.done_saved_toast_message, Snackbar.LENGTH_LONG);
-                mSnackbar.setAction("Action", null).show();
-                break;
-            
-            case R.integer.result_offline:
-                mSnackbar = Snackbar.make(findViewById(R.id.fab), R.string.done_offline_saved_toast_message, Snackbar.LENGTH_LONG);
-                mSnackbar.setAction("Action", null).show();
-                break;
-            
-            default:
-                Log.v(LOG_TAG, "Result Code: " + resultCode);
-    
-        }
-*/
     }
     
     @Override
@@ -338,6 +287,36 @@ public class MainActivity
             outState.putInt(SELECTED_KEY, mPosition);
         }
         super.onSaveInstanceState(outState);
+    }
+    
+    public void onLogout(MenuItem item) {
+        
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        
+        builder.setTitle("Are you sure?")
+                .setMessage("All local data will be deleted.")
+                .setPositiveButton("Logout", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+                        // User confirmed Logout
+                        Log.v(LOG_TAG, "Logging out...");
+                        
+                        // empty database
+                        getContentResolver().delete(DoneListContract.DoneEntry.CONTENT_URI, null, null);
+                        Log.v(LOG_TAG, "Database deleted.");
+                        
+                        // empty sharedPreferences
+                        Utils.resetSharedPreferences(getApplicationContext());
+                        Log.v(LOG_TAG, "SharedPreferences emptied.");
+                    }
+                })
+                .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+                        // User clicked Cancel button
+                        // Do nothing :)
+                    }
+                })
+                .create()
+                .show();
     }
     
     /*
@@ -393,19 +372,33 @@ public class MainActivity
     public boolean onActionItemClicked(ActionMode mode, MenuItem item) {
         // Respond to clicks on the actions in the CAB
         switch (item.getItemId()) {
+    
             case R.id.menu_delete_done:
-                deleteSelectedItems();
-                mode.finish(); // Action picked, so close the CAB
+                // Show alert message to confirm delete
+                new AlertDialog.Builder(this)
+                        .setMessage("Are you sure you want to delete these tasks?")
+                        .setPositiveButton("Delete", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                deleteSelectedItems();
+                            }
+                        })
+                        .setNegativeButton("Cancel", null)
+                        .create()
+                        .show();
+        
+                mode.finish(); // Close the CAB
                 return true;
+    
             case R.id.menu_edit_done:
                 //editSelectedItems();
                 Log.v(LOG_TAG, "Edit selected item");
                 mode.finish(); // Action picked, so close the CAB
                 return true;
+    
             default:
                 return false;
         }
-        //return false;
     }
     
     private void deleteSelectedItems() {
@@ -458,7 +451,7 @@ public class MainActivity
         return new CursorLoader(this,
                 donesUri,
                 cursorProjectionString,
-                null,
+                DoneListContract.DoneEntry.COLUMN_NAME_IS_DELETED + " IS 'FALSE'",
                 null,
                 sortOrder);
     }
@@ -486,6 +479,7 @@ public class MainActivity
     @Override
     public void onRefresh() {
         Log.v(LOG_TAG, "Calling fetch from swipe to refresh");
-        new FetchDonesTask(this, R.string.main_activity_listener_intent, false).execute();
+        new FetchDonesTask(this, false).execute();
     }
+    
 }

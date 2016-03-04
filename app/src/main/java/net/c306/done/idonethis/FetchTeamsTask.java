@@ -3,11 +3,9 @@ package net.c306.done.idonethis;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.AsyncTask;
-import android.preference.PreferenceManager;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
@@ -33,7 +31,7 @@ import java.util.Vector;
 /**
  * Created by raven on 27/02/16.
  */
-public class FetchTeamsTask extends AsyncTask<Void, Void, String> {
+public class FetchTeamsTask extends AsyncTask<Void, Void, Integer> {
     
     
     private String LOG_TAG;
@@ -41,11 +39,10 @@ public class FetchTeamsTask extends AsyncTask<Void, Void, String> {
     private String mAuthToken;
     
     private SimpleDateFormat sdf;
-    private int fetchedTeamsCounter = 0;
     
     public FetchTeamsTask(Context c) {
         mContext = c;
-        LOG_TAG = mContext.getString(R.string.app_log_identifier) + " " + FetchTeamsTask.class.getSimpleName();
+        LOG_TAG = mContext.getString(R.string.APP_LOG_IDENTIFIER) + " " + this.getClass().getSimpleName();
     }
     
     @Override
@@ -55,26 +52,22 @@ public class FetchTeamsTask extends AsyncTask<Void, Void, String> {
         //// DONE: 22/02/16 Check if internet connection is available else cancel fetch 
         if (!isOnline()) {
             Log.w(LOG_TAG, "Offline, so cancelling fetch");
-            sendMessage("Offline", mContext.getString(R.string.fetch_teams_cancelled_offline));
-            
-            Utils.addToPendingActions(mContext, mContext.getString(R.string.pending_action_fetch_teams));
-            
+            sendMessage("Offline", R.string.TASK_CANCELLED_OFFLINE, -1);
             cancel(true);
             return;
         }
         
         // Get authtoken from SharedPrefs
-        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(mContext);
-        mAuthToken = prefs.getString(mContext.getString(R.string.auth_token), "");
-        
-        if (mAuthToken.equals("")) {
+        mAuthToken = Utils.getAuthToken(mContext);
+    
+        if (mAuthToken == null) {
             Log.e(LOG_TAG, "No Auth Token Found!");
-            sendMessage("No auth token found!", mContext.getString(R.string.fetch_teams_unauth));
+            sendMessage("No auth token found!", R.string.TASK_UNAUTH, -1);
             cancel(true);
             return;
         }
-        
-        sendMessage("Starting fetch...", mContext.getString(R.string.fetch_teams_started));
+    
+        sendMessage("Starting fetch...", R.string.TASK_STARTED, -1);
         
         /*
         * Not to be used till we can get all updates from server, including deletes
@@ -84,13 +77,14 @@ public class FetchTeamsTask extends AsyncTask<Void, Void, String> {
     }
     
     @Override
-    protected String doInBackground(Void... params) {
+    protected Integer doInBackground(Void... params) {
         
         final String TEAMS_URL = "https://idonethis.com/api/v0.1/teams/?page_size=100";
         HttpURLConnection httpcon = null;
         BufferedReader br = null;
         int resultStatus;
         String result = "";
+        int teamCount = 0;
         
         try {
             //Connect
@@ -129,37 +123,36 @@ public class FetchTeamsTask extends AsyncTask<Void, Void, String> {
                         result = null;
                         
                     } else {
-                        
-                        result = getTeamsFromJson(result).toString();
+    
+                        teamCount = getTeamsFromJson(result);
                         
                     }
                     break; // fine
                 
-                case HttpURLConnection.HTTP_GATEWAY_TIMEOUT:
-                case HttpURLConnection.HTTP_UNAVAILABLE:
-                    Log.w(LOG_TAG, "Couldn't fetch teams - " + resultStatus + ": " + responseMessage);
-                    sendMessage(responseMessage, mContext.getString(R.string.fetch_teams_other_error));
-                    result = null;
-                    break;
-                
                 case HttpURLConnection.HTTP_UNAUTHORIZED:
                     Log.w(LOG_TAG, " Authcode invalid - " + resultStatus + ": " + responseMessage);
-                    sendMessage(responseMessage, mContext.getString(R.string.fetch_teams_unauth));
-                    result = null;
-                    break;
+                    // Set invalid token
+                    Utils.setTokenValidity(mContext, false);
+                    sendMessage(responseMessage, R.string.TASK_UNAUTH, -1);
+                    // Cancel everything and return to app with alarm message
+                    cancel(true);
+                    return null;
                 
                 default:
                     Log.w(LOG_TAG, "Couldn't fetch teams - " + resultStatus + ": " + responseMessage);
-                    sendMessage(responseMessage, mContext.getString(R.string.fetch_teams_other_error));
+                    sendMessage(responseMessage, R.string.TASK_OTHER_ERROR, -1);
                     result = null;
             }
             
         } catch (Exception e) {
+    
             result = null;
             e.printStackTrace();
             Log.e(LOG_TAG, e.getMessage());
-            sendMessage(e.getMessage(), mContext.getString(R.string.check_token_other_error));
+            sendMessage(e.getMessage(), R.string.TASK_OTHER_ERROR, -1);
+            
         } finally {
+    
             if (httpcon != null) {
                 httpcon.disconnect();
             }
@@ -170,9 +163,12 @@ public class FetchTeamsTask extends AsyncTask<Void, Void, String> {
                     Log.e(LOG_TAG, "Error closing stream", e);
                 }
             }
+    
         }
-        
-        return result;
+    
+        Log.v(LOG_TAG, "Message from server: " + result);
+    
+        return teamCount;
     }
     
     /**
@@ -182,7 +178,7 @@ public class FetchTeamsTask extends AsyncTask<Void, Void, String> {
      * Fortunately parsing is easy:  constructor takes the JSON string and converts it
      * into an Object hierarchy for us.
      */
-    private String[] getTeamsFromJson(String teamsJsonStr) throws JSONException {
+    private int getTeamsFromJson(String teamsJsonStr) throws JSONException {
         
         // Now we have a String representing the complete forecast in JSON Format.
         // Fortunately parsing is easy:  constructor takes the JSON string and converts it
@@ -222,40 +218,36 @@ public class FetchTeamsTask extends AsyncTask<Void, Void, String> {
         
         // add to database
         if (cVVector.size() > 0) {
-            fetchedTeamsCounter = cVVector.size();
             
             ContentValues[] cvArray = new ContentValues[cVVector.size()];
             cVVector.toArray(cvArray);
     
             // TODO: 27/02/16 Add newly fetched teams to the database  
-            //mContext.getContentResolver().bulkInsert(DoneListContract.DoneEntry.CONTENT_URI, cvArray);
+            //mContext.getContentResolver().bulkInsert(DoneListContract.TeamEntry.CONTENT_URI, cvArray);
         }
-        
-        return new String[]{cVVector.toArray().toString()};
+    
+        // Return number of fetched teams
+        return cVVector.size();
     }
     
     
     @Override
-    protected void onPostExecute(String result) {
-        super.onPostExecute(result);
-        
-        if (result != null) {
-            sendMessage(result, mContext.getString(R.string.fetch_teams_finished));
-            
-            Utils.removeFromPendingActions(mContext, mContext.getString(R.string.pending_action_fetch_teams));
+    protected void onPostExecute(Integer teamCount) {
+        super.onPostExecute(teamCount);
     
-            new FetchDonesTask(mContext, R.string.settings_activity_listener_intent, false).execute();
-        } else {
-            Utils.addToPendingActions(mContext, mContext.getString(R.string.pending_action_fetch_teams));
+        if (teamCount > 0) {
+            sendMessage("Got " + teamCount + " teams.", R.string.TASK_SUCCESSFUL, teamCount);
+        
+            new FetchDonesTask(mContext, false).execute();
         }
     }
     
-    private void sendMessage(String message, String action) {
-        Intent intent = new Intent(mContext.getString(R.string.settings_activity_listener_intent));
+    private void sendMessage(String message, int action, int count) {
+        Intent intent = new Intent(mContext.getString(R.string.DONE_LOCAL_BROADCAST_LISTENER_INTENT));
         
         // You can also include some extra data.
-        intent.putExtra("sender", "FetchTeamsTask");
-        intent.putExtra("count", fetchedTeamsCounter);
+        intent.putExtra("sender", this.getClass().getSimpleName());
+        intent.putExtra("count", count);
         intent.putExtra("action", action);
         intent.putExtra("message", message);
         LocalBroadcastManager.getInstance(mContext.getApplicationContext()).sendBroadcast(intent);
@@ -272,4 +264,3 @@ public class FetchTeamsTask extends AsyncTask<Void, Void, String> {
     }
     
 }
-

@@ -32,7 +32,7 @@ public class DoneListAdapter extends ResourceCursorAdapter{
     
     public DoneListAdapter(Context context, int layout, Cursor c, int flags) {
         super(context, layout, c, flags);
-        LOG_TAG = context.getString(R.string.app_log_identifier) + " " + DoneListAdapter.class.getSimpleName();
+        LOG_TAG = context.getString(R.string.APP_LOG_IDENTIFIER) + " " + this.getClass().getSimpleName();
     }
     
     /*
@@ -61,7 +61,7 @@ public class DoneListAdapter extends ResourceCursorAdapter{
         TextView rawText = (TextView) view.findViewById(R.id.item_raw_text);
         rawText.setText(cursor.getString(cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT)));
     
-        if (cursor.getString(cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_IS_LOCAL)).equals("true"))
+        if ("TRUE".equals(cursor.getString(cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_IS_LOCAL))))
             rawText.setTextColor(ContextCompat.getColor(mContext, R.color.secondary_text));
         else
             rawText.setTextColor(ContextCompat.getColor(mContext, R.color.primary_text));

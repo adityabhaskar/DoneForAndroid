@@ -3,79 +3,92 @@ package net.c306.done;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.preference.PreferenceManager;
+import android.support.annotation.Nullable;
 
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
-
-import java.lang.reflect.Type;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Map;
 
 /**
  * Created by raven on 28/02/16.
  */
 public class Utils {
     
-    public static void addToPendingActions(Context c, String action, int position) {
-        // DONE: 27/02/16 Add delayed authentication to pending actions list 
+    public static boolean haveValidToken(Context c) {
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(c);
-        Type pendingActionsListType = new TypeToken<ArrayList<String>>() {
-        }.getType();
-        
-        String pendingActionsString = prefs.getString(c.getString(R.string.pending_actions), "");
-        
-        List<String> pendingActions;
-        Gson gson = new Gson();
-        
-        if (pendingActionsString.equals("")) {
-            pendingActions = new ArrayList<String>();
+        return prefs.getBoolean(c.getString(R.string.VALID_TOKEN), false);
+    }
+    
+    public static void setTokenValidity(Context c, boolean flag) {
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(c);
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.putBoolean(c.getString(R.string.VALID_TOKEN), flag);
+        editor.apply();
+    }
+    
+    @Nullable
+    public static String getAuthToken(Context c) {
+        if (haveValidToken(c)) {
+            SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(c);
+            return prefs.getString(c.getString(R.string.AUTH_TOKEN), null);
         } else {
-            pendingActions = gson.fromJson(pendingActionsString, pendingActionsListType);
-        }
-        
-        if (!pendingActions.contains(action)) {
-            if (position == -1) {
-                pendingActions.add(action);
-            } else {
-                pendingActions.add(position, action);
-            }
-            pendingActionsString = gson.toJson(pendingActions, pendingActionsListType);
-            
-            SharedPreferences.Editor editor = prefs.edit();
-            editor.putString(c.getString(R.string.pending_actions), pendingActionsString);
-            editor.apply();
+            return null;
         }
     }
     
-    public static void addToPendingActions(Context c, String action) {
-        addToPendingActions(c, action, -1);
-    }
-    
-    public static void removeFromPendingActions(Context c, String action) {
-        // DONE: 27/02/16 Add delayed authentication to pending actions list 
+    @Nullable
+    public static String getAuthTokenWithoutValidityCheck(Context c) {
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(c);
-        Type pendingActionsListType = new TypeToken<ArrayList<String>>() {
-        }.getType();
-        
-        Gson gson = new Gson();
-        String pendingActionsString = prefs.getString(c.getString(R.string.pending_actions), "");
-        
-        // Empty string, nothing to remove
-        if (pendingActionsString.equals("")) {
-            return;
-        }
-        
-        List<String> pendingActions = gson.fromJson(pendingActionsString, pendingActionsListType);
-        
-        if (pendingActions.contains(action)) {
-            pendingActions.remove(action);
-            pendingActionsString = gson.toJson(pendingActions, pendingActionsListType);
-            
-            SharedPreferences.Editor editor = prefs.edit();
-            editor.putString(c.getString(R.string.pending_actions), pendingActionsString);
-            editor.apply();
-        }
+        return prefs.getString(c.getString(R.string.AUTH_TOKEN), null);
     }
     
+    @Nullable
+    public static int getLocalDoneIdCounter(Context c) {
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(c);
+        return prefs.getInt(c.getString(R.string.LOCAL_DONE_ID_COUNTER), 0);
+    }
     
+    public static void setLocalDoneIdCounter(Context c, int localDoneIdCounter) {
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(c);
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.putInt(c.getString(R.string.LOCAL_DONE_ID_COUNTER), localDoneIdCounter);
+        editor.apply();
+    }
+    
+    public static void setLastUpdated(Context c, String lastUpdated) {
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(c);
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.putString(c.getString(R.string.LAST_UPDATED_SETTING_NAME), lastUpdated);
+        editor.apply();
+    }
+    
+    @Nullable
+    public static String getLastUpdated(Context c) {
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(c);
+        return prefs.getString(c.getString(R.string.LAST_UPDATED_SETTING_NAME), null);
+    }
+    
+    public static void setUsername(Context c, String username) {
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(c);
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.putString(c.getString(R.string.USERNAME), username);
+        editor.apply();
+    }
+    
+    @Nullable
+    public static String getUsername(Context c) {
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(c);
+        return prefs.getString(c.getString(R.string.USERNAME), null);
+    }
+    
+    public static void resetSharedPreferences(Context c) {
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(c);
+        SharedPreferences.Editor editor = prefs.edit();
+        Map<String, ?> prefsAll = prefs.getAll();
+        
+        for (Map.Entry<String, ?> entry :
+                prefsAll.entrySet()) {
+            editor.remove(entry.getKey());
+        }
+        
+        editor.apply();
+    }
 }

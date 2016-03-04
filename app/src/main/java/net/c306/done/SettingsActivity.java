@@ -106,78 +106,37 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
         public void onReceive(Context context, Intent intent) {
             // Who is sending message?
             String sender = intent.getStringExtra("sender");
-            String action = intent.getStringExtra("action");
+            int action = intent.getIntExtra("action", -1);
             String message = intent.getStringExtra("message");
-            
-            switch (sender) {
-                
-                case "CheckTokenTask":
-                    if (action.equals(getString(R.string.check_token_started))) {
+    
+            if (sender.equals(CheckTokenTask.class.getSimpleName())) {
+                switch (action) {
+                    case R.string.CHECK_TOKEN_STARTED:
                         // Do nothing for now
-                        
-                    } else if (action.equals(getString(R.string.check_token_successful))) {
-                        
+                        break;
+            
+                    case R.string.CHECK_TOKEN_SUCCESSFUL:
                         Toast.makeText(getApplicationContext(), "User " + message + " authenticated. Thank you!", Toast.LENGTH_LONG).show();
                         Log.v(LOG_TAG, "Broadcast Receiver - User " + message + " authenticated.");
-                        
-                    } else if (action.equals(getString(R.string.check_token_failed))) {
-                        
+                        break;
+            
+                    case R.string.CHECK_TOKEN_FAILED:
                         Toast.makeText(getApplicationContext(), "Authentication failed! Please check auth token provided.", Toast.LENGTH_LONG).show();
                         Log.v(LOG_TAG, "Broadcast Receiver - Authentication failed! " + message);
-                        
-                    } else if (action.equals(getString(R.string.check_token_cancelled_offline))) {
-                        
+                        break;
+            
+                    case R.string.CHECK_TOKEN_CANCELLED_OFFLINE:
                         Toast.makeText(getApplicationContext(), "Offline! Will check authentication when online.", Toast.LENGTH_LONG).show();
                         Log.v(LOG_TAG, "Broadcast Receiver - Offline. Check again later. " + message);
-                        
-                    } else if (action.equals(getString(R.string.check_token_other_error))) {
-                        
-                        Toast.makeText(getApplicationContext(), "Server error. Will try again later.", Toast.LENGTH_LONG).show();
+                        break;
+            
+                    case R.string.CHECK_TOKEN_OTHER_ERROR:
+                        Toast.makeText(getApplicationContext(), "Server/Network error. Will try again later.", Toast.LENGTH_LONG).show();
                         Log.v(LOG_TAG, "Broadcast Receiver - Some other error happened while checking auth: " + message);
-                        
-                    } else {
-                        
-                        Log.v(LOG_TAG, "Broadcast Receiver - Unknown response: " + message);
-                        
-                    }
-                    
-                    break;
-                
-                
-                case "FetchTeamsTask":
-                    if (action.equals(getString(R.string.fetch_teams_started))) {
-                        // Do nothing for now
-                        
-                    } else if (action.equals(getString(R.string.fetch_teams_finished))) {
-                        
-                        Log.v(LOG_TAG, "Broadcast Receiver - Teams fetched" + message);
-                        
-                    } else if (action.equals(getString(R.string.fetch_teams_unauth))) {
-                        
-                        Log.v(LOG_TAG, "Broadcast Receiver - Authentication failed in teamFetch! " + message);
-                        
-                    } else if (action.equals(getString(R.string.fetch_teams_cancelled_offline))) {
-                        
-                        Log.v(LOG_TAG, "Broadcast Receiver - Offline. Will Check again later. " + message);
-                        
-                    } else if (action.equals(getString(R.string.fetch_teams_other_error))) {
-                        
-                        Log.v(LOG_TAG, "Broadcast Receiver - Some other error happened while checking auth: " + message);
-                        
-                    } else {
-                        
-                        Log.v(LOG_TAG, "Broadcast Receiver - Unknown response: " + message);
-                        
-                    }
-                    
-                    break;
-                
-                default:
-                    Log.w(LOG_TAG, "Broadcast receiver got message from unknown sender: " +
-                            intent.getStringExtra("message") +
-                            " - " +
-                            intent.getStringExtra("action"));
+            
+                }
             }
+            Log.v(LOG_TAG, "Original message from:" + sender + ",\nwith action:" + getString(action) + ", and\nmessage:" + message);
         }
     };
     
@@ -216,7 +175,7 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
         super.onCreate(savedInstanceState);
         setupActionBar();
     
-        LOG_TAG = getString(R.string.app_log_identifier) + " " + SettingsActivity.class.getSimpleName();
+        LOG_TAG = getString(R.string.APP_LOG_IDENTIFIER) + " " + this.getClass().getSimpleName();
     
     }
     
@@ -229,7 +188,7 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
         
         // Register to receive messages.
         LocalBroadcastManager.getInstance(this).registerReceiver(mMessageReceiver,
-                new IntentFilter(getString(R.string.settings_activity_listener_intent)));
+                new IntentFilter(getString(R.string.DONE_LOCAL_BROADCAST_LISTENER_INTENT)));
         
     }
     
@@ -249,7 +208,7 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
     @Override
     public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
         Log.wtf(LOG_TAG, "Got pref change: " + key);
-        if (key.equals(getString(R.string.auth_token))) {
+        if (key.equals(getString(R.string.AUTH_TOKEN))) {
             new CheckTokenTask(this).execute();
         }
     }

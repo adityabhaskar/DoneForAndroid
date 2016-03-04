@@ -1,12 +1,7 @@
 package net.c306.done;
 
 import android.content.ContentValues;
-import android.content.Context;
-import android.content.SharedPreferences;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
 import android.os.Bundle;
-import android.preference.PreferenceManager;
 import android.support.v7.app.AppCompatActivity;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -29,8 +24,8 @@ public class NewDoneActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_new_done);
-        
-        LOG_TAG = getString(R.string.app_log_identifier) + " " + NewDoneActivity.class.getSimpleName();
+    
+        LOG_TAG = getString(R.string.APP_LOG_IDENTIFIER) + " " + this.getClass().getSimpleName();
     }
     
     
@@ -76,12 +71,8 @@ public class NewDoneActivity extends AppCompatActivity {
             String dateOfDone = null;
             
             // Get counter from sharedPreferences for new local done's id
-            SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
-            int localDoneIdCounter = prefs.getInt(getString(R.string.localDoneIdCounter), 0);
-            localDoneIdCounter++;
-            SharedPreferences.Editor editor = prefs.edit();
-            editor.putInt(getString(R.string.localDoneIdCounter), localDoneIdCounter);
-            editor.apply();
+            int localDoneIdCounter = Utils.getLocalDoneIdCounter(this) + 1;
+            Utils.setLocalDoneIdCounter(this, localDoneIdCounter);
             
             //// DONE: 20/02/16 If done text starts with yyyy-mm-dd, set date to that date instead of today
             Pattern startsWithDatePattern = Pattern.compile("^(today|yesterday|((?:(\\d{4})(-?)(?:(?:(0[13578]|1[02]))(-?)(0[1-9]|[12]\\d|3[01])|(0[13456789]|1[012])(-?)(0[1-9]|[12]\\d|30)|(02)(-?)(0[1-9]|1\\d|2[0-8])))|([02468][048]|[13579][26])(-?)(0229))) ", Pattern.CASE_INSENSITIVE);
@@ -116,10 +107,10 @@ public class NewDoneActivity extends AppCompatActivity {
             ContentValues newDoneValues = new ContentValues();
             newDoneValues.put(DoneListContract.DoneEntry.COLUMN_NAME_ID, localDoneIdCounter);
             newDoneValues.put(DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT, doneText);
-            newDoneValues.put(DoneListContract.DoneEntry.COLUMN_NAME_TEAM_SHORT_NAME, "adityabhaskar");
-            newDoneValues.put(DoneListContract.DoneEntry.COLUMN_NAME_OWNER, "adityabhaskar");
+            newDoneValues.put(DoneListContract.DoneEntry.COLUMN_NAME_TEAM_SHORT_NAME, getString(R.string.DEV_TEAM_NAME));
+            newDoneValues.put(DoneListContract.DoneEntry.COLUMN_NAME_OWNER, Utils.getUsername(this));
             newDoneValues.put(DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE, dateOfDone != null ? dateOfDone : new SimpleDateFormat("yyyy-MM-dd").format(new Date()));
-            newDoneValues.put(DoneListContract.DoneEntry.COLUMN_NAME_IS_LOCAL, "true");
+            newDoneValues.put(DoneListContract.DoneEntry.COLUMN_NAME_IS_LOCAL, "TRUE");
             getContentResolver().insert(DoneListContract.DoneEntry.CONTENT_URI, newDoneValues);
             
             // Send DoneItem class to PostNewDoneTask
@@ -131,15 +122,4 @@ public class NewDoneActivity extends AppCompatActivity {
             finish();
         }
     }
-    
-    private boolean isOnline() {
-        ConnectivityManager cm =
-                (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
-        
-        NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
-        
-        return activeNetwork != null &&
-                activeNetwork.isConnected();
-    }
-    
 }
