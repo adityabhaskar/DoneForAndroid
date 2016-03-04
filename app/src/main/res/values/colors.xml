@@ -24,6 +24,13 @@
     <color name="list_primary_bg">#FAFAFA</color>
     <color name="list_selected_bg">#CFD8DC</color>
 
+    <color name="android_green">#A4C639</color>
+    <color name="android_green_700">#728927</color>
+
+    <color name="green_500">#4CAF50</color>
+    <color name="green_700">#388E3C</color>
+    <color name="orange_a700">#DD2C00</color>
+
     <color name="teamPrimary">#eeaab0</color>
     <color name="team2">#aaeee8</color>
     <color name="team3">#eec6aa</color>
