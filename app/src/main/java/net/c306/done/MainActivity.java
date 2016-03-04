@@ -28,6 +28,9 @@ import android.widget.AdapterView;
 import android.widget.ListView;
 import android.widget.Toast;
 
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+
 import net.c306.done.db.DoneListContract;
 import net.c306.done.idonethis.DoneActions;
 import net.c306.done.idonethis.FetchDonesTask;
@@ -35,8 +38,10 @@ import net.c306.done.idonethis.PostNewDoneTask;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 
 // TODO: 20/02/16 Group dones under date headers in listView
@@ -251,7 +256,7 @@ public class MainActivity
     
     public void toNewDone(View view) {
         Intent newDoneIntent = new Intent(MainActivity.this, NewDoneActivity.class);
-        startActivityForResult(newDoneIntent, 1);
+        startActivityForResult(newDoneIntent, RESULT_CANCELED);
     }
     
     @Override
@@ -393,13 +398,85 @@ public class MainActivity
                 return true;
     
             case R.id.menu_edit_done:
-                //editSelectedItems();
+                editSelectedItems(selectedTasks[0]);
                 Log.v(LOG_TAG, "Edit selected item");
                 mode.finish(); // Action picked, so close the CAB
                 return true;
     
             default:
                 return false;
+        }
+    }
+    
+    /**
+     * If owner is same as current user, fetch details from database and send to NewDoneActivity
+     *
+     * @param id row id of selected task in listView
+     */
+    private void editSelectedItems(long id) {
+        
+        // Fetch done details from database
+        Cursor cursor = getContentResolver().query(
+                DoneListContract.DoneEntry.CONTENT_URI,                         // URI
+                new String[]{                                                   // Projection
+                        DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT,
+                        DoneListContract.DoneEntry.COLUMN_NAME_TEAM_SHORT_NAME,
+                        DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE,
+                        DoneListContract.DoneEntry.COLUMN_NAME_EDITED_FIELDS
+                },
+                DoneListContract.DoneEntry.COLUMN_NAME_ID + " IS ? AND " +      // Selection
+                        DoneListContract.DoneEntry.COLUMN_NAME_OWNER + " IS ?",
+                new String[]{String.valueOf(id), Utils.getUsername(this)},      // Selection Args
+                null                                                            // Sort Order
+        );
+        
+        if (cursor != null) {
+            if (cursor.getCount() == 0) {
+                // No such task, or user not owner, so not allowed.
+                Toast.makeText(
+                        this,
+                        "Not allowed - only task creater can edit tasks.",
+                        Toast.LENGTH_LONG)
+                        .show();
+            } else {
+                
+                Intent editDoneIntent = new Intent(MainActivity.this, NewDoneActivity.class);
+                cursor.moveToNext();
+                
+                // Add details to bundle
+                editDoneIntent.putExtra(DoneListContract.DoneEntry.COLUMN_NAME_ID, id);
+                editDoneIntent.putExtra(
+                        DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT,
+                        cursor.getString(cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT))
+                );
+                editDoneIntent.putExtra(
+                        DoneListContract.DoneEntry.COLUMN_NAME_TEAM_SHORT_NAME,
+                        cursor.getString(cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_TEAM_SHORT_NAME))
+                );
+                editDoneIntent.putExtra(
+                        DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE,
+                        cursor.getString(cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE))
+                );
+                
+                String editedFieldsString = cursor.getString(cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_EDITED_FIELDS));
+                List<String> editedFields;
+                
+                if (editedFieldsString != null && !editedFieldsString.equals("")) {
+                    editedFields = new Gson().fromJson(editedFieldsString, new TypeToken<ArrayList<String>>() {
+                    }.getType());
+                } else {
+                    editedFields = new ArrayList<>();
+                }
+                
+                editDoneIntent.putStringArrayListExtra(
+                        DoneListContract.DoneEntry.COLUMN_NAME_EDITED_FIELDS,
+                        (ArrayList<String>) editedFields
+                );
+                
+                // Start edit activity
+                startActivityForResult(editDoneIntent, RESULT_CANCELED);
+            }
+            cursor.close();
         }
     }
     

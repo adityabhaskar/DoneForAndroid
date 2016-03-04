@@ -5,6 +5,8 @@
 
     <string name="DONE_LOCAL_BROADCAST_LISTENER_INTENT">mainActivityListenerIntent</string>
 
+    <integer name="RESULT_ERROR">-1</integer>
+
     <!-- For dev only, till team selection in settings is implemented -->
     <string name="DEV_TEAM_NAME">adityabhaskar</string>
 

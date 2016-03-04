@@ -4,15 +4,18 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.Bundle;
 import android.util.Log;
 import android.widget.Toast;
 
-import net.c306.done.DoneItem;
+import com.google.gson.Gson;
+
 import net.c306.done.R;
 import net.c306.done.Utils;
 import net.c306.done.db.DoneListContract;
 
 import java.util.Arrays;
+import java.util.List;
 
 /**
  * Created by raven on 29/02/16.
@@ -37,11 +40,46 @@ public class DoneActions {
     }
 */
     
-    public boolean edit(DoneItem doneItem) {
-        // TODO: 29/02/16 For each, if owner is same as user, edit in local database with isLocal = true, editedFields = '[...]'
-        // TODO: 29/02/16 If online, submit to server, update local database from server
-        // TODO: 29/02/16 For any, if owner was not the same as user, show error toast
-        return false;
+    /**
+     * Save edited task in database, then send to server with PostEditedDoneTask
+     *
+     * @param editedDetails Bundle with edited details and editedFields ArrayList
+     * @return boolean for success or failure
+     */
+    public boolean edit(Bundle editedDetails) {
+        long id = editedDetails.getLong(DoneListContract.DoneEntry.COLUMN_NAME_ID, -1);
+        
+        if (id == -1) {
+            Log.w(LOG_TAG, "No id passed to edit()");
+            return false;
+        }
+        
+        String doneText = editedDetails.getString(DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT);
+        String doneDate = editedDetails.getString(DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE);
+        String teamShortName = editedDetails.getString(DoneListContract.DoneEntry.COLUMN_NAME_TEAM_SHORT_NAME);
+        List<String> editedFields = editedDetails.getStringArrayList(DoneListContract.DoneEntry.COLUMN_NAME_EDITED_FIELDS);
+        
+        // Save to database 
+        ContentValues editedContentValues = new ContentValues();
+        editedContentValues.put(DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT, doneText);
+        //editedContentValues.put(DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE, doneDate);
+        //editedContentValues.put(DoneListContract.DoneEntry.COLUMN_NAME_TEAM_SHORT_NAME, teamShortName);
+        
+        editedContentValues.put(
+                DoneListContract.DoneEntry.COLUMN_NAME_EDITED_FIELDS,
+                new Gson().toJson(editedFields)
+        );
+        
+        mContext.getContentResolver().update(
+                DoneListContract.DoneEntry.CONTENT_URI,
+                editedContentValues,
+                DoneListContract.DoneEntry.COLUMN_NAME_ID + " IS ?",
+                new String[]{String.valueOf(id)}
+        );
+        
+        // TODO: 29/02/16 Submit to server, update local database from server
+        
+        return true;
     }
     
     public int delete(long[] taskIds) {
