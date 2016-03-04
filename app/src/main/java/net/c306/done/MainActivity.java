@@ -371,6 +371,8 @@ public class MainActivity
     @Override
     public boolean onActionItemClicked(ActionMode mode, MenuItem item) {
         // Respond to clicks on the actions in the CAB
+        final long[] selectedTasks = mListView.getCheckedItemIds();
+        
         switch (item.getItemId()) {
     
             case R.id.menu_delete_done:
@@ -380,7 +382,7 @@ public class MainActivity
                         .setPositiveButton("Delete", new DialogInterface.OnClickListener() {
                             @Override
                             public void onClick(DialogInterface dialog, int which) {
-                                deleteSelectedItems();
+                                deleteSelectedItems(selectedTasks);
                             }
                         })
                         .setNegativeButton("Cancel", null)
@@ -401,8 +403,7 @@ public class MainActivity
         }
     }
     
-    private void deleteSelectedItems() {
-        long[] ids = mListView.getCheckedItemIds();
+    private void deleteSelectedItems(long[] ids) {
         Log.v(LOG_TAG, "Delete selected items: " + ids.length);
     
         // Delete selected ids from database, then from server, finishing with updating tasks from server on success
