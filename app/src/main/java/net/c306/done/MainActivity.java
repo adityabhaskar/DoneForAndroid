@@ -239,7 +239,8 @@ public class MainActivity
         // Register to save click location (for now), and edit/delete buttons later
         mListView.setOnItemClickListener(this);
         mListView.setMultiChoiceModeListener(this);
-/*
+    
+        // TODO: 07/03/16 Set scroll position based on this instead of itemClick position 
         mListView.setOnScrollListener(new AbsListView.OnScrollListener() {
             public void onScrollStateChanged(AbsListView view, int scrollState) {
                 // Do Nothing
@@ -251,7 +252,6 @@ public class MainActivity
                 mPosition = firstVisibleItem;
             }
         });
-*/
         
         // Register to get on swiped events
         SwipeRefreshLayout swp = (SwipeRefreshLayout) findViewById(R.id.swipe_refresh_layout);

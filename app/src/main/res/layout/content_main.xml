@@ -15,6 +15,7 @@
               android:layout_width="wrap_content"
               android:layout_height="wrap_content"
               android:choiceMode="multipleChoiceModal"
+              android:headerDividersEnabled="false"
               android:listSelector="@drawable/list_item_background"/>
     
 </android.support.v4.widget.SwipeRefreshLayout>

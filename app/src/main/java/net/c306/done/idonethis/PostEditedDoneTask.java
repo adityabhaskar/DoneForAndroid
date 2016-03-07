@@ -105,7 +105,7 @@ public class PostEditedDoneTask extends AsyncTask<Boolean, Void, Integer> {
         if (cursor != null) {
             
             Log.v(LOG_TAG, "Found " + cursor.getCount() + " edited tasks");
-            
+    
             patchedTaskCount = 0;
             
             if (cursor.getCount() > 0) {
@@ -143,7 +143,7 @@ public class PostEditedDoneTask extends AsyncTask<Boolean, Void, Integer> {
                     try {
                         URL patchTaskURL = new URL(cursor.getString(cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_URL)));
                         //Log.v(LOG_TAG, "Request URL: " + patchTaskURL);
-                        
+    
                         //Connect
                         httpcon = (HttpURLConnection) (patchTaskURL.openConnection());
                         httpcon.setRequestMethod("PUT");
@@ -284,7 +284,7 @@ public class PostEditedDoneTask extends AsyncTask<Boolean, Void, Integer> {
         private String raw_text;
         private String team;
         private String done_date;
-        
+    
         public EditDoneObject() {
         }
         
@@ -329,7 +329,7 @@ public class PostEditedDoneTask extends AsyncTask<Boolean, Void, Integer> {
         public String getTeamName() {
             return team;
         }
-        
+    
         public String getRaw_text() {
             return raw_text;
         }

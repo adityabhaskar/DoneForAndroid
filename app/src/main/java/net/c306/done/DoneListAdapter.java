@@ -122,7 +122,7 @@ public class DoneListAdapter extends ResourceCursorAdapter{
         public URLSpanNoUnderline(String url) {
             super(url);
         }
-        
+    
         @Override
         public void updateDrawState(TextPaint ds) {
             super.updateDrawState(ds);

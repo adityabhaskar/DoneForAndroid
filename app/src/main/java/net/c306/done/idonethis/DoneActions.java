@@ -34,11 +34,33 @@ public class DoneActions {
         mUsername = Utils.getUsername(mContext);
     }
     
-/*
-    public boolean add(DoneItem doneItem) {
-        return false;
+    public boolean create(Bundle newDoneDetails) {
+        long id = newDoneDetails.getLong(DoneListContract.DoneEntry.COLUMN_NAME_ID, -1);
+        
+        if (id == -1) {
+            Log.w(LOG_TAG, "No id passed to edit()");
+            return false;
+        }
+        
+        String parsedDoneDate = null;
+        String doneText = newDoneDetails.getString(DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT);
+        String doneDate = newDoneDetails.getString(DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE);
+        String teamName = newDoneDetails.getString(DoneListContract.DoneEntry.COLUMN_NAME_TEAM_SHORT_NAME);
+        
+        // Save done with is_local = true to database
+        ContentValues newDoneValues = new ContentValues();
+        newDoneValues.put(DoneListContract.DoneEntry.COLUMN_NAME_ID, id);
+        newDoneValues.put(DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT, doneText);
+        newDoneValues.put(DoneListContract.DoneEntry.COLUMN_NAME_MARKEDUP_TEXT, doneText);
+        newDoneValues.put(DoneListContract.DoneEntry.COLUMN_NAME_TEAM_SHORT_NAME, teamName);
+        newDoneValues.put(DoneListContract.DoneEntry.COLUMN_NAME_OWNER, Utils.getUsername(mContext));
+        newDoneValues.put(DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE, doneDate);
+        newDoneValues.put(DoneListContract.DoneEntry.COLUMN_NAME_IS_LOCAL, "TRUE");
+        mContext.getContentResolver().insert(DoneListContract.DoneEntry.CONTENT_URI, newDoneValues);
+        
+        new PostNewDoneTask(mContext).execute(false);
+        return true;
     }
-*/
     
     /**
      * Save edited task in database, then send to server with PostEditedDoneTask

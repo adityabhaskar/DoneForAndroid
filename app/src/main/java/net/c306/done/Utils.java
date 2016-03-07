@@ -43,7 +43,7 @@ public class Utils {
     @Nullable
     public static int getLocalDoneIdCounter(Context c) {
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(c);
-        return prefs.getInt(c.getString(R.string.LOCAL_DONE_ID_COUNTER), 0);
+        return prefs.getInt(c.getString(R.string.LOCAL_DONE_ID_COUNTER), R.integer.MIN_LOCAL_DONE_ID);
     }
     
     public static void setLocalDoneIdCounter(Context c, int localDoneIdCounter) {

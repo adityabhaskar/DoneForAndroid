@@ -1,6 +1,5 @@
 package net.c306.done;
 
-import android.content.ContentValues;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.ActionBar;
@@ -11,7 +10,6 @@ import android.widget.EditText;
 
 import net.c306.done.db.DoneListContract;
 import net.c306.done.idonethis.DoneActions;
-import net.c306.done.idonethis.PostNewDoneTask;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -23,11 +21,11 @@ import java.util.regex.Pattern;
 
 public class NewDoneActivity extends AppCompatActivity {
     
+    //Temporary, till I implement date & team selectors
+    Bundle mPreEditBundle = new Bundle();
     private String LOG_TAG;
     private long mId;
     private List<String> mEditedFields;
-    
-    //Temporary, till I implement date & team selectors
     private String mTeam = null;
     private String mDoneDate = null;
     
@@ -56,12 +54,23 @@ public class NewDoneActivity extends AppCompatActivity {
         // Populate activity view with details
         EditText editText = (EditText) findViewById(R.id.done_edit_text);
         editText.setText(sender.getStringExtra(DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT));
+        mPreEditBundle.putString(
+                DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT,
+                sender.getStringExtra(DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT)
+        );
+        
         // Set cursor at end of text
         editText.setSelection(editText.getText().length());
     
         mTeam = sender.getStringExtra(DoneListContract.DoneEntry.COLUMN_NAME_TEAM);
         mDoneDate = sender.getStringExtra(DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE);
         mEditedFields = sender.getStringArrayListExtra(DoneListContract.DoneEntry.COLUMN_NAME_EDITED_FIELDS);
+        mPreEditBundle.putString(DoneListContract.DoneEntry.COLUMN_NAME_TEAM, mTeam);
+        mPreEditBundle.putString(DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE, mDoneDate);
+        mPreEditBundle.putStringArrayList(
+                DoneListContract.DoneEntry.COLUMN_NAME_EDITED_FIELDS,
+                (ArrayList<String>) mEditedFields
+        );
     }
     
     
@@ -105,6 +114,13 @@ public class NewDoneActivity extends AppCompatActivity {
             
             if (mId > -1) {
                 // Case: Edit this done
+    
+                if (doneText.equals(mPreEditBundle.getString(DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT))) {
+                    // No change made
+                    setResult(RESULT_OK);
+                    finish();
+                    return;
+                }
                 
                 if (!mEditedFields.contains(DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT)) {
                     mEditedFields.add(DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT);
@@ -128,21 +144,25 @@ public class NewDoneActivity extends AppCompatActivity {
                 
             } else {
                 // Case: Add new done
-                // TODO: 04/03/16 Move code to DoneActions.add() 
                 
-                //NewDoneClass newDoneObj = new NewDoneClass(doneText);
                 String dateOfDone = null;
+                Bundle newDoneDetails = new Bundle();
                 
                 // Get counter from sharedPreferences for new local done's id
                 int localDoneIdCounter = Utils.getLocalDoneIdCounter(this) + 1;
                 Utils.setLocalDoneIdCounter(this, localDoneIdCounter);
-                
-                //// DONE: 20/02/16 If done text starts with yyyy-mm-dd, set date to that date instead of today
-                Pattern startsWithDatePattern = Pattern.compile("^(today|yesterday|((?:(\\d{4})(-?)(?:(?:(0[13578]|1[02]))(-?)(0[1-9]|[12]\\d|3[01])|(0[13456789]|1[012])(-?)(0[1-9]|[12]\\d|30)|(02)(-?)(0[1-9]|1\\d|2[0-8])))|([02468][048]|[13579][26])(-?)(0229))) ", Pattern.CASE_INSENSITIVE);
+    
+                // If done text starts with yyyy-mm-dd, set date to that date instead of today
+                Pattern startsWithDatePattern = Pattern.compile("^(today|yesterday|((?:(\\d{4})(-?)(?:(?:(0[13578]|1[02]))(-?)(0[1-9]|[12]\\d|3[01])|(0[13456789]|1[012])(-?)(0[1-9]|[12]\\d|30)|(02)(-?)(0[1-9]|1\\d|2[0-8])))|([02468][048]|[13579][26])(-?)(0229))) +", Pattern.CASE_INSENSITIVE);
                 Matcher matcher = startsWithDatePattern.matcher(doneText);
                 
                 if (matcher.find()) {
                     dateOfDone = matcher.group().trim().toLowerCase();
+    
+                    // Remove date string from done text, capitalize first character
+                    String rawText = doneText.replaceFirst(matcher.group(), "").trim();
+                    doneText = rawText.substring(0, 1).toUpperCase() + rawText.substring(1);
+                    
                     switch (dateOfDone) {
                         case "yesterday": {
                             SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
@@ -151,41 +171,35 @@ public class NewDoneActivity extends AppCompatActivity {
                             c.add(Calendar.DATE, -1);  // get yesterday's date
                             dateOfDone = sdf.format(c.getTime());
                             
-                            String rawText = doneText.replaceFirst("[yY]esterday +", "").trim();
-                            doneText = rawText.substring(0, 1).toUpperCase() + rawText.substring(1);
                             break;
                         }
                         
                         case "today": {
                             dateOfDone = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
-                            
-                            String rawText = doneText.replaceFirst("[tT]oday +", "").trim();
-                            doneText = rawText.substring(0, 1).toUpperCase() + rawText.substring(1);
                             break;
                         }
     
-                        default:
-                            // TODO: 05/03/16 Remove date from done text 
                     }
+                } else {
+                    dateOfDone = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
                 }
-                
-                // Save done with is_local = true to database
-                ContentValues newDoneValues = new ContentValues();
-                newDoneValues.put(DoneListContract.DoneEntry.COLUMN_NAME_ID, localDoneIdCounter);
-                newDoneValues.put(DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT, doneText);
-                newDoneValues.put(DoneListContract.DoneEntry.COLUMN_NAME_MARKEDUP_TEXT, doneText);
-                newDoneValues.put(DoneListContract.DoneEntry.COLUMN_NAME_TEAM_SHORT_NAME, getString(R.string.DEV_TEAM_NAME));
-                newDoneValues.put(DoneListContract.DoneEntry.COLUMN_NAME_OWNER, Utils.getUsername(this));
-                newDoneValues.put(DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE, dateOfDone != null ? dateOfDone : new SimpleDateFormat("yyyy-MM-dd").format(new Date()));
-                newDoneValues.put(DoneListContract.DoneEntry.COLUMN_NAME_IS_LOCAL, "TRUE");
-                getContentResolver().insert(DoneListContract.DoneEntry.CONTENT_URI, newDoneValues);
-                
-                // Send DoneItem class to PostNewDoneTask
-                
-                // Don't send taskString to async task - let it read from database 
-                new PostNewDoneTask(this).execute(false);
-                
-                setResult(RESULT_OK);
+    
+                // Add temporary id to new done bundle
+                newDoneDetails.putLong(DoneListContract.DoneEntry.COLUMN_NAME_ID, localDoneIdCounter);
+                // Add team to bundle. Later, to be got from selector
+                newDoneDetails.putString(DoneListContract.DoneEntry.COLUMN_NAME_TEAM_SHORT_NAME, getString(R.string.DEV_TEAM_NAME));
+                // Add done_date to bundle
+                newDoneDetails.putString(DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE, dateOfDone);
+                // Add cleaned (of date strings) doneText to bundle
+                newDoneDetails.putString(DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT, doneText);
+    
+                boolean result = new DoneActions(this).create(newDoneDetails);
+    
+                if (result) {
+                    setResult(RESULT_OK);
+                } else {
+                    setResult(R.integer.RESULT_ERROR);
+                }
             }
             
             finish();
