@@ -4,6 +4,10 @@ import android.content.Context;
 import android.database.Cursor;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.widget.ResourceCursorAdapter;
+import android.text.Html;
+import android.text.Spannable;
+import android.text.TextPaint;
+import android.text.style.URLSpan;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -15,6 +19,8 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class DoneListAdapter extends ResourceCursorAdapter{
     
@@ -58,13 +64,16 @@ public class DoneListAdapter extends ResourceCursorAdapter{
         //// TODO: 20/02/16 Set colour based on team of the task 
     
         // Set text
-        TextView rawText = (TextView) view.findViewById(R.id.item_raw_text);
-        rawText.setText(cursor.getString(cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT)));
+        TextView rawTextTextView = (TextView) view.findViewById(R.id.item_raw_text);
     
+        Spannable rawTextWithUnderlines = (Spannable) Html.fromHtml(cursor.getString(cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_MARKEDUP_TEXT)));
+        rawTextTextView.setText(formatForTextView(rawTextWithUnderlines));
+        //rawTextTextView.setText(Html.fromHtml(cursor.getString(cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_MARKEDUP_TEXT))));
+        
         if ("TRUE".equals(cursor.getString(cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_IS_LOCAL))))
-            rawText.setTextColor(ContextCompat.getColor(mContext, R.color.secondary_text));
+            rawTextTextView.setTextColor(ContextCompat.getColor(mContext, R.color.secondary_text));
         else
-            rawText.setTextColor(ContextCompat.getColor(mContext, R.color.primary_text));
+            rawTextTextView.setTextColor(ContextCompat.getColor(mContext, R.color.primary_text));
         
         
         // Set date
@@ -89,4 +98,39 @@ public class DoneListAdapter extends ResourceCursorAdapter{
     
         dateTextView.setText(doneDate);
     }
+    
+    
+    private Spannable formatForTextView(Spannable p_Text) {
+        URLSpan[] spans = p_Text.getSpans(0, p_Text.length(), URLSpan.class);
+        Pattern hashTagURLPattern = Pattern.compile(".*\\/\\#tags\\/.*", Pattern.CASE_INSENSITIVE);
+        Matcher hashtagMatcher = null;
+        for (URLSpan span : spans) {
+            hashtagMatcher = hashTagURLPattern.matcher(span.getURL());
+            // Only format if it's a hashtag link
+            if (hashtagMatcher.find()) {
+                int start = p_Text.getSpanStart(span);
+                int end = p_Text.getSpanEnd(span);
+                p_Text.removeSpan(span);
+                span = new URLSpanNoUnderline(span.getURL());
+                p_Text.setSpan(span, start, end, 0);
+            }
+        }
+        return p_Text;
+    }
+    
+    private class URLSpanNoUnderline extends URLSpan {
+        public URLSpanNoUnderline(String url) {
+            super(url);
+        }
+        
+        @Override
+        public void updateDrawState(TextPaint ds) {
+            super.updateDrawState(ds);
+            ds.setUnderlineText(false);
+            ds.setFakeBoldText(true);
+            ds.setColor(new ContextCompat().getColor(mContext, R.color.green_700));
+        }
+    }
+    
+    
 }

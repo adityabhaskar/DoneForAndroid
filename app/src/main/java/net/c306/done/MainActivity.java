@@ -226,7 +226,6 @@ public class MainActivity
                 R.color.primary
         );
     
-        //new CheckTokenTask(this).execute();
     }
     
     @Override
@@ -240,6 +239,19 @@ public class MainActivity
         // Register to save click location (for now), and edit/delete buttons later
         mListView.setOnItemClickListener(this);
         mListView.setMultiChoiceModeListener(this);
+/*
+        mListView.setOnScrollListener(new AbsListView.OnScrollListener() {
+            public void onScrollStateChanged(AbsListView view, int scrollState) {
+                // Do Nothing
+            }
+        
+            @Override
+            public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
+                // Save position
+                mPosition = firstVisibleItem;
+            }
+        });
+*/
         
         // Register to get on swiped events
         SwipeRefreshLayout swp = (SwipeRefreshLayout) findViewById(R.id.swipe_refresh_layout);
@@ -420,7 +432,7 @@ public class MainActivity
                 DoneListContract.DoneEntry.CONTENT_URI,                         // URI
                 new String[]{                                                   // Projection
                         DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT,
-                        DoneListContract.DoneEntry.COLUMN_NAME_TEAM_SHORT_NAME,
+                        DoneListContract.DoneEntry.COLUMN_NAME_TEAM,
                         DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE,
                         DoneListContract.DoneEntry.COLUMN_NAME_EDITED_FIELDS
                 },
@@ -450,8 +462,8 @@ public class MainActivity
                         cursor.getString(cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT))
                 );
                 editDoneIntent.putExtra(
-                        DoneListContract.DoneEntry.COLUMN_NAME_TEAM_SHORT_NAME,
-                        cursor.getString(cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_TEAM_SHORT_NAME))
+                        DoneListContract.DoneEntry.COLUMN_NAME_TEAM,
+                        cursor.getString(cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_TEAM))
                 );
                 editDoneIntent.putExtra(
                         DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE,
@@ -520,10 +532,11 @@ public class MainActivity
         
         String[] cursorProjectionString = new String[]{
                 DoneListContract.DoneEntry.COLUMN_NAME_ID + " AS _id",
-                DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT,
+                DoneListContract.DoneEntry.COLUMN_NAME_MARKEDUP_TEXT,
                 DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE,
                 DoneListContract.DoneEntry.COLUMN_NAME_TEAM_SHORT_NAME,
-                DoneListContract.DoneEntry.COLUMN_NAME_IS_LOCAL
+                DoneListContract.DoneEntry.COLUMN_NAME_IS_LOCAL,
+                DoneListContract.DoneEntry.COLUMN_NAME_EDITED_FIELDS
         };
         
         return new CursorLoader(this,

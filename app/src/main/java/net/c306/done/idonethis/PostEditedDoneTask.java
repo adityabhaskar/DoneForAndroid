@@ -25,13 +25,11 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 
-public class PostNewDoneTask extends AsyncTask<Boolean, Void, Integer> {
+public class PostEditedDoneTask extends AsyncTask<Boolean, Void, Integer> {
     
     // Holds application context, passed in constructor
     private Context mContext;
@@ -40,7 +38,7 @@ public class PostNewDoneTask extends AsyncTask<Boolean, Void, Integer> {
     private String LOG_TAG;
     private boolean mFromPreFetch = false;
     
-    public PostNewDoneTask(Context c){
+    public PostEditedDoneTask(Context c) {
         mContext = c;
         LOG_TAG = mContext.getString(R.string.APP_LOG_IDENTIFIER) + " " + this.getClass().getSimpleName();
     }
@@ -48,7 +46,7 @@ public class PostNewDoneTask extends AsyncTask<Boolean, Void, Integer> {
     @Override
     protected void onPreExecute() {
         super.onPreExecute();
-    
+        
         // Check if internet connection is available else cancel fetch 
         if (!isOnline()) {
             Log.w(LOG_TAG, "Offline, so cancelling token check");
@@ -56,11 +54,11 @@ public class PostNewDoneTask extends AsyncTask<Boolean, Void, Integer> {
             cancel(true);
             return;
         }
-    
-    
+        
+        
         // Get auth token from SharedPrefs
         mAuthToken = Utils.getAuthToken(mContext);
-    
+        
         // Token not present or invalid
         if (mAuthToken == null) {
             Log.e(LOG_TAG, "No Valid Auth Token Found!");
@@ -68,124 +66,140 @@ public class PostNewDoneTask extends AsyncTask<Boolean, Void, Integer> {
             cancel(true);
             return;
         }
-    
-        sendMessage("Starting to send... ", R.string.TASK_STARTED, -1);
+        
+        sendMessage("Starting to patch... ", R.string.TASK_STARTED, -1);
     }
     
     @Override
     protected Integer doInBackground(Boolean... fromPreFetch) {
-    
+        
         HttpURLConnection httpcon = null;
         BufferedReader br = null;
         final String url = "https://idonethis.com/api/v0.1/dones/";
-        // Contains server response (or error message)
-        String result = "";
-        int sentTaskCount = -1;
         
-        String newDoneString = null;
-        NewDoneClass newDoneObj = null;
-        List<Integer> sentDonesList = new ArrayList<>();
-    
+        String result = "";
+        int patchedTaskCount = -1;
+        String patchedDoneString = null;
+        EditDoneObject patchedDoneObj = null;
+        List<Integer> patchedDonesList = new ArrayList<>();
+        
         this.mFromPreFetch = fromPreFetch[0];
-    
+        
         // Get local, undeleted dones from database
         Cursor cursor = mContext.getContentResolver().query(
                 DoneListContract.DoneEntry.buildDoneListUri(),                          // URI
                 new String[]{                                                           // Projection
                         DoneListContract.DoneEntry.COLUMN_NAME_ID,
                         DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT,
-                        DoneListContract.DoneEntry.COLUMN_NAME_TEAM_SHORT_NAME,
-                        DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE
+                        DoneListContract.DoneEntry.COLUMN_NAME_TEAM,
+                        DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE,
+                        DoneListContract.DoneEntry.COLUMN_NAME_EDITED_FIELDS,
+                        DoneListContract.DoneEntry.COLUMN_NAME_URL
                 },
-                DoneListContract.DoneEntry.COLUMN_NAME_IS_LOCAL + " IS 'TRUE'",   // Selection
+                DoneListContract.DoneEntry.COLUMN_NAME_EDITED_FIELDS + " IS NOT NULL AND " +   // Selection
+                        DoneListContract.DoneEntry.COLUMN_NAME_IS_LOCAL + " IS 'FALSE'",
                 null,                                                                   // Selection Args
                 null                                                                    // Sort Order
         );
-    
-        if (cursor != null) {
         
-            if (cursor.getCount() == 0) {
-                sentTaskCount = 0;
-            } else {
+        if (cursor != null) {
             
+            Log.v(LOG_TAG, "Found " + cursor.getCount() + " edited tasks");
+            
+            patchedTaskCount = 0;
+            
+            if (cursor.getCount() > 0) {
+                
                 int resultStatus;
                 int columnIndexID = cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_ID);
                 int columnIndexRawText = cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT);
                 int columnIndexDoneDate = cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE);
-                int columnIndexTeamShortName = cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_TEAM_SHORT_NAME);
-            
+                int columnIndexTeamURL = cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_TEAM);
+                int columnIndexDoneURL = cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_URL);
+                int columnIndexEditedFields = cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_EDITED_FIELDS);
+                
                 Log.v(LOG_TAG, "Got " + cursor.getCount() + " pending dones to post to server");
-            
+                
                 // Iterate over unsent dones 
                 while (cursor.moveToNext()) {
-                
                     // Get next done
-                    newDoneObj = new NewDoneClass(
-                            cursor.getString(columnIndexRawText),
-                            cursor.getString(columnIndexDoneDate),
-                            cursor.getString(columnIndexTeamShortName)
-                    );
-                
+                    
+                    // Get edited fields
+                    //List<String> editedFieldsList = gson.fromJson(
+                    //        cursor.getString(columnIndexEditedFields), 
+                    //        new TypeToken<ArrayList<String>>(){}.getType()
+                    //);
+                    
+                    // Create editdone object with edited fields
+                    patchedDoneObj = new EditDoneObject();
+                    patchedDoneObj.setRaw_text(cursor.getString(columnIndexRawText));
+                    patchedDoneObj.setDone_date(cursor.getString(columnIndexDoneDate));
+                    patchedDoneObj.setTeamURL(cursor.getString(columnIndexTeamURL));
+                    
                     // Convert to json
-                    newDoneString = gson.toJson(newDoneObj, NewDoneClass.class);
-                    Log.v(LOG_TAG, "Unsent done: " + newDoneString);
-                
+                    patchedDoneString = gson.toJson(patchedDoneObj, EditDoneObject.class);
+                    
                     // Send
                     try {
+                        URL patchTaskURL = new URL(cursor.getString(cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_URL)));
+                        //Log.v(LOG_TAG, "Request URL: " + patchTaskURL);
+                        
                         //Connect
-                        httpcon = (HttpURLConnection) (new URL(url).openConnection());
+                        httpcon = (HttpURLConnection) (patchTaskURL.openConnection());
+                        httpcon.setRequestMethod("PUT");
                         httpcon.setDoOutput(true);
                         httpcon.setRequestProperty("Authorization", "Token " + mAuthToken);
                         httpcon.setRequestProperty("Content-Type", "application/json");
                         httpcon.setRequestProperty("Accept", "application/json");
-                        httpcon.setRequestMethod("POST");
-                        httpcon.connect();
-                    
+                        
                         //Write         
+                        Log.v(LOG_TAG, "Request body: " + patchedDoneString);
                         OutputStream os = httpcon.getOutputStream();
                         BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(os, "UTF-8"));
-                        writer.write(newDoneString);
+                        writer.write(patchedDoneString);
                         writer.close();
                         os.close();
-                    
+                        
+                        httpcon.connect();
+                        
                         //Response Code
                         resultStatus = httpcon.getResponseCode();
                         String responseMessage = httpcon.getResponseMessage();
-                    
+                        
                         switch (resultStatus) {
                             case HttpURLConnection.HTTP_ACCEPTED:
                             case HttpURLConnection.HTTP_CREATED:
                             case HttpURLConnection.HTTP_OK:
-                                Log.v(LOG_TAG, "Sent Done - " + resultStatus + ": " + responseMessage);
-                                sentTaskCount++;
+                                Log.v(LOG_TAG, "Updated Done - " + resultStatus + ": " + responseMessage);
+                                patchedTaskCount++;
                                 // Add id to sentDonesList
-                                sentDonesList.add(cursor.getInt(columnIndexID));
+                                patchedDonesList.add(cursor.getInt(columnIndexID));
                                 break; // fine
-                        
+                            
                             case HttpURLConnection.HTTP_UNAUTHORIZED:
-                                Log.w(LOG_TAG, "Didn't Send Done - " + resultStatus + ": " + responseMessage);
+                                Log.w(LOG_TAG, "Didn't Update Done - " + resultStatus + ": " + responseMessage);
                                 // Set token invalid
                                 Utils.setTokenValidity(mContext, false);
                                 sendMessage(responseMessage, R.string.TASK_UNAUTH, -1);
                                 cancel(true);
                                 return null;
-                        
+                            
                             default:
-                                Log.w(LOG_TAG, "Didn't Send Done - " + resultStatus + ": " + responseMessage);
+                                Log.w(LOG_TAG, "Didn't Update Done - " + resultStatus + ": " + responseMessage);
                         }
-                    
+                        
                         //Read      
                         br = new BufferedReader(new InputStreamReader(httpcon.getInputStream(), "UTF-8"));
-                    
+                        
                         String line = null;
                         StringBuilder sb = new StringBuilder();
-                    
+                        
                         while ((line = br.readLine()) != null) {
                             sb.append(line).append("\n");
                         }
-                    
+                        
                         result += sb.toString() + "\n";
-                    
+                        
                     } catch (Exception e) {
                         result = e.getMessage();
                         e.printStackTrace();
@@ -202,45 +216,42 @@ public class PostNewDoneTask extends AsyncTask<Boolean, Void, Integer> {
                         }
                     }
                 }
-            
-                if (sentDonesList.size() == cursor.getCount()) {
-                    //Reset counter for
-                    Utils.setLocalDoneIdCounter(mContext, 0);
-                }
+                
+                Log.v(LOG_TAG, "Patched " + patchedTaskCount + " dones");
+                
+                // Set edited_fields to null for ids in sentDonesList
+                ContentValues updateValues = new ContentValues();
+                updateValues.putNull(DoneListContract.DoneEntry.COLUMN_NAME_EDITED_FIELDS);
+                
+                String patchedDonesIdString = TextUtils.join(",", patchedDonesList);
+                
+                mContext.getContentResolver().update(
+                        DoneListContract.DoneEntry.CONTENT_URI,
+                        updateValues,
+                        DoneListContract.DoneEntry.COLUMN_NAME_ID + " IN (" + patchedDonesIdString + ")",
+                        null
+                );
             }
-        
-            cursor.close();
-        
-            // Set is_local to false for ids in sentDonesList
-        
-            ContentValues updateValues = new ContentValues();
-            updateValues.put(DoneListContract.DoneEntry.COLUMN_NAME_IS_LOCAL, "FALSE");
             
-            String sentDonesIdString = TextUtils.join(",", sentDonesList);
-        
-            mContext.getContentResolver().update(
-                    DoneListContract.DoneEntry.CONTENT_URI,
-                    updateValues,
-                    DoneListContract.DoneEntry.COLUMN_NAME_ID + " IN (" + sentDonesIdString + ")",
-                    null
-            );
+            cursor.close();
+            
         }
-    
+        
         Log.v(LOG_TAG, "Response from server: " + result);
-    
-        return sentTaskCount;
+        
+        return patchedTaskCount;
     }
     
     @Override
-    protected void onPostExecute(Integer sentCount) {
-        super.onPostExecute(sentCount);
-    
-        if (sentCount > -1) {
+    protected void onPostExecute(Integer patchedCount) {
+        super.onPostExecute(patchedCount);
+        
+        if (patchedCount > -1) {
             // Send message to MainActivity saying done(s) have been posted, so Snackbar can be shown/updated
-            sendMessage("Sent " + sentCount + " tasks.", R.string.TASK_SUCCESSFUL, sentCount);
+            sendMessage("Sent " + patchedCount + " tasks.", R.string.TASK_SUCCESSFUL, patchedCount);
         }
-    
-        if (mFromPreFetch || sentCount > -1) {
+        
+        if (mFromPreFetch || patchedCount > -1) {
             // Update local doneList from server
             new FetchDonesTask(mContext, mFromPreFetch).execute();
         }
@@ -268,48 +279,37 @@ public class PostNewDoneTask extends AsyncTask<Boolean, Void, Integer> {
                 activeNetwork.isConnected();
     }
     
-    public class NewDoneClass {
+    public class EditDoneObject {
         private transient final String dateFormat = "yyyy-MM-dd";
-        private String done_date;
-        private String team;
         private String raw_text;
-        private String meta_data = "{\"from\":\"" + mContext.getString(R.string.app_name) + "\"}";
+        private String team;
+        private String done_date;
         
-        public NewDoneClass(String doneText, String doneDate, String teamName) {
+        public EditDoneObject() {
+        }
+        
+        public EditDoneObject(String doneText, String doneDate, String teamURL) {
             this.raw_text = doneText;
             
             if (doneDate != null && !doneDate.isEmpty())
                 this.done_date = doneDate;
-            else {
-                SimpleDateFormat sdf = new SimpleDateFormat(dateFormat);
-                
-                this.done_date = sdf.format(new Date());
-            }
             
-            if (teamName != null && !teamName.isEmpty())
-                this.team = teamName;
+            if (teamURL != null && !teamURL.isEmpty())
+                this.team = teamURL;
             
         }
         
-        public NewDoneClass(String doneText, String doneDate) {
+        public EditDoneObject(String doneText, String doneDate) {
             this.raw_text = doneText;
             team = mContext.getString(R.string.DEV_TEAM_NAME);
             
             if (doneDate != null && !doneDate.isEmpty())
                 this.done_date = doneDate;
-            else {
-                SimpleDateFormat sdf = new SimpleDateFormat(dateFormat);
-                
-                this.done_date = sdf.format(new Date());
-            }
         }
         
-        public NewDoneClass(String doneText) {
+        public EditDoneObject(String doneText) {
             this.raw_text = doneText;
             team = mContext.getString(R.string.DEV_TEAM_NAME);
-            
-            SimpleDateFormat sdf = new SimpleDateFormat(dateFormat);
-            done_date = sdf.format(new Date());
         }
         
         public String getDone_date() {
@@ -321,9 +321,13 @@ public class PostNewDoneTask extends AsyncTask<Boolean, Void, Integer> {
                 this.done_date = done_date;
         }
         
-        public void setTeamName(String teamName) {
+        public void setTeamURL(String teamName) {
             if (teamName != null && !teamName.isEmpty())
                 this.team = teamName;
+        }
+        
+        public String getTeamName() {
+            return team;
         }
         
         public String getRaw_text() {
@@ -335,5 +339,4 @@ public class PostNewDoneTask extends AsyncTask<Boolean, Void, Integer> {
                 this.raw_text = raw_text;
         }
     }
-    
 }

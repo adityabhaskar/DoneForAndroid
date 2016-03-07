@@ -191,7 +191,7 @@ public class DeleteDonesTask extends AsyncTask<Boolean, Void, Integer> {
     
         if (mFromPreFetch || deletedCount > 0) {
             //Post any pending new tasks
-            new PostNewDoneTask(mContext).execute(mFromPreFetch);
+            new PostEditedDoneTask(mContext).execute(mFromPreFetch);
         }
         
     }

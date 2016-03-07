@@ -56,14 +56,21 @@ public class DoneActions {
         
         String doneText = editedDetails.getString(DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT);
         String doneDate = editedDetails.getString(DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE);
-        String teamShortName = editedDetails.getString(DoneListContract.DoneEntry.COLUMN_NAME_TEAM_SHORT_NAME);
+        String teamUrl = editedDetails.getString(DoneListContract.DoneEntry.COLUMN_NAME_TEAM);
+        //String teamShortName = editedDetails.getString(DoneListContract.DoneEntry.COLUMN_NAME_TEAM_SHORT_NAME);
         List<String> editedFields = editedDetails.getStringArrayList(DoneListContract.DoneEntry.COLUMN_NAME_EDITED_FIELDS);
         
         // Save to database 
         ContentValues editedContentValues = new ContentValues();
         editedContentValues.put(DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT, doneText);
         //editedContentValues.put(DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE, doneDate);
+        //editedContentValues.put(DoneListContract.DoneEntry.COLUMN_NAME_TEAM, teamUrl);
         //editedContentValues.put(DoneListContract.DoneEntry.COLUMN_NAME_TEAM_SHORT_NAME, teamShortName);
+    
+        // This will cause issues later since hashtag links in edited, 
+        // non-synced dones will disappear till synced again.
+        // TODO: 07/03/16 Parse raw_text for any #tags already known, create links for them save formatted text to markedup_text 
+        editedContentValues.put(DoneListContract.DoneEntry.COLUMN_NAME_MARKEDUP_TEXT, doneText);
         
         editedContentValues.put(
                 DoneListContract.DoneEntry.COLUMN_NAME_EDITED_FIELDS,
@@ -76,8 +83,9 @@ public class DoneActions {
                 DoneListContract.DoneEntry.COLUMN_NAME_ID + " IS ?",
                 new String[]{String.valueOf(id)}
         );
-        
-        // TODO: 29/02/16 Submit to server, update local database from server
+    
+        // Submit to server, update local database from server
+        new PostEditedDoneTask(mContext).execute(false);
         
         return true;
     }

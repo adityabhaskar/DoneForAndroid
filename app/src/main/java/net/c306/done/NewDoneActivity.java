@@ -58,8 +58,8 @@ public class NewDoneActivity extends AppCompatActivity {
         editText.setText(sender.getStringExtra(DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT));
         // Set cursor at end of text
         editText.setSelection(editText.getText().length());
-        
-        mTeam = sender.getStringExtra(DoneListContract.DoneEntry.COLUMN_NAME_TEAM_SHORT_NAME);
+    
+        mTeam = sender.getStringExtra(DoneListContract.DoneEntry.COLUMN_NAME_TEAM);
         mDoneDate = sender.getStringExtra(DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE);
         mEditedFields = sender.getStringArrayListExtra(DoneListContract.DoneEntry.COLUMN_NAME_EDITED_FIELDS);
     }
@@ -114,7 +114,7 @@ public class NewDoneActivity extends AppCompatActivity {
                 Bundle editedDetails = new Bundle();
                 editedDetails.putString(DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT, doneText);
                 editedDetails.putString(DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE, mDoneDate);
-                editedDetails.putString(DoneListContract.DoneEntry.COLUMN_NAME_TEAM_SHORT_NAME, mTeam);
+                editedDetails.putString(DoneListContract.DoneEntry.COLUMN_NAME_TEAM, mTeam);
                 editedDetails.putLong(DoneListContract.DoneEntry.COLUMN_NAME_ID, mId);
                 editedDetails.putStringArrayList(DoneListContract.DoneEntry.COLUMN_NAME_EDITED_FIELDS, (ArrayList<String>) mEditedFields);
                 
@@ -163,6 +163,9 @@ public class NewDoneActivity extends AppCompatActivity {
                             doneText = rawText.substring(0, 1).toUpperCase() + rawText.substring(1);
                             break;
                         }
+    
+                        default:
+                            // TODO: 05/03/16 Remove date from done text 
                     }
                 }
                 
@@ -170,6 +173,7 @@ public class NewDoneActivity extends AppCompatActivity {
                 ContentValues newDoneValues = new ContentValues();
                 newDoneValues.put(DoneListContract.DoneEntry.COLUMN_NAME_ID, localDoneIdCounter);
                 newDoneValues.put(DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT, doneText);
+                newDoneValues.put(DoneListContract.DoneEntry.COLUMN_NAME_MARKEDUP_TEXT, doneText);
                 newDoneValues.put(DoneListContract.DoneEntry.COLUMN_NAME_TEAM_SHORT_NAME, getString(R.string.DEV_TEAM_NAME));
                 newDoneValues.put(DoneListContract.DoneEntry.COLUMN_NAME_OWNER, Utils.getUsername(this));
                 newDoneValues.put(DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE, dateOfDone != null ? dateOfDone : new SimpleDateFormat("yyyy-MM-dd").format(new Date()));
