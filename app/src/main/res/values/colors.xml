@@ -28,7 +28,7 @@
     <color name="android_green_700">#728927</color>
 
     <color name="green_500">#4CAF50</color>
-    <color name="green_700">#388E3C</color>
+    <color name="link_colour">#388E3C</color> <!-- GREEN 700 -->
     <color name="deep_orange_a700">#DD2C00</color>
 
     <color name="teamPrimary">#eeaab0</color>

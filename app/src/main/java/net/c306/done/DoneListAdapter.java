@@ -128,7 +128,7 @@ public class DoneListAdapter extends ResourceCursorAdapter{
             super.updateDrawState(ds);
             ds.setUnderlineText(false);
             ds.setFakeBoldText(true);
-            ds.setColor(new ContextCompat().getColor(mContext, R.color.green_700));
+            ds.setColor(new ContextCompat().getColor(mContext, R.color.link_colour));
         }
     }
     

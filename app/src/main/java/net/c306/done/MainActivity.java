@@ -11,6 +11,7 @@ import android.content.Loader;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
+import android.preference.PreferenceActivity;
 import android.support.design.widget.Snackbar;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.content.LocalBroadcastManager;
@@ -32,6 +33,7 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
 import net.c306.done.db.DoneListContract;
+import net.c306.done.idonethis.CheckTokenTask;
 import net.c306.done.idonethis.DoneActions;
 import net.c306.done.idonethis.FetchDonesTask;
 import net.c306.done.idonethis.PostNewDoneTask;
@@ -77,8 +79,13 @@ public class MainActivity
     
     
             // If fetch finished, and refresher showing, stop it
-            if (sender.equals(FetchDonesTask.class.getSimpleName()) && action != R.string.TASK_STARTED) {
-        
+            //if (sender.equals(FetchDonesTask.class.getSimpleName()) && action != R.string.TASK_STARTED) {
+            if (
+                    (sender.equals(FetchDonesTask.class.getSimpleName()) && action != R.string.TASK_STARTED) ||
+                            (sender.equals(CheckTokenTask.class.getSimpleName()) &&
+                                    (action != R.string.CHECK_TOKEN_SUCCESSFUL && action != R.string.CHECK_TOKEN_STARTED))
+                    ) {
+                
                 SwipeRefreshLayout swp = (SwipeRefreshLayout) findViewById(R.id.swipe_refresh_layout);
         
                 if (swp.isRefreshing()) {
@@ -89,6 +96,7 @@ public class MainActivity
     
             switch (action) {
                 case R.string.TASK_UNAUTH:
+                case R.string.CHECK_TOKEN_FAILED:
                     // Unauthorised, i.e. token issues, show snackbar
             
                     Log.w(LOG_TAG, "Broadcast Receiver - Unauthorised! " + message);
@@ -106,10 +114,12 @@ public class MainActivity
                         @Override
                         public void onClick(View v) {
                             Intent settingsIntent = new Intent(MainActivity.this, SettingsActivity.class);
+                            settingsIntent.putExtra(PreferenceActivity.EXTRA_SHOW_FRAGMENT, SettingsActivity.GeneralPreferenceFragment.class.getName());
+                            settingsIntent.putExtra(PreferenceActivity.EXTRA_NO_HEADERS, true);
                             startActivity(settingsIntent);
                         }
                     })
-                            .setActionTextColor(ContextCompat.getColor(getApplicationContext(), android.R.color.primary_text_dark))
+                            .setActionTextColor(ContextCompat.getColor(getApplicationContext(), R.color.link_colour))
                             .show();
                     break;
         
@@ -220,9 +230,8 @@ public class MainActivity
         SwipeRefreshLayout swp = (SwipeRefreshLayout) findViewById(R.id.swipe_refresh_layout);
         swp.setColorSchemeResources(
                 R.color.accent,
-                android.R.color.holo_blue_dark,
-                android.R.color.holo_green_dark,
-                android.R.color.holo_orange_dark,
+                R.color.link_colour,
+                R.color.team5,
                 R.color.primary
         );
     

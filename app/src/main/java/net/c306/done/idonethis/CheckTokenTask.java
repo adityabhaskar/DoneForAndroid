@@ -58,6 +58,8 @@ public class CheckTokenTask extends AsyncTask<Void, Void, String> {
             cancel(true);
         }
     
+        sendMessage("Starting token check", R.string.CHECK_TOKEN_STARTED);
+        
         // Reset validity to false before starting check
         Utils.setTokenValidity(mContext, false);
     }

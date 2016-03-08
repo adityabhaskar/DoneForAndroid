@@ -95,8 +95,8 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
             return true;
         }
     };
+    Snackbar mSnackbar = null;
     private String LOG_TAG;
-    private Snackbar settingsSnackbar;
     // Our handler for received Intents. This will be called whenever an Intent
     // with an action named "custom-event-name" is broadcasted.
     // Src: http://stackoverflow.com/questions/8802157/how-to-use-localbroadcastmanager    
@@ -111,28 +111,50 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
     
             if (sender.equals(CheckTokenTask.class.getSimpleName())) {
                 switch (action) {
-                    case R.string.CHECK_TOKEN_STARTED:
+                    case R.string.CHECK_TOKEN_STARTED: {
                         // Do nothing for now
+                        if (mSnackbar != null && mSnackbar.isShownOrQueued())
+                            mSnackbar.dismiss();
+                        mSnackbar = Snackbar.make(getListView(), "Checking token...", Snackbar.LENGTH_INDEFINITE);
+                        mSnackbar.setAction("", null);
+                        mSnackbar.show();
                         break;
-            
-                    case R.string.CHECK_TOKEN_SUCCESSFUL:
-                        Toast.makeText(getApplicationContext(), "User " + message + " authenticated. Thank you!", Toast.LENGTH_LONG).show();
+                    }
+    
+                    case R.string.CHECK_TOKEN_SUCCESSFUL: {
+                        if (mSnackbar != null && mSnackbar.isShownOrQueued())
+                            mSnackbar.dismiss();
+                        mSnackbar = Snackbar.make(getListView(), "User " + message + " authenticated.", Snackbar.LENGTH_SHORT);
+                        mSnackbar.setAction("", null);
+                        mSnackbar.show();
+                        //Toast.makeText(getApplicationContext(), "User " + message + " authenticated. Thank you!", Toast.LENGTH_LONG).show();
                         Log.v(LOG_TAG, "Broadcast Receiver - User " + message + " authenticated.");
                         break;
-            
-                    case R.string.CHECK_TOKEN_FAILED:
-                        Toast.makeText(getApplicationContext(), "Authentication failed! Please check auth token provided.", Toast.LENGTH_LONG).show();
+                    }
+    
+                    case R.string.CHECK_TOKEN_FAILED: {
+                        if (mSnackbar != null && mSnackbar.isShownOrQueued())
+                            mSnackbar.dismiss();
+                        mSnackbar = Snackbar.make(getListView(), "Authentication failed!", Snackbar.LENGTH_LONG);
+                        mSnackbar.setAction("", null);
+                        mSnackbar.show();
+                        //Toast.makeText(getApplicationContext(), "Authentication failed! Please check auth token provided.", Toast.LENGTH_LONG).show();
                         Log.v(LOG_TAG, "Broadcast Receiver - Authentication failed! " + message);
                         break;
-            
-                    case R.string.CHECK_TOKEN_CANCELLED_OFFLINE:
+                    }
+    
+                    case R.string.CHECK_TOKEN_CANCELLED_OFFLINE: {
+                        if (mSnackbar != null && mSnackbar.isShownOrQueued())
+                            mSnackbar.dismiss();
                         Toast.makeText(getApplicationContext(), "Offline! Will check authentication when online.", Toast.LENGTH_LONG).show();
                         Log.v(LOG_TAG, "Broadcast Receiver - Offline. Check again later. " + message);
                         break;
-            
-                    case R.string.CHECK_TOKEN_OTHER_ERROR:
+                    }
+    
+                    case R.string.CHECK_TOKEN_OTHER_ERROR: {
                         Toast.makeText(getApplicationContext(), "Server/Network error. Will try again later.", Toast.LENGTH_LONG).show();
                         Log.v(LOG_TAG, "Broadcast Receiver - Some other error happened while checking auth: " + message);
+                    }
             
                 }
             }
