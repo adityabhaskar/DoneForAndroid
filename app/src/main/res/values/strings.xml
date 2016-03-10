@@ -32,6 +32,9 @@
     <string name="pref_title_auth_token">API Token</string>
     <string name="pref_default_auth_token">9944b09...</string>
 
+    <string name="pref_title_default_team">Default Team</string>
+    <string name="pref_summary_default_team">Default team to posts tasks to.</string>
+
     <string name="pref_title_display_name">Display name</string>
     <string name="pref_default_display_name">John Smith</string>
 

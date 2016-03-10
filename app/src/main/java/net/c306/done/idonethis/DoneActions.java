@@ -45,14 +45,16 @@ public class DoneActions {
         String parsedDoneDate = null;
         String doneText = newDoneDetails.getString(DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT);
         String doneDate = newDoneDetails.getString(DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE);
-        String teamName = newDoneDetails.getString(DoneListContract.DoneEntry.COLUMN_NAME_TEAM_SHORT_NAME);
+        String teamURL = newDoneDetails.getString(DoneListContract.DoneEntry.COLUMN_NAME_TEAM);
         
         // Save done with is_local = true to database
         ContentValues newDoneValues = new ContentValues();
         newDoneValues.put(DoneListContract.DoneEntry.COLUMN_NAME_ID, id);
         newDoneValues.put(DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT, doneText);
         newDoneValues.put(DoneListContract.DoneEntry.COLUMN_NAME_MARKEDUP_TEXT, doneText);
-        newDoneValues.put(DoneListContract.DoneEntry.COLUMN_NAME_TEAM_SHORT_NAME, teamName);
+        newDoneValues.put(DoneListContract.DoneEntry.COLUMN_NAME_TEAM, teamURL);
+        // TODO: 10/03/16 Get short name from database for teamURL, and slot in here 
+        //newDoneValues.put(DoneListContract.DoneEntry.COLUMN_NAME_TEAM_SHORT_NAME, teamURL);
         newDoneValues.put(DoneListContract.DoneEntry.COLUMN_NAME_OWNER, Utils.getUsername(mContext));
         newDoneValues.put(DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE, doneDate);
         newDoneValues.put(DoneListContract.DoneEntry.COLUMN_NAME_IS_LOCAL, "TRUE");
@@ -79,7 +81,6 @@ public class DoneActions {
         String doneText = editedDetails.getString(DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT);
         String doneDate = editedDetails.getString(DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE);
         String teamUrl = editedDetails.getString(DoneListContract.DoneEntry.COLUMN_NAME_TEAM);
-        //String teamShortName = editedDetails.getString(DoneListContract.DoneEntry.COLUMN_NAME_TEAM_SHORT_NAME);
         List<String> editedFields = editedDetails.getStringArrayList(DoneListContract.DoneEntry.COLUMN_NAME_EDITED_FIELDS);
         
         // Save to database 
@@ -87,7 +88,6 @@ public class DoneActions {
         editedContentValues.put(DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT, doneText);
         //editedContentValues.put(DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE, doneDate);
         //editedContentValues.put(DoneListContract.DoneEntry.COLUMN_NAME_TEAM, teamUrl);
-        //editedContentValues.put(DoneListContract.DoneEntry.COLUMN_NAME_TEAM_SHORT_NAME, teamShortName);
     
         // This will cause issues later since hashtag links in edited, 
         // non-synced dones will disappear till synced again.

@@ -134,7 +134,7 @@ public class PostEditedDoneTask extends AsyncTask<Boolean, Void, Integer> {
                     patchedDoneObj = new EditDoneObject();
                     patchedDoneObj.setRaw_text(cursor.getString(columnIndexRawText));
                     patchedDoneObj.setDone_date(cursor.getString(columnIndexDoneDate));
-                    patchedDoneObj.setTeamURL(cursor.getString(columnIndexTeamURL));
+                    patchedDoneObj.setTeam(cursor.getString(columnIndexTeamURL));
                     
                     // Convert to json
                     patchedDoneString = gson.toJson(patchedDoneObj, EditDoneObject.class);
@@ -252,8 +252,8 @@ public class PostEditedDoneTask extends AsyncTask<Boolean, Void, Integer> {
         }
         
         if (mFromPreFetch || patchedCount > -1) {
-            // Update local doneList from server
-            new FetchDonesTask(mContext, mFromPreFetch).execute();
+            // Post any unsent dones
+            new PostNewDoneTask(mContext).execute(mFromPreFetch);
         }
     }
     
@@ -288,30 +288,6 @@ public class PostEditedDoneTask extends AsyncTask<Boolean, Void, Integer> {
         public EditDoneObject() {
         }
         
-        public EditDoneObject(String doneText, String doneDate, String teamURL) {
-            this.raw_text = doneText;
-            
-            if (doneDate != null && !doneDate.isEmpty())
-                this.done_date = doneDate;
-            
-            if (teamURL != null && !teamURL.isEmpty())
-                this.team = teamURL;
-            
-        }
-        
-        public EditDoneObject(String doneText, String doneDate) {
-            this.raw_text = doneText;
-            team = mContext.getString(R.string.DEV_TEAM_NAME);
-            
-            if (doneDate != null && !doneDate.isEmpty())
-                this.done_date = doneDate;
-        }
-        
-        public EditDoneObject(String doneText) {
-            this.raw_text = doneText;
-            team = mContext.getString(R.string.DEV_TEAM_NAME);
-        }
-        
         public String getDone_date() {
             return done_date;
         }
@@ -320,14 +296,14 @@ public class PostEditedDoneTask extends AsyncTask<Boolean, Void, Integer> {
             if (done_date != null && !done_date.isEmpty())
                 this.done_date = done_date;
         }
-        
-        public void setTeamURL(String teamName) {
-            if (teamName != null && !teamName.isEmpty())
-                this.team = teamName;
-        }
-        
-        public String getTeamName() {
+    
+        public String getTeam() {
             return team;
+        }
+    
+        public void setTeam(String team) {
+            if (team != null && !team.isEmpty())
+                this.team = team;
         }
     
         public String getRaw_text() {

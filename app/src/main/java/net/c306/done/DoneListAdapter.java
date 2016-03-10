@@ -6,6 +6,7 @@ import android.support.v4.content.ContextCompat;
 import android.support.v4.widget.ResourceCursorAdapter;
 import android.text.Html;
 import android.text.Spannable;
+import android.text.SpannableString;
 import android.text.TextPaint;
 import android.text.style.URLSpan;
 import android.view.LayoutInflater;
@@ -60,15 +61,15 @@ public class DoneListAdapter extends ResourceCursorAdapter{
         View teamSpace = view.findViewById(R.id.team_color_patch);
         int teamColor = (int) Math.round(Math.random() * (colorArray.length - 1));
         teamSpace.setBackgroundResource(colorArray[teamColor]);
+    
+        // TODO: 20/02/16 Set colour based on team of the task 
         
-        //// TODO: 20/02/16 Set colour based on team of the task 
-    
         // Set text
-        TextView rawTextTextView = (TextView) view.findViewById(R.id.item_raw_text);
-    
+        TextView rawTextTextView = (TextView) view.findViewById(R.id.text_view_task_text);
+        
         Spannable rawTextWithUnderlines = (Spannable) Html.fromHtml(cursor.getString(cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_MARKEDUP_TEXT)));
-        rawTextTextView.setText(formatForTextView(rawTextWithUnderlines));
-        //rawTextTextView.setText(Html.fromHtml(cursor.getString(cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_MARKEDUP_TEXT))));
+        SpannableString formattedText = new SpannableString(formatForTextView(rawTextWithUnderlines));
+        rawTextTextView.setText(formattedText);
         
         if ("TRUE".equals(cursor.getString(cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_IS_LOCAL))))
             rawTextTextView.setTextColor(ContextCompat.getColor(mContext, R.color.secondary_text));

@@ -8,7 +8,8 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteQueryBuilder;
 import android.net.Uri;
 import android.support.annotation.Nullable;
-import android.util.Log;
+
+import net.c306.done.R;
 
 /**
  * Created by raven on 18/02/16.
@@ -20,30 +21,25 @@ public class DoneListProvider extends ContentProvider {
     static final int DONES_WITH_TEAM = 102;
     static final int DONES_WITH_DATE = 103;
     static final int DONES_WITH_TEAM_AND_DATE = 104;
-    static final int TEAM = 300;
+    static final int TEAMS = 300;
     
     // The URI Matcher used by this content provider.
     private static final UriMatcher sUriMatcher = buildUriMatcher();
     private static final SQLiteQueryBuilder sDonesByTeamQueryBuilder;
-    
-    //team_short_name = ?
+    //done_id = ?
     private static final String sDoneSelection =
-            DoneListContract.DoneEntry.COLUMN_NAME_ID+ " = ? ";
-    
+            DoneListContract.DoneEntry.COLUMN_NAME_ID + " = ? ";
     //team_short_name = ?
     private static final String sTeamSelection =
-            DoneListContract.DoneEntry.COLUMN_NAME_TEAM_SHORT_NAME+ " = ? ";
-    
+            DoneListContract.DoneEntry.COLUMN_NAME_TEAM_SHORT_NAME + " = ? ";
     //team_short_name = ? AND done_date >= ?
     private static final String sTeamWithStartDateSelection =
                     DoneListContract.DoneEntry.COLUMN_NAME_TEAM_SHORT_NAME + " = ? AND " +
-                    DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE+ " >= ? ";
-    
+                            DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE + " >= ? ";
     //team_short_name = ? AND done_date = ?
     private static final String sTeamAndDateSelection =
                     DoneListContract.DoneEntry.COLUMN_NAME_TEAM_SHORT_NAME + " = ? AND " +
                     DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE + " = ? ";
-    
     //done_date = ?
     private static final String sDateSelection =
                     DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE + " = ? ";
@@ -53,9 +49,21 @@ public class DoneListProvider extends ContentProvider {
         
         sDonesByTeamQueryBuilder.setTables(
                 DoneListContract.DoneEntry.TABLE_NAME);
+    
+    
+        //This is an inner join which looks like
+        //dones INNER JOIN teams ON dones.team_id = teams.id
+        //sDonesByTeamQueryBuilder.setTables(
+        //        DoneListContract.DoneEntry.TABLE_NAME + " INNER JOIN " +
+        //                DoneListContract.TeamEntry.TABLE_NAME +
+        //                " ON " + DoneListContract.DoneEntry.TABLE_NAME +
+        //                "." + DoneListContract.DoneEntry.COLUMN_NAME_TEAM +
+        //                " = " + DoneListContract.TeamEntry.TABLE_NAME +
+        //                "." + DoneListContract.TeamEntry.COLUMN_NAME_URL);
     }
     
     private DoneListDbHelper mOpenHelper;
+    private String LOG_TAG;
     
 /*
     Students: Here is where you need to create the UriMatcher. This UriMatcher will
@@ -63,7 +71,6 @@ public class DoneListProvider extends ContentProvider {
     and TEAMS integer constants defined above.
 */
     static UriMatcher buildUriMatcher() {
-        //// DONE: 18/02/16  
         // I know what you're thinking.  Why create a UriMatcher when you can use regular
         // expressions instead?  Because you're not crazy, that's why.
         
@@ -76,6 +83,7 @@ public class DoneListProvider extends ContentProvider {
         
         // For each type of URI you want to add, create a corresponding code.
         matcher.addURI(authority, DoneListContract.PATH_DONES, DONES);
+        matcher.addURI(authority, DoneListContract.PATH_TEAMS, TEAMS);
         matcher.addURI(authority, DoneListContract.PATH_DONES + "/#", DONE_ITEM);
         matcher.addURI(authority, DoneListContract.PATH_DONES + "/null/*", DONES_WITH_DATE);
         matcher.addURI(authority, DoneListContract.PATH_DONES + "/*", DONES_WITH_TEAM);
@@ -136,17 +144,6 @@ public class DoneListProvider extends ContentProvider {
         );
     }
     
-    private Cursor getAllDones(Uri uri, String[] projection, String selection, String[] selectionArgs, String sortOrder) {
-        return sDonesByTeamQueryBuilder.query(mOpenHelper.getReadableDatabase(),
-                projection,
-                selection,
-                selectionArgs,
-                null,
-                null,
-                sortOrder
-        );
-    }
-    
     private Cursor getThisDone(Uri uri, String[] projection, String sortOrder) {
         String id = DoneListContract.DoneEntry.getDoneIDFromUri(uri);
         
@@ -163,6 +160,7 @@ public class DoneListProvider extends ContentProvider {
     @Override
     public boolean onCreate() {
         mOpenHelper = DoneListDbHelper.getInstance(getContext());
+        LOG_TAG = getContext().getString(R.string.APP_LOG_IDENTIFIER) + " " + this.getClass().getSimpleName();
         return true;
     }
     
@@ -171,9 +169,8 @@ public class DoneListProvider extends ContentProvider {
     @Override
     public String getType(Uri uri) {
         // Use the Uri Matcher to determine what kind of URI this is.
-        final int match = sUriMatcher.match(uri);
     
-        switch (match) {
+        switch (sUriMatcher.match(uri)) {
             // Student: Uncomment and fill out these two cases
             case DONES_WITH_TEAM_AND_DATE:
                 return DoneListContract.DoneEntry.CONTENT_TYPE;
@@ -185,6 +182,8 @@ public class DoneListProvider extends ContentProvider {
                 return DoneListContract.DoneEntry.CONTENT_TYPE;
             case DONE_ITEM:
                 return DoneListContract.DoneEntry.CONTENT_ITEM_TYPE;
+            case TEAMS:
+                return DoneListContract.DoneEntry.CONTENT_TYPE;
             default:
                 throw new UnsupportedOperationException("Unknown uri: " + uri);
         }
@@ -198,38 +197,67 @@ public class DoneListProvider extends ContentProvider {
         Cursor retCursor;
         
         switch (sUriMatcher.match(uri)) {
+    
             // "dones/*/*"
             case DONES_WITH_TEAM_AND_DATE:
             {
                 retCursor = getDonesByTeamAndDate(uri, projection, sortOrder);
                 break;
             }
+
             // "dones/*"
             case DONES_WITH_TEAM: {
                 retCursor = getDonesByTeam(uri, projection, sortOrder);
                 break;
             }
+
             // "dones/null/*"
             case DONES_WITH_DATE: {
                 retCursor = getDonesByDate(uri, projection, sortOrder);
                 break;
             }
+
             // "dones"
             case DONES: {
-                //// DONE: 18/02/16 Return default list of dones 
-                retCursor = getAllDones(uri, projection, selection, selectionArgs, sortOrder);
+                // Return default list of dones 
+                retCursor = mOpenHelper.getReadableDatabase().query(
+                        DoneListContract.DoneEntry.TABLE_NAME,
+                        projection,
+                        selection,
+                        selectionArgs,
+                        null,
+                        null,
+                        sortOrder,
+                        null
+                );
                 break;
             }
+
             // "dones?id"
             case DONE_ITEM: {
-                //// DONE: 18/02/16 Return one done item
+                // Return one done item
                 retCursor = getThisDone(uri, projection, sortOrder);
+                break;
+            }
+    
+            case TEAMS: {
+                retCursor = mOpenHelper.getReadableDatabase().query(
+                        DoneListContract.TeamEntry.TABLE_NAME,
+                        projection,
+                        selection,
+                        selectionArgs,
+                        null,
+                        null,
+                        sortOrder,
+                        null
+                );
                 break;
             }
             
             default:
                 throw new UnsupportedOperationException("Unknown uri: " + uri);
         }
+    
         retCursor.setNotificationUri(getContext().getContentResolver(), uri);
         
         return retCursor;
@@ -241,17 +269,32 @@ public class DoneListProvider extends ContentProvider {
         final SQLiteDatabase db = mOpenHelper.getWritableDatabase();
         Uri returnUri;
     
-        long _id = db.insert(DoneListContract.DoneEntry.TABLE_NAME, null, values);
-        if ( _id > 0 )
-            returnUri = DoneListContract.DoneEntry.buildDoneListWithIdUri(_id);
-        else
-            throw new android.database.SQLException("Failed to insert row into " + uri);
+        switch (sUriMatcher.match(uri)) {
         
-        try {
-            getContext().getContentResolver().notifyChange(uri, null);
-        } catch (NullPointerException e){
-            Log.e("..", "No content resolver found in context");
+            // "dones/*/*"
+            case DONES: {
+                long _id = db.insert(DoneListContract.DoneEntry.TABLE_NAME, null, values);
+                if (_id > 0)
+                    returnUri = DoneListContract.DoneEntry.buildDoneListWithIdUri(_id);
+                else
+                    throw new android.database.SQLException("Failed to insert row into " + uri);
+                break;
+            }
+        
+            case TEAMS: {
+                long _id = db.insert(DoneListContract.TeamEntry.TABLE_NAME, null, values);
+                if (_id > 0)
+                    returnUri = DoneListContract.TeamEntry.buildTeamUri(_id);
+                else
+                    throw new android.database.SQLException("Failed to insert row into " + uri);
+                break;
+            }
+        
+            default:
+                throw new UnsupportedOperationException("Unknown uri: " + uri);
         }
+    
+        getContext().getContentResolver().notifyChange(uri, null);
         
         return returnUri;
     }
@@ -262,17 +305,33 @@ public class DoneListProvider extends ContentProvider {
         final SQLiteDatabase db = mOpenHelper.getWritableDatabase();
         
         int rowsDeleted;
+    
         // this makes delete all rows return the number of rows deleted
+        if (null == selection) selection = "1";
+    
+        switch (sUriMatcher.match(uri)) {
         
-        //if ( null == selection ) selection = "1";
+            // "dones/*/*"
+            case DONES:
+                rowsDeleted = db.delete(
+                        DoneListContract.DoneEntry.TABLE_NAME, selection, selectionArgs);
+                break;
         
-        rowsDeleted = db.delete(
-                DoneListContract.DoneEntry.TABLE_NAME, selection, selectionArgs);
+            case TEAMS:
+                rowsDeleted = db.delete(
+                        DoneListContract.TeamEntry.TABLE_NAME, selection, selectionArgs);
+                break;
+        
+            default:
+                throw new UnsupportedOperationException("Unknown uri: " + uri);
+        }
+    
         
         // Because a null deletes all rows
         if (rowsDeleted != 0) {
             getContext().getContentResolver().notifyChange(uri, null);
         }
+    
         return rowsDeleted;
     }
     
@@ -281,10 +340,23 @@ public class DoneListProvider extends ContentProvider {
         final SQLiteDatabase db = mOpenHelper.getWritableDatabase();
         
         int rowsUpdated;
+    
+        switch (sUriMatcher.match(uri)) {
         
-        //normalizeDate(values);
-        rowsUpdated = db.update(DoneListContract.DoneEntry.TABLE_NAME, values, selection, selectionArgs);
+            case DONES:
+                rowsUpdated = db.update(
+                        DoneListContract.DoneEntry.TABLE_NAME, values, selection, selectionArgs);
+                break;
         
+            case TEAMS:
+                rowsUpdated = db.update(
+                        DoneListContract.TeamEntry.TABLE_NAME, values, selection, selectionArgs);
+                break;
+        
+            default:
+                throw new UnsupportedOperationException("Unknown uri: " + uri);
+        }
+    
         if (rowsUpdated != 0) {
             getContext().getContentResolver().notifyChange(uri, null);
         }
@@ -297,13 +369,31 @@ public class DoneListProvider extends ContentProvider {
         final SQLiteDatabase db = mOpenHelper.getWritableDatabase();
         
         int returnCount = 0;
+    
+        String tableName = null;
+    
+        switch (sUriMatcher.match(uri)) {
+        
+            case DONES:
+                tableName = DoneListContract.DoneEntry.TABLE_NAME;
+                break;
+        
+            case TEAMS:
+                tableName = DoneListContract.TeamEntry.TABLE_NAME;
+                break;
+        
+            default:
+                throw new UnsupportedOperationException("Unknown uri: " + uri);
+        }
+        
         
         db.beginTransaction();
         try {
             for (ContentValues value : values) {
-                //// DONE: 19/02/16 Use insert or replace, instead of insert, so can retrieve updates only from server 
+                //Use insert or replace, instead of insert, so can retrieve updates from server 
                 //long _id = db.insert(DoneListContract.DoneEntry.TABLE_NAME, null, value);
-                long _id = db.insertWithOnConflict(DoneListContract.DoneEntry.TABLE_NAME, null, value, SQLiteDatabase.CONFLICT_REPLACE);
+                long _id = db.insertWithOnConflict(
+                        tableName, null, value, SQLiteDatabase.CONFLICT_REPLACE);
                 if (_id != -1) {
                     returnCount++;
                 }

@@ -201,7 +201,6 @@ public class MainActivity
             new FetchDonesTask(this, false).execute();
         }
         
-        //mDoneListAdapter = new DoneListAdapter(this, R.layout.list_row_layout, cur, 0);
         mDoneListAdapter = new DoneListAdapter(this, R.layout.list_row_layout, null, 0);
     
         mListView = (ListView) findViewById(R.id.dones_list_view);
@@ -234,7 +233,14 @@ public class MainActivity
                 R.color.team5,
                 R.color.primary
         );
-    
+        
+/*
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        //Log.wtf(LOG_TAG, "validToken: " + prefs.getBoolean(getString(R.string.VALID_TOKEN), false));
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.remove(getString(R.string.DEFAULT_TEAM));
+        editor.apply();
+*/
     }
     
     @Override
@@ -529,11 +535,7 @@ public class MainActivity
     public Loader<Cursor> onCreateLoader(int id, Bundle args) {
         // This is called when a new Loader needs to be created.  This
         // fragment only uses one loader, so we don't care about checking the id.
-    
-        // To only show current and future dates, filter the query to return weather only for
-        // dates after or including today.
-        
-        // Sort order:  Ascending, by date.
+        // Sort order:  Descending, by date.
         String sortOrder = DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE + " DESC, " +
                 DoneListContract.DoneEntry.COLUMN_NAME_UPDATED + " DESC";
         

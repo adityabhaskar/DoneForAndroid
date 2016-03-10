@@ -9,10 +9,11 @@
     <integer name="MIN_LOCAL_DONE_ID">100000000</integer>
 
     <!-- For dev only, till team selection in settings is implemented -->
-    <string name="DEV_TEAM_NAME">adityabhaskar</string>
+    <!--<string name="DEV_TEAM_NAME">adityabhaskar</string>-->
 
     <!-- SharedPreferences string names -->
     <string name="AUTH_TOKEN">authToken</string>
+    <string name="DEFAULT_TEAM">defaultTeam</string>
     <string name="VALID_TOKEN">validToken</string>
     <string name="LAST_UPDATED_SETTING_NAME">lastUpdated</string>
     <string name="PENDING_ACTIONS">pendingActions</string>

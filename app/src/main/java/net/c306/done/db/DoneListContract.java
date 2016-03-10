@@ -34,14 +34,15 @@ public class DoneListContract {
     
     public static abstract class TeamEntry implements BaseColumns {
         public static final String TABLE_NAME = "teams";
-        
-        public static final String COLUMN_NAME_ID = "id";
-        public static final String COLUMN_NAME_URL = "url";
-        public static final String COLUMN_NAME_NAME = "name";
+    
+        public static final String COLUMN_NAME_ID = "_id";   // assign locally
+        public static final String COLUMN_NAME_URL = "team_url"; // unique on server - api url - same as dones.team
+        public static final String COLUMN_NAME_NAME = "team_name";
         public static final String COLUMN_NAME_SHORT_NAME = "short_name";
-        public static final String COLUMN_NAME_DONES = "dones";
+        public static final String COLUMN_NAME_DONES = "team_dones"; // api url to dones in team
         public static final String COLUMN_NAME_IS_PERSONAL = "is_personal";
-        public static final String COLUMN_NAME_PERMALINK = "permalink";
+        public static final String COLUMN_NAME_DONE_COUNT = "team_done_count"; // total done count in team, on server
+        public static final String COLUMN_NAME_PERMALINK = "team_permalink"; // url to web page
         
         public static final Uri CONTENT_URI = BASE_CONTENT_URI.buildUpon().appendPath(PATH_TEAMS).build();
         
@@ -49,7 +50,10 @@ public class DoneListContract {
                 ContentResolver.CURSOR_DIR_BASE_TYPE + "/" + CONTENT_AUTHORITY + "/" + PATH_TEAMS;
         public static final String CONTENT_ITEM_TYPE =
                 ContentResolver.CURSOR_ITEM_BASE_TYPE + "/" + CONTENT_AUTHORITY + "/" + PATH_TEAMS;
-        
+    
+        public static Uri buildTeamUri(long id) {
+            return ContentUris.withAppendedId(CONTENT_URI, id);
+        }
     }
     
     /* Inner class that defines the table contents */
@@ -78,7 +82,7 @@ public class DoneListContract {
         public static final String COLUMN_NAME_IS_GOAL = "is_goal";
         public static final String COLUMN_NAME_GOAL_COMPLETED = "goal_completed";
         public static final String COLUMN_NAME_URL = "url";
-        public static final String COLUMN_NAME_TEAM = "team";
+        public static final String COLUMN_NAME_TEAM = "team"; // same as teams.url
         public static final String COLUMN_NAME_RAW_TEXT = "raw_text";
         public static final String COLUMN_NAME_PERMALINK = "permalink";
         public static final String COLUMN_NAME_IS_LOCAL = "is_local";

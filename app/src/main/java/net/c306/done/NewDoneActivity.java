@@ -187,7 +187,7 @@ public class NewDoneActivity extends AppCompatActivity {
                 // Add temporary id to new done bundle
                 newDoneDetails.putLong(DoneListContract.DoneEntry.COLUMN_NAME_ID, localDoneIdCounter);
                 // Add team to bundle. Later, to be got from selector
-                newDoneDetails.putString(DoneListContract.DoneEntry.COLUMN_NAME_TEAM_SHORT_NAME, getString(R.string.DEV_TEAM_NAME));
+                newDoneDetails.putString(DoneListContract.DoneEntry.COLUMN_NAME_TEAM, Utils.getDefaultTeam(this));
                 // Add done_date to bundle
                 newDoneDetails.putString(DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE, dateOfDone);
                 // Add cleaned (of date strings) doneText to bundle

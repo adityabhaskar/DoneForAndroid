@@ -8,6 +8,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
+import android.database.Cursor;
 import android.media.Ringtone;
 import android.media.RingtoneManager;
 import android.net.Uri;
@@ -27,8 +28,10 @@ import android.util.Log;
 import android.view.MenuItem;
 import android.widget.Toast;
 
+import net.c306.done.db.DoneListContract;
 import net.c306.done.idonethis.CheckTokenTask;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -60,10 +63,8 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
                 int index = listPreference.findIndexOfValue(stringValue);
                 
                 // Set the summary to reflect the new value.
-                preference.setSummary(
-                        index >= 0
-                                ? listPreference.getEntries()[index]
-                                : null);
+                if (index >= 0)
+                    preference.setSummary(listPreference.getEntries()[index]);
         
             } else if (preference instanceof RingtonePreference) {
                 // For ringtone preferences, look up the correct display value
@@ -229,10 +230,18 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
     * */
     @Override
     public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
-        Log.wtf(LOG_TAG, "Got pref change: " + key);
         if (key.equals(getString(R.string.AUTH_TOKEN))) {
+            Log.wtf(LOG_TAG, key + " changed.");
             new CheckTokenTask(this).execute();
-        }
+        } else if (key.equals(getString(R.string.DEFAULT_TEAM))) {
+            Log.v(LOG_TAG, key + " changed to: " +
+                    sharedPreferences.getString(
+                            getString(R.string.DEFAULT_TEAM),
+                            ""
+                    )
+            );
+        } else
+            Log.wtf(LOG_TAG, "Unidentified pref change: " + key);
     }
     
     /**
@@ -285,12 +294,64 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
             super.onCreate(savedInstanceState);
             addPreferencesFromResource(R.xml.pref_general);
             setHasOptionsMenu(true);
+    
+            setupTeamsSelector();
             
             // Bind the summaries of EditText/List/Dialog/Ringtone preferences
             // to their values. When their values change, their summaries are
             // updated to reflect the new value, per the Android Design
             // guidelines.
-            bindPreferenceSummaryToValue(findPreference("authToken"));
+            bindPreferenceSummaryToValue(findPreference(getString(R.string.AUTH_TOKEN)));
+            bindPreferenceSummaryToValue(findPreference(getString(R.string.DEFAULT_TEAM)));
+    
+    
+        }
+    
+        private void setupTeamsSelector() {
+        
+            ListPreference defaultTeamListPreference = (ListPreference) findPreference(getString(R.string.DEFAULT_TEAM));
+        
+            if (Utils.haveValidToken(getActivity().getApplicationContext())) {
+            
+                // Fill up team names in listPreference in General Preferences
+                defaultTeamListPreference.setEnabled(true);
+            
+                Cursor cursor = getActivity().getContentResolver().query(
+                        DoneListContract.TeamEntry.CONTENT_URI,
+                        new String[]{
+                                DoneListContract.TeamEntry.COLUMN_NAME_ID,
+                                DoneListContract.TeamEntry.COLUMN_NAME_NAME,
+                                DoneListContract.TeamEntry.COLUMN_NAME_URL
+                        },
+                        null,
+                        null,
+                        null
+                );
+            
+                if (cursor != null && cursor.getCount() > 0) {
+                
+                    List<String> teamNames = new ArrayList<>();
+                    List<String> teamURLs = new ArrayList<>();
+                
+                    int columnTeamName = cursor.getColumnIndex(DoneListContract.TeamEntry.COLUMN_NAME_NAME);
+                    int columnTeamURL = cursor.getColumnIndex(DoneListContract.TeamEntry.COLUMN_NAME_URL);
+                
+                    while (cursor.moveToNext()) {
+                        teamNames.add(cursor.getString(columnTeamName));
+                        teamURLs.add(cursor.getString(columnTeamURL));
+                    }
+                
+                    cursor.close();
+                
+                    defaultTeamListPreference.setEntries(teamNames.toArray(new String[teamNames.size()]));
+                    defaultTeamListPreference.setEntryValues(teamURLs.toArray(new String[teamURLs.size()]));
+                } else {
+                    // TODO: 10/03/16 When database is updated, schedule an automatic team fetch 
+                    defaultTeamListPreference.setEntries(new String[]{});
+                    defaultTeamListPreference.setEntryValues(new String[]{});
+                }
+            } else
+                defaultTeamListPreference.setEnabled(false);
         }
         
         @Override

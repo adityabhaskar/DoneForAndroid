@@ -79,6 +79,19 @@ public class Utils {
         return prefs.getString(c.getString(R.string.USERNAME), null);
     }
     
+    @Nullable
+    public static String getDefaultTeam(Context c) {
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(c);
+        return prefs.getString(c.getString(R.string.DEFAULT_TEAM), null);
+    }
+    
+    public static void setDefaultTeam(Context c, String team) {
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(c);
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.putString(c.getString(R.string.DEFAULT_TEAM), team);
+        editor.apply();
+    }
+    
     public static void resetSharedPreferences(Context c) {
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(c);
         SharedPreferences.Editor editor = prefs.edit();

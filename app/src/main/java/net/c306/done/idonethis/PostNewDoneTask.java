@@ -94,7 +94,7 @@ public class PostNewDoneTask extends AsyncTask<Boolean, Void, Integer> {
                 new String[]{                                                           // Projection
                         DoneListContract.DoneEntry.COLUMN_NAME_ID,
                         DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT,
-                        DoneListContract.DoneEntry.COLUMN_NAME_TEAM_SHORT_NAME,
+                        DoneListContract.DoneEntry.COLUMN_NAME_TEAM,
                         DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE
                 },
                 DoneListContract.DoneEntry.COLUMN_NAME_IS_LOCAL + " IS 'TRUE'",   // Selection
@@ -112,7 +112,7 @@ public class PostNewDoneTask extends AsyncTask<Boolean, Void, Integer> {
                 int columnIndexID = cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_ID);
                 int columnIndexRawText = cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT);
                 int columnIndexDoneDate = cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE);
-                int columnIndexTeamShortName = cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_TEAM_SHORT_NAME);
+                int columnIndexTeam = cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_TEAM);
             
                 Log.v(LOG_TAG, "Got " + cursor.getCount() + " pending dones to post to server");
             
@@ -123,7 +123,7 @@ public class PostNewDoneTask extends AsyncTask<Boolean, Void, Integer> {
                     newDoneObj = new NewDoneClass(
                             cursor.getString(columnIndexRawText),
                             cursor.getString(columnIndexDoneDate),
-                            cursor.getString(columnIndexTeamShortName)
+                            cursor.getString(columnIndexTeam)
                     );
                 
                     // Convert to json
@@ -274,8 +274,8 @@ public class PostNewDoneTask extends AsyncTask<Boolean, Void, Integer> {
         private String team;
         private String raw_text;
         private String meta_data = "{\"from\":\"" + mContext.getString(R.string.app_name) + "\"}";
-        
-        public NewDoneClass(String doneText, String doneDate, String teamName) {
+    
+        public NewDoneClass(String doneText, String doneDate, String teamURL) {
             this.raw_text = doneText;
             
             if (doneDate != null && !doneDate.isEmpty())
@@ -285,31 +285,10 @@ public class PostNewDoneTask extends AsyncTask<Boolean, Void, Integer> {
                 
                 this.done_date = sdf.format(new Date());
             }
-            
-            if (teamName != null && !teamName.isEmpty())
-                this.team = teamName;
-            
-        }
         
-        public NewDoneClass(String doneText, String doneDate) {
-            this.raw_text = doneText;
-            team = mContext.getString(R.string.DEV_TEAM_NAME);
+            if (teamURL != null && !teamURL.isEmpty())
+                this.team = teamURL;
             
-            if (doneDate != null && !doneDate.isEmpty())
-                this.done_date = doneDate;
-            else {
-                SimpleDateFormat sdf = new SimpleDateFormat(dateFormat);
-                
-                this.done_date = sdf.format(new Date());
-            }
-        }
-        
-        public NewDoneClass(String doneText) {
-            this.raw_text = doneText;
-            team = mContext.getString(R.string.DEV_TEAM_NAME);
-            
-            SimpleDateFormat sdf = new SimpleDateFormat(dateFormat);
-            done_date = sdf.format(new Date());
         }
         
         public String getDone_date() {

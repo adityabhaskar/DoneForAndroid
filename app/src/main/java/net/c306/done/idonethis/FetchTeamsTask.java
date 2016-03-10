@@ -198,7 +198,6 @@ public class FetchTeamsTask extends AsyncTask<Void, Void, Integer> {
         
         for (int i = 0; i < teamsListArray.length(); i++) {
             teamItemString = teamsListArray.getJSONObject(i).toString();
-            Log.v(LOG_TAG, "Team " + (i + 1) + ": " + teamItemString);
             
             teamItem = gson.fromJson(teamItemString, TeamItem.class);
             
@@ -222,8 +221,9 @@ public class FetchTeamsTask extends AsyncTask<Void, Void, Integer> {
             ContentValues[] cvArray = new ContentValues[cVVector.size()];
             cVVector.toArray(cvArray);
     
-            // TODO: 27/02/16 Add newly fetched teams to the database  
-            //mContext.getContentResolver().bulkInsert(DoneListContract.TeamEntry.CONTENT_URI, cvArray);
+            // Add newly fetched teams to the database  
+            mContext.getContentResolver().bulkInsert(DoneListContract.TeamEntry.CONTENT_URI, cvArray);
+            
         }
     
         // Return number of fetched teams
