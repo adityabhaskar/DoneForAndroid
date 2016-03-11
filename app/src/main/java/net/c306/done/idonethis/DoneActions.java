@@ -86,9 +86,9 @@ public class DoneActions {
         // Save to database 
         ContentValues editedContentValues = new ContentValues();
         editedContentValues.put(DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT, doneText);
-        //editedContentValues.put(DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE, doneDate);
-        //editedContentValues.put(DoneListContract.DoneEntry.COLUMN_NAME_TEAM, teamUrl);
-    
+        editedContentValues.put(DoneListContract.DoneEntry.COLUMN_NAME_TEAM, teamUrl);
+        editedContentValues.put(DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE, doneDate);
+        
         // This will cause issues later since hashtag links in edited, 
         // non-synced dones will disappear till synced again.
         // TODO: 07/03/16 Parse raw_text for any #tags already known, create links for them save formatted text to markedup_text 

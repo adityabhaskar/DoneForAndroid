@@ -116,19 +116,12 @@ public class PostEditedDoneTask extends AsyncTask<Boolean, Void, Integer> {
                 int columnIndexDoneDate = cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE);
                 int columnIndexTeamURL = cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_TEAM);
                 int columnIndexDoneURL = cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_URL);
-                int columnIndexEditedFields = cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_EDITED_FIELDS);
                 
                 Log.v(LOG_TAG, "Got " + cursor.getCount() + " pending dones to post to server");
                 
                 // Iterate over unsent dones 
                 while (cursor.moveToNext()) {
                     // Get next done
-                    
-                    // Get edited fields
-                    //List<String> editedFieldsList = gson.fromJson(
-                    //        cursor.getString(columnIndexEditedFields), 
-                    //        new TypeToken<ArrayList<String>>(){}.getType()
-                    //);
                     
                     // Create editdone object with edited fields
                     patchedDoneObj = new EditDoneObject();
@@ -141,7 +134,7 @@ public class PostEditedDoneTask extends AsyncTask<Boolean, Void, Integer> {
                     
                     // Send
                     try {
-                        URL patchTaskURL = new URL(cursor.getString(cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_URL)));
+                        URL patchTaskURL = new URL(cursor.getString(columnIndexDoneURL));
                         //Log.v(LOG_TAG, "Request URL: " + patchTaskURL);
     
                         //Connect

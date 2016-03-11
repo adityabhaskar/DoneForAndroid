@@ -11,6 +11,9 @@
     <string name="done_sent_toast_message">sent.</string>
     <string name="done_deleted_toast_message">deleted.</string>
     <string name="new_done_hint">What did you do today?</string>
+    <string name="spinner_prompt">Select team</string>
+    <string name="team_label">Team</string>
+    <string name="date_label">Date</string>
 
     <string name="offline_toast_message">Offline! Will try again when connection available.</string>
 
@@ -20,10 +23,10 @@
 
 
     <!-- Strings related to Settings -->
-    
+
     <!-- Example General settings -->
     <string name="pref_header_general">General</string>
-    
+
     <string name="pref_title_social_recommendations">Enable social recommendations</string>
     <string name="pref_description_social_recommendations">Recommendations for people to contact
         based on your message history
@@ -34,6 +37,7 @@
 
     <string name="pref_title_default_team">Default Team</string>
     <string name="pref_summary_default_team">Default team to posts tasks to.</string>
+
 
     <string name="pref_title_display_name">Display name</string>
     <string name="pref_default_display_name">John Smith</string>
