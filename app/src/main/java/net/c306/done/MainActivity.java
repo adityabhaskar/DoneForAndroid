@@ -190,15 +190,15 @@ public class MainActivity
                 c.setTime(new Date());
                 c.add(Calendar.MINUTE, REFRESH_LIST_DELAY);  // create timestamp 15 mins back
                 if (lastUpdatedDate.before(c.getTime())) {
-                    new FetchDonesTask(this, false).execute();
+                    new FetchDonesTask(this, false, true).execute();
                 }
             } catch(ParseException e){
                 Log.w(LOG_TAG, "Couldn't parse lastUpdated: " + lastUpdated + ".");
-                new FetchDonesTask(this, false).execute();
+                new FetchDonesTask(this, false, true).execute();
             }
         } else {
             Log.w(LOG_TAG, "No lastUpdated found, starting fetch.");
-            new FetchDonesTask(this, false).execute();
+            new FetchDonesTask(this, false, true).execute();
         }
         
         mDoneListAdapter = new DoneListAdapter(this, R.layout.list_row_layout, null, 0);
@@ -230,7 +230,7 @@ public class MainActivity
         swp.setColorSchemeResources(
                 R.color.accent,
                 R.color.link_colour,
-                R.color.team5,
+                R.color.team1,
                 R.color.primary
         );
         
@@ -240,6 +240,9 @@ public class MainActivity
         SharedPreferences.Editor editor = prefs.edit();
         editor.remove(getString(R.string.DEFAULT_TEAM));
         editor.apply();
+        
+        String[] testArr = Utils.getTeams(this); 
+        Log.v(LOG_TAG, "" + testArr.length);
 */
     }
     
@@ -545,7 +548,8 @@ public class MainActivity
                 DoneListContract.DoneEntry.COLUMN_NAME_ID + " AS _id",
                 DoneListContract.DoneEntry.COLUMN_NAME_MARKEDUP_TEXT,
                 DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE,
-                DoneListContract.DoneEntry.COLUMN_NAME_TEAM_SHORT_NAME,
+                //DoneListContract.DoneEntry.COLUMN_NAME_TEAM_SHORT_NAME,
+                DoneListContract.DoneEntry.COLUMN_NAME_TEAM,
                 DoneListContract.DoneEntry.COLUMN_NAME_IS_LOCAL,
                 DoneListContract.DoneEntry.COLUMN_NAME_EDITED_FIELDS
         };
@@ -581,7 +585,7 @@ public class MainActivity
     @Override
     public void onRefresh() {
         Log.v(LOG_TAG, "Calling fetch from swipe to refresh");
-        new FetchDonesTask(this, false).execute();
+        new FetchDonesTask(this, false, true).execute();
     }
     
 }

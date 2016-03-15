@@ -53,8 +53,6 @@ public class DoneActions {
         newDoneValues.put(DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT, doneText);
         newDoneValues.put(DoneListContract.DoneEntry.COLUMN_NAME_MARKEDUP_TEXT, doneText);
         newDoneValues.put(DoneListContract.DoneEntry.COLUMN_NAME_TEAM, teamURL);
-        // TODO: 10/03/16 Get short name from database for teamURL, and slot in here 
-        //newDoneValues.put(DoneListContract.DoneEntry.COLUMN_NAME_TEAM_SHORT_NAME, teamURL);
         newDoneValues.put(DoneListContract.DoneEntry.COLUMN_NAME_OWNER, Utils.getUsername(mContext));
         newDoneValues.put(DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE, doneDate);
         newDoneValues.put(DoneListContract.DoneEntry.COLUMN_NAME_IS_LOCAL, "TRUE");

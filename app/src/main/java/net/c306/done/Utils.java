@@ -5,6 +5,10 @@ import android.content.SharedPreferences;
 import android.preference.PreferenceManager;
 import android.support.annotation.Nullable;
 
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+
+import java.util.Arrays;
 import java.util.Map;
 
 /**
@@ -89,6 +93,50 @@ public class Utils {
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(c);
         SharedPreferences.Editor editor = prefs.edit();
         editor.putString(c.getString(R.string.DEFAULT_TEAM), team);
+        editor.apply();
+    }
+    
+    public static void setTeams(Context c, String[] teams) {
+        if (teams.length > 0) {
+            SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(c);
+            SharedPreferences.Editor editor = prefs.edit();
+            editor.putString(c.getString(R.string.TEAMS), new Gson().toJson(teams));
+            editor.apply();
+        }
+    }
+    
+    public static String[] getTeams(Context c) {
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(c);
+        return new Gson().fromJson(prefs.getString(c.getString(R.string.TEAMS), "[]"), new TypeToken<String[]>() {
+        }.getType());
+    }
+    
+    public static int findTeam(Context c, String team) {
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(c);
+        String[] teams = new Gson().fromJson(prefs.getString(c.getString(R.string.TEAMS), "[]"), new TypeToken<String[]>() {
+        }.getType());
+        
+        return Arrays.asList(teams).indexOf(team);
+    }
+    
+    @Nullable
+    public static String[] getNewTaskActivityState(Context c) {
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(c);
+        return new Gson().fromJson(prefs.getString(c.getString(R.string.NEW_TASK_ACTIVITY_STATE), "[]"), new TypeToken<String[]>() {
+        }.getType());
+    }
+    
+    public static void setNewTaskActivityState(Context c, String[] state) {
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(c);
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.putString(c.getString(R.string.NEW_TASK_ACTIVITY_STATE), new Gson().toJson(state));
+        editor.apply();
+    }
+    
+    public static void clearNewTaskActivityState(Context c) {
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(c);
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.remove(c.getString(R.string.NEW_TASK_ACTIVITY_STATE));
         editor.apply();
     }
     

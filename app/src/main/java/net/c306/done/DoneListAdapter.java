@@ -30,11 +30,16 @@ public class DoneListAdapter extends ResourceCursorAdapter{
     private Calendar calendar = Calendar.getInstance();
     private String LOG_TAG;
     private int colorArray[] = {
-            //R.color.team3,
-            //R.color.team4,
+            R.color.team1,
+            R.color.team2,
+            R.color.team3,
+            R.color.team4,
             R.color.team5,
-            //R.color.team6,
-            //R.color.team8
+            R.color.team6,
+            R.color.team7,
+            R.color.team8,
+            R.color.team9,
+            R.color.team10
     };
     
     public DoneListAdapter(Context context, int layout, Cursor c, int flags) {
@@ -47,9 +52,8 @@ public class DoneListAdapter extends ResourceCursorAdapter{
     * */
     @Override
     public View newView(Context context, Cursor cursor, ViewGroup parent) {
-        View view = LayoutInflater.from(context).inflate(R.layout.list_row_layout, parent, false);
-        
-        return view;
+    
+        return LayoutInflater.from(context).inflate(R.layout.list_row_layout, parent, false);
     }
     
     /*
@@ -59,10 +63,13 @@ public class DoneListAdapter extends ResourceCursorAdapter{
     public void bindView(View view, Context context, Cursor cursor) {
         // Set team colour
         View teamSpace = view.findViewById(R.id.team_color_patch);
-        int teamColor = (int) Math.round(Math.random() * (colorArray.length - 1));
-        teamSpace.setBackgroundResource(colorArray[teamColor]);
+        //int teamColor = (int) Math.round(Math.random() * (colorArray.length - 1));
+        int teamColor = Utils.findTeam(context, cursor.getString(
+                cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_TEAM)
+        ));
     
-        // TODO: 20/02/16 Set colour based on team of the task 
+        // Set colour based on team of the task
+        teamSpace.setBackgroundResource(colorArray[teamColor == -1 ? 0 : teamColor]);
         
         // Set text
         TextView rawTextTextView = (TextView) view.findViewById(R.id.text_view_task_text);
@@ -129,7 +136,7 @@ public class DoneListAdapter extends ResourceCursorAdapter{
             super.updateDrawState(ds);
             ds.setUnderlineText(false);
             ds.setFakeBoldText(true);
-            ds.setColor(new ContextCompat().getColor(mContext, R.color.link_colour));
+            ds.setColor(ContextCompat.getColor(mContext, R.color.link_colour));
         }
     }
     

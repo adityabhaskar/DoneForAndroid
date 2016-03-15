@@ -42,12 +42,20 @@ public class FetchDonesTask extends AsyncTask<Void, Void, Integer> {
     private String LOG_TAG;
     private Context mContext;
     private String mAuthToken;
+    private boolean mFetchTeams = false;
     private boolean mFromDoneDeleteOrEditTasks = false;
     
-    public FetchDonesTask(Context c, boolean fromPostNewDone) {
-        mContext = c;
-        mFromDoneDeleteOrEditTasks = fromPostNewDone;
-        LOG_TAG = mContext.getString(R.string.APP_LOG_IDENTIFIER) + " " + FetchDonesTask.class.getSimpleName();
+    public FetchDonesTask(Context context, boolean fromDoneDeleteOrEditTasks, boolean fetchTeams) {
+        this.mContext = context;
+        this.mFetchTeams = fetchTeams;
+        this.mFromDoneDeleteOrEditTasks = fromDoneDeleteOrEditTasks;
+        LOG_TAG = context.getString(R.string.APP_LOG_IDENTIFIER) + " " + FetchDonesTask.class.getSimpleName();
+    }
+    
+    public FetchDonesTask(Context context, boolean fromDoneDeleteOrEditTasks) {
+        this.mContext = context;
+        this.mFromDoneDeleteOrEditTasks = fromDoneDeleteOrEditTasks;
+        LOG_TAG = context.getString(R.string.APP_LOG_IDENTIFIER) + " " + FetchDonesTask.class.getSimpleName();
     }
     
     @Override
@@ -68,6 +76,12 @@ public class FetchDonesTask extends AsyncTask<Void, Void, Integer> {
         
             mAuthToken = Utils.getAuthToken(mContext);
         
+            if (mFetchTeams) {
+                new FetchTeamsTask(mContext, mFromDoneDeleteOrEditTasks).execute();
+                cancel(true);
+                return;
+            }
+            
             // Check if there are any unposted local changes  
             Cursor cursor = mContext.getContentResolver().query(
                     DoneListContract.DoneEntry.buildDoneListUri(),                  // URI
@@ -102,7 +116,6 @@ public class FetchDonesTask extends AsyncTask<Void, Void, Integer> {
             // token available, but not validated, so validate
             new CheckTokenTask(mContext).execute();
             cancel(true);
-            return;
         
         } else {
             // no token available

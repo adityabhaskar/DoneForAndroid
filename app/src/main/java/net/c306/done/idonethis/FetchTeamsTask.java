@@ -26,6 +26,8 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Vector;
 
 /**
@@ -37,11 +39,18 @@ public class FetchTeamsTask extends AsyncTask<Void, Void, Integer> {
     private String LOG_TAG;
     private Context mContext;
     private String mAuthToken;
+    private boolean mFromDoneDeleteOrEditTasks = false;
     
     private SimpleDateFormat sdf;
     
     public FetchTeamsTask(Context c) {
         mContext = c;
+        LOG_TAG = mContext.getString(R.string.APP_LOG_IDENTIFIER) + " " + this.getClass().getSimpleName();
+    }
+    
+    public FetchTeamsTask(Context mContext, boolean mFromDoneDeleteOrEditTasks) {
+        this.mContext = mContext;
+        this.mFromDoneDeleteOrEditTasks = mFromDoneDeleteOrEditTasks;
         LOG_TAG = mContext.getString(R.string.APP_LOG_IDENTIFIER) + " " + this.getClass().getSimpleName();
     }
     
@@ -189,6 +198,7 @@ public class FetchTeamsTask extends AsyncTask<Void, Void, Integer> {
         Gson gson = new Gson();
         String teamItemString;
         TeamItem teamItem;
+        List<String> teams = new ArrayList<>();
         
         JSONObject masterObj = new JSONObject(teamsJsonStr);
         JSONArray teamsListArray = masterObj.getJSONArray("results");
@@ -200,6 +210,8 @@ public class FetchTeamsTask extends AsyncTask<Void, Void, Integer> {
             teamItemString = teamsListArray.getJSONObject(i).toString();
             
             teamItem = gson.fromJson(teamItemString, TeamItem.class);
+    
+            teams.add(teamItem.url);
             
             ContentValues teamItemValues = new ContentValues();
             
@@ -226,6 +238,21 @@ public class FetchTeamsTask extends AsyncTask<Void, Void, Integer> {
             
         }
     
+        // Set teams in sharedPrefs for colouring
+        Utils.setTeams(mContext, teams.toArray(new String[teams.size()]));
+    
+        String defaultTeam = Utils.getDefaultTeam(mContext);
+    
+        if (defaultTeam == null) {
+            // No default team set, so set first team as default
+            Utils.setDefaultTeam(mContext, teams.get(0));
+        
+        } else if (Utils.findTeam(mContext, defaultTeam) == -1) {
+            // Previous default team not in fetched teams. Else raise error!
+            sendMessage("Default team not in teams", -1, -1);
+        
+        }
+        
         // Return number of fetched teams
         return cVVector.size();
     }
@@ -237,8 +264,8 @@ public class FetchTeamsTask extends AsyncTask<Void, Void, Integer> {
     
         if (teamCount > 0) {
             sendMessage("Got " + teamCount + " teams.", R.string.TASK_SUCCESSFUL, teamCount);
-        
-            new FetchDonesTask(mContext, false).execute();
+    
+            new FetchDonesTask(mContext, mFromDoneDeleteOrEditTasks).execute();
         }
     }
     

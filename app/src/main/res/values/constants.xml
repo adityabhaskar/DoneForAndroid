@@ -14,11 +14,13 @@
     <!-- SharedPreferences string names -->
     <string name="AUTH_TOKEN">authToken</string>
     <string name="DEFAULT_TEAM">defaultTeam</string>
+    <string name="TEAMS">teams</string>
     <string name="VALID_TOKEN">validToken</string>
     <string name="LAST_UPDATED_SETTING_NAME">lastUpdated</string>
     <string name="PENDING_ACTIONS">pendingActions</string>
     <string name="USERNAME">username</string>
     <string name="LOCAL_DONE_ID_COUNTER">localDoneIdCounter</string>
+    <string name="NEW_TASK_ACTIVITY_STATE">newTaskActivityState</string>
 
     <!-- Local Broadcast identifier strings-->
     <string name="TASK_STARTED">task_Started</string>

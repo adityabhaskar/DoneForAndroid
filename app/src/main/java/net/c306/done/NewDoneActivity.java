@@ -49,6 +49,21 @@ public class NewDoneActivity extends AppCompatActivity {
     
         if (mId > -1)
             populateForEdit(sender);
+        else {
+            // Populate task text from saved data, if available
+            String[] state = Utils.getNewTaskActivityState(this);
+            Log.v(LOG_TAG, "State length: " + state.length);
+            if (state.length > 0) {
+                EditText editText = (EditText) findViewById(R.id.done_edit_text);
+                editText.setText(state[0]);
+                editText.setSelection(editText.getText().length());
+        
+                Spinner teamPicker = (Spinner) findViewById(R.id.team_picker);
+                teamPicker.setSelection(
+                        teamURLs.indexOf(state[1])
+                );
+            }
+        }
     }
     
     private void populateTeamPicker() {
@@ -57,7 +72,6 @@ public class NewDoneActivity extends AppCompatActivity {
                 new String[]{
                         DoneListContract.TeamEntry.COLUMN_NAME_ID + " AS _id",
                         DoneListContract.TeamEntry.COLUMN_NAME_NAME,
-                        DoneListContract.TeamEntry.COLUMN_NAME_SHORT_NAME,
                         DoneListContract.TeamEntry.COLUMN_NAME_URL
                 },
                 null,
@@ -146,6 +160,12 @@ public class NewDoneActivity extends AppCompatActivity {
                 // User chose the "Add" item, save
                 onSaveClicked();
                 return true;
+    
+            case android.R.id.home:
+                // User pressed up button, save state if in add mode
+                if (mId == -1) {
+                    saveState();
+                }
             
             default:
                 // If we got here, the user's action was not recognized.
@@ -155,10 +175,36 @@ public class NewDoneActivity extends AppCompatActivity {
         }
     }
     
+    private void saveState() {
+        EditText doneEditText = (EditText) findViewById(R.id.done_edit_text);
+        String taskText = doneEditText.getText().toString();
+        
+        if (!taskText.equals("")) {
+            
+            Spinner teamPicker = (Spinner) findViewById(R.id.team_picker);
+            String taskTeam = teamURLs.get(teamPicker.getSelectedItemPosition());
+            
+            String[] state = new String[]{taskText, taskTeam, "" /**for Date**/};
+            Utils.setNewTaskActivityState(this, state);
+            
+            Log.v(LOG_TAG, "Saved: " + state[0] + ", " + state[1]);
+        } else {
+            // TODO: 14/03/16 If defaultTeam is last used, don't clear team even if text is null 
+            Utils.clearNewTaskActivityState(this);
+        }
+    }
+    
+    @Override
+    public void onBackPressed() {
+        super.onBackPressed();
+        if (mId == -1)
+            saveState();
+    }
+    
     private void onSaveClicked() {
         EditText doneEditText = (EditText) findViewById(R.id.done_edit_text);
         String taskText = doneEditText.getText().toString();
-    
+        
         if (taskText.isEmpty()) {
             
             doneEditText.setError(getString(R.string.done_edit_text_empty_error));
@@ -264,6 +310,8 @@ public class NewDoneActivity extends AppCompatActivity {
                     setResult(R.integer.RESULT_ERROR);
                 }
             }
+    
+            Utils.clearNewTaskActivityState(this);
             
             finish();
         }

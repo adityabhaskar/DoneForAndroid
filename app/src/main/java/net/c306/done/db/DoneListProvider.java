@@ -31,14 +31,14 @@ public class DoneListProvider extends ContentProvider {
             DoneListContract.DoneEntry.COLUMN_NAME_ID + " = ? ";
     //team_short_name = ?
     private static final String sTeamSelection =
-            DoneListContract.DoneEntry.COLUMN_NAME_TEAM_SHORT_NAME + " = ? ";
+            DoneListContract.DoneEntry.COLUMN_NAME_TEAM + " = ? ";
     //team_short_name = ? AND done_date >= ?
     private static final String sTeamWithStartDateSelection =
-                    DoneListContract.DoneEntry.COLUMN_NAME_TEAM_SHORT_NAME + " = ? AND " +
+            DoneListContract.DoneEntry.COLUMN_NAME_TEAM + " = ? AND " +
                             DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE + " >= ? ";
     //team_short_name = ? AND done_date = ?
     private static final String sTeamAndDateSelection =
-                    DoneListContract.DoneEntry.COLUMN_NAME_TEAM_SHORT_NAME + " = ? AND " +
+            DoneListContract.DoneEntry.COLUMN_NAME_TEAM + " = ? AND " +
                     DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE + " = ? ";
     //done_date = ?
     private static final String sDateSelection =
