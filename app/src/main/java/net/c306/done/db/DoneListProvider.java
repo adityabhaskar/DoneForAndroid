@@ -9,11 +9,8 @@ import android.database.sqlite.SQLiteQueryBuilder;
 import android.net.Uri;
 import android.support.annotation.Nullable;
 
-import net.c306.done.R;
+import net.c306.done.Utils;
 
-/**
- * Created by raven on 18/02/16.
- */
 public class DoneListProvider extends ContentProvider {
     
     static final int DONE_ITEM = 100;
@@ -62,10 +59,10 @@ public class DoneListProvider extends ContentProvider {
         //                "." + DoneListContract.TeamEntry.COLUMN_NAME_URL);
     }
     
+    private final String LOG_TAG = Utils.LOG_TAG + this.getClass().getSimpleName();
     private DoneListDbHelper mOpenHelper;
-    private String LOG_TAG;
     
-/*
+    /*
     Students: Here is where you need to create the UriMatcher. This UriMatcher will
     match each URI to the DONES, DONES_WITH_TEAM, DONES_WITH_DATE, DONES_WITH_TEAM_AND_DATE,
     and TEAMS integer constants defined above.
@@ -160,7 +157,6 @@ public class DoneListProvider extends ContentProvider {
     @Override
     public boolean onCreate() {
         mOpenHelper = DoneListDbHelper.getInstance(getContext());
-        LOG_TAG = getContext().getString(R.string.APP_LOG_IDENTIFIER) + " " + this.getClass().getSimpleName();
         return true;
     }
     

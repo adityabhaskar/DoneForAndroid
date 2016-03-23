@@ -1,10 +1,10 @@
-package net.c306.done.idonethis;
+package net.c306.done.sync;
 
+import android.app.IntentService;
+import android.content.BroadcastReceiver;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
-import android.database.Cursor;
-import android.os.AsyncTask;
 import android.support.v4.content.LocalBroadcastManager;
 import android.text.Html;
 import android.util.Log;
@@ -14,7 +14,6 @@ import com.google.gson.Gson;
 import net.c306.done.DoneItem;
 import net.c306.done.Utils;
 import net.c306.done.db.DoneListContract;
-import net.c306.done.sync.IDTAccountManager;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -32,97 +31,24 @@ import java.util.Locale;
 import java.util.Vector;
 
 @Deprecated
-public class FetchDonesTask extends AsyncTask<Void, Void, Integer> {
-    
+public class FetchTasksService extends IntentService {
     
     private final String LOG_TAG = Utils.LOG_TAG + this.getClass().getSimpleName();
-    private Context mContext;
-    private String mAuthToken;
-    private boolean mFetchTeams = false;
-    private boolean mFromDoneDeleteOrEditTasks = false;
     
-    public FetchDonesTask(Context context, boolean fromDoneDeleteOrEditTasks, boolean fetchTeams) {
-        this.mContext = context;
-        this.mFetchTeams = fetchTeams;
-        this.mFromDoneDeleteOrEditTasks = fromDoneDeleteOrEditTasks;
-    }
-    
-    public FetchDonesTask(Context context, boolean fromDoneDeleteOrEditTasks) {
-        this.mContext = context;
-        this.mFromDoneDeleteOrEditTasks = fromDoneDeleteOrEditTasks;
+    public FetchTasksService() {
+        super("FetchTasksService");
     }
     
     @Override
-    protected void onPreExecute() {
-        super.onPreExecute();
-    
-        // Check if internet connection is available else cancel fetch 
-        if (!Utils.isOnline(mContext)) {
-            Log.w(LOG_TAG, "Offline, so cancelling fetch");
-            sendMessage("Offline", Utils.STATUS_TASK_CANCELLED_OFFLINE, -1);
-            
-            cancel(true);
-            return;
-        }
-    
-        if (Utils.haveValidToken(mContext)) {
-            // proceed as normal
-    
-            mAuthToken = IDTAccountManager.getAuthToken(mContext);
+    protected void onHandleIntent(Intent intent) {
+        String mAuthToken = IDTAccountManager.getAuthToken(this);
         
-            if (mFetchTeams) {
-                new FetchTeamsTask(mContext, mFromDoneDeleteOrEditTasks).execute();
-                cancel(true);
-                return;
-            }
-            
-            // Check if there are any unposted local changes  
-            Cursor cursor = mContext.getContentResolver().query(
-                    DoneListContract.DoneEntry.buildDoneListUri(),                  // URI
-                    new String[]{DoneListContract.DoneEntry.COLUMN_NAME_ID},        // Projection
-                    DoneListContract.DoneEntry.COLUMN_NAME_IS_LOCAL + " IS 'TRUE' OR " + // Selection
-                            DoneListContract.DoneEntry.COLUMN_NAME_IS_DELETED + " IS 'TRUE' OR " +
-                            DoneListContract.DoneEntry.COLUMN_NAME_EDITED_FIELDS + " IS NOT NULL",
-                    null, // Selection Args
-                    null  // Sort Order
-            );
-        
-            if (cursor != null && cursor.getCount() > 0) {
-                Log.v(LOG_TAG, "Found " + cursor.getCount() + " unsent tasks, post them before fetching");
-                cancel(true);
-                // Check to prevent cyclicity
-                if (!mFromDoneDeleteOrEditTasks) {
-                    new DeleteDonesTask(mContext).execute(true);
-                }
-                cursor.close();
-                return;
-            }
-    
-            sendMessage("Starting fetch... ", Utils.STATUS_TASK_STARTED, -1);
-            
-        } else if (Utils.getAuthTokenWithoutValidityCheck(mContext) != null) {
-            // token available, but not validated, so validate
-            new CheckTokenTask(mContext).execute();
-            cancel(true);
-        
-        } else {
-            // no token available
-        
-            Log.e(LOG_TAG, "No Valid Auth Token Found!");
-            sendMessage("No valid auth token found!", Utils.STATUS_TASK_UNAUTH, -1);
-            cancel(true);
-        }
-    }
-    
-    @Override
-    protected Integer doInBackground(Void... params) {
-    
         // We're fetching only latest 100 entries. May change in future to import whole history by iterating till previous == null
         final String URL = "https://idonethis.com/api/v0.1/dones/?page_size=100&done_date_after=";
         final int DAYS_TO_FETCH = -7;
         HttpURLConnection httpcon = null;
         BufferedReader br = null;
-    
+        
         int resultStatus;
         int fetchedTaskCount = -1;
         
@@ -137,12 +63,13 @@ public class FetchDonesTask extends AsyncTask<Void, Void, Integer> {
         c.add(Calendar.DATE, DAYS_TO_FETCH);  // get tasks from last 7 days
         String dayOneWeekEarlier = new SimpleDateFormat("yyyy-MM-dd", Locale.UK).format(c.getTime());  // dt is now the new date
         
-        String requestURL = URL + dayOneWeekEarlier;
+        //String requestURL = URL + dayOneWeekEarlier;
+        String requestURL = URL;
         
         // Contains server response (or error message)
         String result = "";
         
-        try{
+        try {
             //Connect
             httpcon = (HttpURLConnection) ((new URL(requestURL).openConnection()));
             httpcon.setRequestProperty("Authorization", "Token " + mAuthToken);
@@ -166,30 +93,30 @@ public class FetchDonesTask extends AsyncTask<Void, Void, Integer> {
                 case HttpURLConnection.HTTP_UNAUTHORIZED:
                     Log.w(LOG_TAG, "Authcode invalid - " + resultStatus + ": " + responseMessage);
                     // Set token invalid
-                    Utils.setTokenValidity(mContext, false);
+                    Utils.setTokenValidity(this, false);
                     sendMessage(responseMessage, Utils.STATUS_TASK_UNAUTH, -1);
-                    
+                
                 default:
                     Log.w(LOG_TAG, "Couldn't fetch dones" + resultStatus + ": " + responseMessage);
                     sendMessage(responseMessage, Utils.STATUS_TASK_OTHER_ERROR, -1);
             }
-    
+            
             //Read      
             br = new BufferedReader(new InputStreamReader(httpcon.getInputStream(), "UTF-8"));
-    
+            
             String line;
             StringBuilder sb = new StringBuilder();
-    
+            
             while ((line = br.readLine()) != null) {
                 sb.append(line).append("\n");
             }
-    
+            
             result = sb.toString();
-    
+            
             if (result.equals("")) {
-        
+                
                 result = null;
-        
+                
             } else if (resultStatus == HttpURLConnection.HTTP_OK) {
                         
                 /*
@@ -198,9 +125,9 @@ public class FetchDonesTask extends AsyncTask<Void, Void, Integer> {
                 * */
                 // Update lastUpdate timestamp in SharedPrefs in case another fetchDone is triggered
                 String lastUpdated = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.UK).format(new Date());
-                Utils.setLastUpdated(mContext, lastUpdated);
+                Utils.setLastUpdated(this, lastUpdated);
                 Log.v(LOG_TAG, "New LastUpdated Time: " + lastUpdated);
-        
+                
                 fetchedTaskCount = getDoneListFromJson(result);
             }
             
@@ -221,10 +148,44 @@ public class FetchDonesTask extends AsyncTask<Void, Void, Integer> {
                 }
             }
         }
-    
+        
         Log.v(LOG_TAG, "Message from server: " + result);
-    
-        return fetchedTaskCount;
+        
+        sendMessage("Fetch Successful.", Utils.STATUS_TASK_SUCCESSFUL, fetchedTaskCount);
+        
+/*
+        // Playing with Notifications
+        
+        NotificationCompat.Builder mBuilder =
+                new NotificationCompat.Builder(this)
+                        .setSmallIcon(R.mipmap.ic_launcher)
+                        .setContentTitle("My notification")
+                        .setContentText("Hello World!");
+        // Creates an explicit intent for an Activity in your app
+        Intent resultIntent = new Intent(this, MainActivity.class);
+        
+        // The stack builder object will contain an artificial back stack for the
+        // started Activity.
+        // This ensures that navigating backward from the Activity leads out of
+        // your application to the Home screen.
+        TaskStackBuilder stackBuilder = TaskStackBuilder.create(this);
+        // Adds the back stack for the Intent (but not the Intent itself)
+        stackBuilder.addParentStack(MainActivity.class);
+        // Adds the Intent that starts the Activity to the top of the stack
+        stackBuilder.addNextIntent(resultIntent);
+        PendingIntent resultPendingIntent =
+                stackBuilder.getPendingIntent(
+                        0,
+                        PendingIntent.FLAG_UPDATE_CURRENT
+                );
+        mBuilder.setContentIntent(resultPendingIntent);
+        NotificationManager mNotificationManager =
+                (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        
+        // mId allows you to update the notification later on.
+        int mId = 1;
+        mNotificationManager.notify(mId, mBuilder.build());
+*/
     }
     
     /**
@@ -241,7 +202,7 @@ public class FetchDonesTask extends AsyncTask<Void, Void, Integer> {
         // into an Object hierarchy for us.
         
         // These are the names of the JSON objects that need to be extracted.
-    
+        
         Gson gson = new Gson();
         String doneItemString;
         DoneItem doneItem;
@@ -250,7 +211,7 @@ public class FetchDonesTask extends AsyncTask<Void, Void, Integer> {
         JSONArray donesListArray = masterObj.getJSONArray("results");
         
         // Insert the new weather information into the database
-        Vector<ContentValues> cVVector = new Vector<>(donesListArray.length());
+        Vector<ContentValues> cVVector = new Vector<ContentValues>(donesListArray.length());
         
         for (int i = 0; i < donesListArray.length(); i++) {
             doneItemString = donesListArray.getJSONObject(i).toString();
@@ -277,14 +238,14 @@ public class FetchDonesTask extends AsyncTask<Void, Void, Integer> {
             doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT, Html.fromHtml(doneItem.raw_text).toString());
             doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_PERMALINK, doneItem.permalink);
             doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_IS_LOCAL, doneItem.is_local);
-    
+            
             cVVector.add(doneItemValues);
         }
         
         Log.v(LOG_TAG, "Fetched " + cVVector.size() + " items");
         
         // add to database
-        if(cVVector.size() > 0) {
+        if (cVVector.size() > 0) {
             ContentValues[] cvArray = new ContentValues[cVVector.size()];
             cVVector.toArray(cvArray);
             
@@ -294,34 +255,39 @@ public class FetchDonesTask extends AsyncTask<Void, Void, Integer> {
             * */
             // Delete all dones from local, to be replaced by freshly retrieved ones 
             // (shouldn't have gotten this far if there were unposted dones)
-            mContext.getContentResolver().delete(DoneListContract.DoneEntry.CONTENT_URI, null, null);
+            getContentResolver().delete(DoneListContract.DoneEntry.CONTENT_URI, null, null);
             
             // Add newly fetched entries to the server
-            mContext.getContentResolver().bulkInsert(DoneListContract.DoneEntry.CONTENT_URI, cvArray);
+            getContentResolver().bulkInsert(DoneListContract.DoneEntry.CONTENT_URI, cvArray);
             
         }
-    
+        
         return cVVector.size();
     }
     
-    @Override
-    protected void onPostExecute(Integer fetchedTaskCount) {
-        super.onPostExecute(fetchedTaskCount);
-    
-        if (fetchedTaskCount > -1) {
-            sendMessage("Got " + fetchedTaskCount + " tasks from server.", Utils.STATUS_TASK_SUCCESSFUL, fetchedTaskCount);
-        }
-    }
     
     private void sendMessage(String message, int action, int fetchedTaskCount) {
         Intent intent = new Intent(Utils.DONE_LOCAL_BROADCAST_LISTENER_INTENT);
         
         // You can also include some extra data.
-        intent.putExtra("sender", "FetchDonesTask");
+        intent.putExtra("sender", this.getClass().getSimpleName());
         intent.putExtra("count", fetchedTaskCount);
         intent.putExtra("message", message);
         intent.putExtra("action", action);
-        LocalBroadcastManager.getInstance(mContext.getApplicationContext()).sendBroadcast(intent);
+        LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
     }
     
+    static public class AlarmReceiver extends BroadcastReceiver {
+        String LOG_TAG = "AppMessage " + this.getClass().getSimpleName();
+        
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            
+            Log.wtf(LOG_TAG, "Got called by alarm");
+            Intent fetchTasksServiceIntent = new Intent(context, FetchTasksService.class);
+            fetchTasksServiceIntent.putExtra(Utils.INTENT_EXTRA_FROM_DONE_DELETE_OR_EDIT_TASKS, intent.getBooleanExtra(Utils.INTENT_EXTRA_FROM_DONE_DELETE_OR_EDIT_TASKS, false));
+            fetchTasksServiceIntent.putExtra(Utils.INTENT_EXTRA_FETCH_TEAMS, intent.getBooleanExtra(Utils.INTENT_EXTRA_FETCH_TEAMS, true));
+            context.startService(fetchTasksServiceIntent);
+        }
+    }
 }

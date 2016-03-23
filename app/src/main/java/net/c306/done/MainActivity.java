@@ -33,18 +33,12 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
 import net.c306.done.db.DoneListContract;
-import net.c306.done.idonethis.CheckTokenTask;
 import net.c306.done.idonethis.DoneActions;
-import net.c306.done.idonethis.FetchDonesTask;
-import net.c306.done.idonethis.PostNewDoneTask;
+import net.c306.done.sync.IDTAccountManager;
+import net.c306.done.sync.IDTSyncAdapter;
 
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
 import java.util.List;
-import java.util.Locale;
 
 // TODO: 20/02/16 Group dones under date headers in listView
 public class MainActivity
@@ -54,14 +48,14 @@ public class MainActivity
         LoaderManager.LoaderCallbacks<Cursor>,
         SwipeRefreshLayout.OnRefreshListener,
         AbsListView.MultiChoiceModeListener,
-        AdapterView.OnItemClickListener {
+        AdapterView.OnItemClickListener,
+        AbsListView.OnScrollListener {
     
     private static final int DONE_LIST_LOADER = 0;
     private static final String SELECTED_KEY = "selected_position";
-    private static final int REFRESH_LIST_DELAY = -15; // Except for new dones, fetch only every 15 mins.
+    private final String LOG_TAG = Utils.LOG_TAG + this.getClass().getSimpleName();
     private Snackbar mSnackbar;
     private ListView mListView;
-    private String LOG_TAG;
     private DoneListAdapter mDoneListAdapter;
     private int mPosition = ListView.INVALID_POSITION;
     
@@ -77,39 +71,49 @@ public class MainActivity
             String sender = intent.getStringExtra("sender");
             String message = intent.getStringExtra("message");
     
-    
-            // If fetch finished, and refresher showing, stop it
-            //if (sender.equals(FetchDonesTask.class.getSimpleName()) && action != R.string.TASK_STARTED) {
             if (
-                    (sender.equals(FetchDonesTask.class.getSimpleName()) && action != R.string.TASK_STARTED) ||
-                            (sender.equals(CheckTokenTask.class.getSimpleName()) &&
-                                    (action != R.string.CHECK_TOKEN_SUCCESSFUL && action != R.string.CHECK_TOKEN_STARTED))
+                    (
+                            // If fetch finished, stop refresher
+                            sender.equals(Utils.SENDER_FETCH_TASKS) &&
+                                    action != Utils.STATUS_TASK_STARTED
+                    ) ||
+                            (
+                                    // If some other task exited with non-success status, stop refresher
+                                    action != Utils.STATUS_TASK_STARTED &&
+                                            action != Utils.STATUS_TASK_SUCCESSFUL &&
+                                            action != Utils.CHECK_TOKEN_SUCCESSFUL &&
+                                            action != Utils.CHECK_TOKEN_STARTED
+                            )
                     ) {
                 
                 SwipeRefreshLayout swp = (SwipeRefreshLayout) findViewById(R.id.swipe_refresh_layout);
         
-                if (swp.isRefreshing()) {
+                //if (swp.isRefreshing())
                     swp.setRefreshing(false);
-                }
         
             }
     
+            // If successfully logged in, replace Login item by Logout
+            if (action == Utils.CHECK_TOKEN_SUCCESSFUL) {
+                invalidateOptionsMenu();
+            }
+            
             switch (action) {
-                case R.string.TASK_UNAUTH:
-                case R.string.CHECK_TOKEN_FAILED:
+                case Utils.STATUS_TASK_UNAUTH:
+                case Utils.CHECK_TOKEN_FAILED:
                     // Unauthorised, i.e. token issues, show snackbar
-            
+        
                     Log.w(LOG_TAG, "Broadcast Receiver - Unauthorised! " + message);
-            
+        
                     // Reset token status
                     Utils.setTokenValidity(getApplicationContext(), false);
-            
+        
                     // Show warning snack bar on to show offline/unauthorised status 
                     if (mSnackbar != null && mSnackbar.isShown())
                         mSnackbar.dismiss();
-            
+        
                     mSnackbar = Snackbar.make(findViewById(R.id.fab), "Authorisation failed! Please check token.", Snackbar.LENGTH_LONG);
-            
+        
                     mSnackbar.setAction("Settings", new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
@@ -122,44 +126,45 @@ public class MainActivity
                             .setActionTextColor(ContextCompat.getColor(getApplicationContext(), R.color.link_colour))
                             .show();
                     break;
-        
-                case R.string.TASK_SUCCESSFUL:
-                    if (sender.equals(PostNewDoneTask.class.getSimpleName())) {
+    
+                case Utils.STATUS_TASK_SUCCESSFUL:
+                    if (sender.equals(Utils.SENDER_CREATE_TASK)) {
                         // PostDone successful, show snackbar
                         int count = intent.getIntExtra("count", -1);
-                
+            
                         if (count > 0) {
                             if (mSnackbar != null && mSnackbar.isShown())
                                 mSnackbar.dismiss();
-                    
+                
                             mSnackbar = Snackbar.make(findViewById(R.id.fab), (count > 1 ? count + " tasks " : "Task ") + getString(R.string.done_sent_toast_message), Snackbar.LENGTH_LONG);
                             mSnackbar.setAction("Action", null).show();
                         }
                     }
                     break;
-        
-                case R.string.TASK_STARTED:
-                    if (sender.equals(FetchDonesTask.class.getSimpleName())) {
-                
+    
+                case Utils.STATUS_TASK_STARTED:
+                    if (sender.equals(Utils.SENDER_FETCH_TASKS)) {
+                        
                         SwipeRefreshLayout swp = (SwipeRefreshLayout) findViewById(R.id.swipe_refresh_layout);
-                
+            
                         if (!swp.isRefreshing()) {
                             // If fetch started, and refresher not showing, start it
                             swp.setRefreshing(true);
                         }
                     }
                     break;
-        
-                case R.string.TASK_CANCELLED_OFFLINE:
-                    if (sender.equals(FetchDonesTask.class.getSimpleName())) {
+    
+                case Utils.STATUS_TASK_CANCELLED_OFFLINE:
+                    if (sender.equals(Utils.SENDER_FETCH_TASKS)) {
                         Toast.makeText(getApplicationContext(), R.string.offline_toast_message, Toast.LENGTH_SHORT)
                                 .show();
                     }
             }
     
-            Log.v(LOG_TAG, "Sender: " + sender + "\nAction: " + getString(action) + "\nMessage: " + message);
+            Log.v(LOG_TAG, "Sender: " + sender + "\nAction: " + action + "\nMessage: " + message);
         }
     };
+    
     
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -167,51 +172,15 @@ public class MainActivity
         setContentView(R.layout.activity_main);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-    
-        LOG_TAG = getString(R.string.APP_LOG_IDENTIFIER) + " " + this.getClass().getSimpleName();
         
-        /*
-        * 
-        * Precede these with deleting all entries ('delete from dones') from database to do a 
-        * fetchAll.
-        * 
-        * */
-        String lastUpdated = Utils.getLastUpdated(this);
-        Log.v(LOG_TAG, "Last Updated: " + lastUpdated);
-    
-        // Update dones from server and update in sqllite
-        // Execute fetch only if no fetch within last 15 minutes 
-        if (lastUpdated != null) {
-            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.UK);
-            try {
-                Date lastUpdatedDate = sdf.parse(lastUpdated);
-                
-                Calendar c = Calendar.getInstance();
-                c.setTime(new Date());
-                c.add(Calendar.MINUTE, REFRESH_LIST_DELAY);  // create timestamp 15 mins back
-                if (lastUpdatedDate.before(c.getTime())) {
-                    new FetchDonesTask(this, false, true).execute();
-                }
-            } catch(ParseException e){
-                Log.w(LOG_TAG, "Couldn't parse lastUpdated: " + lastUpdated + ".");
-                new FetchDonesTask(this, false, true).execute();
-            }
-        } else {
-            Log.w(LOG_TAG, "No lastUpdated found, starting fetch.");
-            new FetchDonesTask(this, false, true).execute();
-        }
-        
+        // Setup List View
         mDoneListAdapter = new DoneListAdapter(this, R.layout.list_row_layout, null, 0);
-    
+        
         mListView = (ListView) findViewById(R.id.dones_list_view);
-    
+        
         mListView.setAdapter(mDoneListAdapter);
         
         // If there's instance state, mine it for useful information.
-        // The end-goal here is that the user never knows that turning their device sideways
-        // does crazy lifecycle related things.  It should feel like some stuff stretched out,
-        // or magically appeared to take advantage of room, but data or place in the app was never
-        // actually *lost*.
         if (savedInstanceState != null && savedInstanceState.containsKey(SELECTED_KEY)) {
             // The listview probably hasn't even been populated yet.  Actually perform the
             // swapout in onLoadFinished.
@@ -219,13 +188,10 @@ public class MainActivity
         }
         
         // Initialize the Loader with id DONE_LIST_LOADER and callbacks 'this'.
-        // If the loader doesn't already exist, one is created. Otherwise,
-        // the already created Loader is reused. In either case, the
-        // LoaderManager will manage the Loader across the Activity/Fragment
-        // lifecycle, will receive any new loads once they have completed,
-        // and will report this new data back to the 'this' object.
         getLoaderManager().initLoader(DONE_LIST_LOADER, null, this);
-    
+        
+        
+        // Set colours for refresher
         SwipeRefreshLayout swp = (SwipeRefreshLayout) findViewById(R.id.swipe_refresh_layout);
         swp.setColorSchemeResources(
                 R.color.accent,
@@ -234,17 +200,8 @@ public class MainActivity
                 R.color.primary
         );
         
-/*
-        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
-        //Log.wtf(LOG_TAG, "validToken: " + prefs.getBoolean(getString(R.string.VALID_TOKEN), false));
-        SharedPreferences.Editor editor = prefs.edit();
-        editor.remove(getString(R.string.DEFAULT_TEAM));
-        editor.apply();
-        
-        String[] testArr = Utils.getTeams(this); 
-        Log.v(LOG_TAG, "" + testArr.length);
-*/
     }
+    
     
     @Override
     protected void onResume() {
@@ -252,29 +209,19 @@ public class MainActivity
     
         // Register to receive messages.
         LocalBroadcastManager.getInstance(this).registerReceiver(mMessageReceiver,
-                new IntentFilter(getString(R.string.DONE_LOCAL_BROADCAST_LISTENER_INTENT)));
+                new IntentFilter(Utils.DONE_LOCAL_BROADCAST_LISTENER_INTENT));
     
         // Register to save click location (for now), and edit/delete buttons later
         mListView.setOnItemClickListener(this);
         mListView.setMultiChoiceModeListener(this);
-    
-        // TODO: 07/03/16 Set scroll position based on this instead of itemClick position 
-        mListView.setOnScrollListener(new AbsListView.OnScrollListener() {
-            public void onScrollStateChanged(AbsListView view, int scrollState) {
-                // Do Nothing
-            }
         
-            @Override
-            public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
-                // Save position
-                mPosition = firstVisibleItem;
-            }
-        });
+        mListView.setOnScrollListener(this);
         
         // Register to get on swiped events
         SwipeRefreshLayout swp = (SwipeRefreshLayout) findViewById(R.id.swipe_refresh_layout);
         swp.setOnRefreshListener(this);
     }
+    
     
     @Override
     protected void onPause() {
@@ -284,45 +231,12 @@ public class MainActivity
         LocalBroadcastManager.getInstance(this).unregisterReceiver(mMessageReceiver);
     }
     
+    
     public void toNewDone(View view) {
         Intent newDoneIntent = new Intent(MainActivity.this, NewDoneActivity.class);
         startActivityForResult(newDoneIntent, RESULT_CANCELED);
     }
     
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.menu_main, menu);
-        return true;
-    }
-    
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
-        
-        //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            Intent settingsIntent = new Intent(MainActivity.this, SettingsActivity.class);
-            startActivity(settingsIntent);
-            return true;
-        }
-        
-        return super.onOptionsItemSelected(item);
-    }
-    
-    @Override
-    public void onSaveInstanceState(Bundle outState) {
-        // When tablets rotate, the currently selected list item needs to be saved.
-        // When no item is selected, mPosition will be set to Listview.INVALID_POSITION,
-        // so check for that before storing.
-        if (mPosition != ListView.INVALID_POSITION) {
-            outState.putInt(SELECTED_KEY, mPosition);
-        }
-        super.onSaveInstanceState(outState);
-    }
     
     public void onLogout(MenuItem item) {
         
@@ -332,16 +246,24 @@ public class MainActivity
                 .setMessage("All local data will be deleted.")
                 .setPositiveButton("Logout", new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int id) {
+                        Context context = getApplicationContext();
                         // User confirmed Logout
                         Log.v(LOG_TAG, "Logging out...");
+    
+                        // remove Account from system account manager
+                        IDTAccountManager.removeSyncAccount(context);
+                        Log.v(LOG_TAG, "Account removed...");
                         
                         // empty database
                         getContentResolver().delete(DoneListContract.DoneEntry.CONTENT_URI, null, null);
                         Log.v(LOG_TAG, "Database deleted.");
                         
                         // empty sharedPreferences
-                        Utils.resetSharedPreferences(getApplicationContext());
+                        Utils.resetSharedPreferences(context);
                         Log.v(LOG_TAG, "SharedPreferences emptied.");
+    
+                        // Replace Logout with Login in action bar
+                        invalidateOptionsMenu();
                     }
                 })
                 .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
@@ -354,9 +276,95 @@ public class MainActivity
                 .show();
     }
     
+    
     /*
-    * AdapterView.OnItemClickListener
+    * 
+    * Inflate action bar and Act on clicks from action bar / menu
+    * 
     * */
+    
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        getMenuInflater().inflate(R.menu.menu_main, menu);
+        
+        Log.v(LOG_TAG, String.valueOf(Utils.haveValidToken(this)));
+        
+        // Check if logged in, and show Login/Logout buttons accordingly
+        if (Utils.haveValidToken(this))
+            menu.removeItem(R.id.action_login);
+        else
+            menu.removeItem(R.id.action_logout);
+        
+        return true;
+    }
+    
+    
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle action bar item clicks here. The action bar will
+        // automatically handle clicks on the Home/Up button, so long
+        // as you specify a parent activity in AndroidManifest.xml.
+        int id = item.getItemId();
+        
+        switch (id) {
+            case R.id.action_settings:
+            case R.id.action_login: {
+                Intent settingsIntent = new Intent(MainActivity.this, SettingsActivity.class);
+                settingsIntent.putExtra(PreferenceActivity.EXTRA_SHOW_FRAGMENT, SettingsActivity.GeneralPreferenceFragment.class.getName());
+                settingsIntent.putExtra(PreferenceActivity.EXTRA_NO_HEADERS, true);
+                
+                if (id == R.id.action_login)
+                    settingsIntent.putExtra(PreferenceActivity.EXTRA_SHOW_FRAGMENT_ARGUMENTS, Utils.ACTION_SHOW_AUTH);
+                
+                startActivity(settingsIntent);
+                return true;
+            }
+            
+            case R.id.action_logout: {
+                onLogout(item);
+            }
+        }
+        
+        return super.onOptionsItemSelected(item);
+    }
+    
+    
+    /* Save scroll state */
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+        // When no item is selected, mPosition will be set to Listview.INVALID_POSITION,
+        // so check for that before storing.
+        if (mPosition != ListView.INVALID_POSITION)
+            outState.putInt(SELECTED_KEY, mPosition);
+        
+        super.onSaveInstanceState(outState);
+    }
+    
+    
+    /*
+    * 
+    * Implementing methods for onScrollListener - to save scroll state for activity restarts
+    * 
+    * */
+    
+    public void onScrollStateChanged(AbsListView view, int scrollState) {
+        // Do Nothing
+    }
+    
+    @Override
+    public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
+        // Save position
+        mPosition = firstVisibleItem;
+    }
+    
+    
+    /*
+    * 
+    * AdapterView.OnItemClickListener - to save scroll state for activity restarts
+    * 
+    * */
+    
     @Override
     public void onItemClick(AdapterView<?> adapterView, View view, int position, long l) {
         // CursorAdapter returns a cursor at the correct position for getItem(), or null
@@ -367,8 +375,11 @@ public class MainActivity
         mListView.setItemChecked(position, !mListView.isItemChecked(position));
     }
     
+    
     /*
-    *  AbsListView.MultiChoiceModeListener methods
+    * 
+    * AbsListView.MultiChoiceModeListener methods - for edit & delete selections
+    * 
     * */
     
     @Override
@@ -387,6 +398,7 @@ public class MainActivity
         }
     }
     
+    
     @Override
     public boolean onCreateActionMode(ActionMode mode, Menu menu) {
         // Inflate the menu for the CAB
@@ -394,14 +406,14 @@ public class MainActivity
         return true;
     }
     
+    
     @Override
     public boolean onPrepareActionMode(ActionMode mode, Menu menu) {
-        // Here you can perform updates to the CAB due to
-        // an invalidate() request
-        // DONE: 28/02/16 Hide edit button
+        // Hide or show edit button, based on whether more than one items is selected
         menu.findItem(R.id.menu_edit_done).setVisible(mListView.getCheckedItemCount() <= 1);
         return true;
     }
+    
     
     @Override
     public boolean onActionItemClicked(ActionMode mode, MenuItem item) {
@@ -437,6 +449,7 @@ public class MainActivity
                 return false;
         }
     }
+    
     
     /**
      * If owner is same as current user, fetch details from database and send to NewDoneActivity
@@ -510,34 +523,40 @@ public class MainActivity
         }
     }
     
+    
     private void deleteSelectedItems(long[] ids) {
         Log.v(LOG_TAG, "Delete selected items: " + ids.length);
-    
+        
         // Delete selected ids from database, then from server, finishing with updating tasks from server on success
         int deletedCount = new DoneActions(this).delete(ids);
-    
+        
         if (mSnackbar != null && mSnackbar.isShown())
             mSnackbar.dismiss();
-    
+        
         mSnackbar = Snackbar.make(findViewById(R.id.fab), (deletedCount > 1 ? deletedCount + " tasks " : "Task ") + getString(R.string.done_deleted_toast_message), Snackbar.LENGTH_SHORT);
         mSnackbar.setAction("Action", null).show();
         
     }
     
-    @Override
+    
     public void onDestroyActionMode(ActionMode mode) {
         // Here you can make any necessary updates to the activity when
         // the CAB is removed. By default, selected items are deselected/unchecked.
     }
     
+    
     /*
-    *  LoaderManager.LoaderCallbacks<Cursor> methods
+    *  
+    *  LoaderManager.LoaderCallbacks<Cursor> methods - to setup cursor and adapter 
+    *  for populating listview
+    *  
     * */
     
     @Override
     public Loader<Cursor> onCreateLoader(int id, Bundle args) {
         // This is called when a new Loader needs to be created.  This
         // fragment only uses one loader, so we don't care about checking the id.
+    
         // Sort order:  Descending, by date.
         String sortOrder = DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE + " DESC, " +
                 DoneListContract.DoneEntry.COLUMN_NAME_UPDATED + " DESC";
@@ -562,16 +581,15 @@ public class MainActivity
                 sortOrder);
     }
     
+    
     @Override
     public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
         mDoneListAdapter.swapCursor(data);
-        if (mPosition != ListView.INVALID_POSITION) {
-            // If we don't need to restart the loader, and there's a desired position to restore
-            // to, do so now.
-            //Log.v(LOG_TAG, "Scroll to " + mPosition);
+        
+        if (mPosition != ListView.INVALID_POSITION)
             mListView.smoothScrollToPosition(mPosition);
-        }
     }
+    
     
     @Override
     public void onLoaderReset(Loader<Cursor> loader) {
@@ -580,12 +598,62 @@ public class MainActivity
     
     
     /*
-    *          SwipeRefreshLayout.OnRefreshListener methods
+    * SwipeRefreshLayout.OnRefreshListener method - to start a sync when swiped-to-refresh
     * */
     @Override
     public void onRefresh() {
-        Log.v(LOG_TAG, "Calling fetch from swipe to refresh");
-        new FetchDonesTask(this, false, true).execute();
+        Log.v(LOG_TAG, "Calling syncImmediately from swipe to refresh");
+    
+        IDTSyncAdapter.syncImmediately(this, true);
     }
     
 }
+
+    
+/*
+        //startFetchServiceAlarm(false, true);
+        
+        Bundle settingsBundle = new Bundle();
+        settingsBundle.putBoolean(
+                ContentResolver.SYNC_EXTRAS_MANUAL, true);
+        settingsBundle.putBoolean(
+                ContentResolver.SYNC_EXTRAS_EXPEDITED, true);
+        /*
+         * Request the sync for the default account, authority, and
+         * manual sync settings
+         *//*
+
+        ContentResolver.requestSync(
+                Utils.getSyncAccount(this), 
+                getString(R.string.content_authority), 
+                settingsBundle
+        );
+    
+    private void startFetchService(boolean fromDoneDeleteOrEditTasks, boolean fetchTeams) {
+        Intent fetchTasksIntent = new Intent(this, FetchTasksService.class);
+        fetchTasksIntent.putExtra(Utils.INTENT_EXTRA_FROM_DONE_DELETE_OR_EDIT_TASKS, fromDoneDeleteOrEditTasks);
+        fetchTasksIntent.putExtra(Utils.INTENT_EXTRA_FETCH_TEAMS, fetchTeams);
+        startService(fetchTasksIntent);
+    }
+    
+    
+    private void startFetchServiceAlarm(boolean fromDoneDeleteOrEditTasks, boolean fetchTeams) {
+        AlarmManager alarmMgr;
+        PendingIntent alarmIntent;
+        
+        Intent intent = new Intent(this, FetchTasksService.AlarmReceiver.class);
+        intent.putExtra(Utils.INTENT_EXTRA_FROM_DONE_DELETE_OR_EDIT_TASKS, fromDoneDeleteOrEditTasks);
+        intent.putExtra(Utils.INTENT_EXTRA_FETCH_TEAMS, fetchTeams);
+        
+        alarmIntent = PendingIntent.getBroadcast(this, 0, intent, PendingIntent.FLAG_ONE_SHOT);
+        
+        alarmMgr = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+        
+        alarmMgr.set(
+                AlarmManager.ELAPSED_REALTIME_WAKEUP,
+                SystemClock.elapsedRealtime() +
+                        1, //milliseconds 
+                alarmIntent
+        );
+    }
+*/

@@ -2,20 +2,16 @@ package net.c306.done.idonethis;
 
 import android.content.ContentValues;
 import android.content.Context;
-import android.content.Intent;
 import android.database.Cursor;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
 import android.os.AsyncTask;
-import android.support.v4.content.LocalBroadcastManager;
 import android.text.TextUtils;
 import android.util.Log;
 
 import com.google.gson.Gson;
 
-import net.c306.done.R;
 import net.c306.done.Utils;
 import net.c306.done.db.DoneListContract;
+import net.c306.done.sync.IDTAccountManager;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -31,16 +27,15 @@ import java.util.List;
 
 public class PostEditedDoneTask extends AsyncTask<Boolean, Void, Integer> {
     
+    private final String LOG_TAG = Utils.LOG_TAG + this.getClass().getSimpleName();
     // Holds application context, passed in constructor
     private Context mContext;
     private Gson gson = new Gson();
     private String mAuthToken;
-    private String LOG_TAG;
     private boolean mFromPreFetch = false;
     
     public PostEditedDoneTask(Context c) {
         mContext = c;
-        LOG_TAG = mContext.getString(R.string.APP_LOG_IDENTIFIER) + " " + this.getClass().getSimpleName();
     }
     
     @Override
@@ -48,26 +43,26 @@ public class PostEditedDoneTask extends AsyncTask<Boolean, Void, Integer> {
         super.onPreExecute();
         
         // Check if internet connection is available else cancel fetch 
-        if (!isOnline()) {
+        if (!Utils.isOnline(mContext)) {
             Log.w(LOG_TAG, "Offline, so cancelling token check");
-            sendMessage("Offline", R.string.TASK_CANCELLED_OFFLINE, -1);
+            Utils.sendMessage(mContext, Utils.SENDER_EDIT_TASK, "Offline", Utils.STATUS_TASK_CANCELLED_OFFLINE, -1);
             cancel(true);
             return;
         }
         
         
         // Get auth token from SharedPrefs
-        mAuthToken = Utils.getAuthToken(mContext);
+        mAuthToken = IDTAccountManager.getAuthToken(mContext);
         
         // Token not present or invalid
         if (mAuthToken == null) {
             Log.e(LOG_TAG, "No Valid Auth Token Found!");
-            sendMessage("No valid auth token found!", R.string.TASK_UNAUTH, -1);
+            Utils.sendMessage(mContext, Utils.SENDER_EDIT_TASK, "No valid auth token found!", Utils.STATUS_TASK_UNAUTH, -1);
             cancel(true);
             return;
         }
-        
-        sendMessage("Starting to patch... ", R.string.TASK_STARTED, -1);
+    
+        Utils.sendMessage(mContext, Utils.SENDER_EDIT_TASK, "Starting to patch... ", Utils.STATUS_TASK_STARTED, -1);
     }
     
     @Override
@@ -80,7 +75,7 @@ public class PostEditedDoneTask extends AsyncTask<Boolean, Void, Integer> {
         String result = "";
         int patchedTaskCount = -1;
         String patchedDoneString = null;
-        EditDoneObject patchedDoneObj = null;
+        EditedTaskClass patchedDoneObj = null;
         List<Integer> patchedDonesList = new ArrayList<>();
         
         this.mFromPreFetch = fromPreFetch[0];
@@ -124,13 +119,13 @@ public class PostEditedDoneTask extends AsyncTask<Boolean, Void, Integer> {
                     // Get next done
                     
                     // Create editdone object with edited fields
-                    patchedDoneObj = new EditDoneObject();
+                    patchedDoneObj = new EditedTaskClass();
                     patchedDoneObj.setRaw_text(cursor.getString(columnIndexRawText));
                     patchedDoneObj.setDone_date(cursor.getString(columnIndexDoneDate));
                     patchedDoneObj.setTeam(cursor.getString(columnIndexTeamURL));
                     
                     // Convert to json
-                    patchedDoneString = gson.toJson(patchedDoneObj, EditDoneObject.class);
+                    patchedDoneString = gson.toJson(patchedDoneObj, EditedTaskClass.class);
                     
                     // Send
                     try {
@@ -173,7 +168,7 @@ public class PostEditedDoneTask extends AsyncTask<Boolean, Void, Integer> {
                                 Log.w(LOG_TAG, "Didn't Update Done - " + resultStatus + ": " + responseMessage);
                                 // Set token invalid
                                 Utils.setTokenValidity(mContext, false);
-                                sendMessage(responseMessage, R.string.TASK_UNAUTH, -1);
+                                Utils.sendMessage(mContext, Utils.SENDER_EDIT_TASK, responseMessage, Utils.STATUS_TASK_UNAUTH, -1);
                                 cancel(true);
                                 return null;
                             
@@ -241,7 +236,7 @@ public class PostEditedDoneTask extends AsyncTask<Boolean, Void, Integer> {
         
         if (patchedCount > -1) {
             // Send message to MainActivity saying done(s) have been posted, so Snackbar can be shown/updated
-            sendMessage("Sent " + patchedCount + " tasks.", R.string.TASK_SUCCESSFUL, patchedCount);
+            Utils.sendMessage(mContext, Utils.SENDER_EDIT_TASK, "Sent " + patchedCount + " tasks.", Utils.STATUS_TASK_SUCCESSFUL, patchedCount);
         }
         
         if (mFromPreFetch || patchedCount > -1) {
@@ -251,38 +246,13 @@ public class PostEditedDoneTask extends AsyncTask<Boolean, Void, Integer> {
     }
     
     
-    private void sendMessage(String message, int action, int sentDoneCounter) {
-        Intent intent = new Intent(mContext.getString(R.string.DONE_LOCAL_BROADCAST_LISTENER_INTENT));
-        
-        // You can also include some extra data.
-        intent.putExtra("sender", this.getClass().getSimpleName());
-        intent.putExtra("action", action);
-        intent.putExtra("count", sentDoneCounter);
-        intent.putExtra("message", message);
-        LocalBroadcastManager.getInstance(mContext.getApplicationContext()).sendBroadcast(intent);
-    }
-    
-    private boolean isOnline() {
-        ConnectivityManager cm =
-                (ConnectivityManager) mContext.getSystemService(Context.CONNECTIVITY_SERVICE);
-        
-        NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
-        
-        return activeNetwork != null &&
-                activeNetwork.isConnected();
-    }
-    
-    public class EditDoneObject {
+    public class EditedTaskClass {
         private transient final String dateFormat = "yyyy-MM-dd";
         private String raw_text;
         private String team;
         private String done_date;
-    
-        public EditDoneObject() {
-        }
         
-        public String getDone_date() {
-            return done_date;
+        public EditedTaskClass() {
         }
         
         public void setDone_date(String done_date) {
@@ -299,10 +269,6 @@ public class PostEditedDoneTask extends AsyncTask<Boolean, Void, Integer> {
                 this.team = team;
         }
     
-        public String getRaw_text() {
-            return raw_text;
-        }
-        
         public void setRaw_text(String raw_text) {
             if (raw_text != null && !raw_text.isEmpty())
                 this.raw_text = raw_text;

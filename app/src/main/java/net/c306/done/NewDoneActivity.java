@@ -25,11 +25,11 @@ import java.util.regex.Pattern;
 
 public class NewDoneActivity extends AppCompatActivity {
     
+    private final String LOG_TAG = Utils.LOG_TAG + this.getClass().getSimpleName();
     //Temporary, till I implement date & team selectors
     Bundle mPreEditBundle = new Bundle();
     List<String> teamNames = new ArrayList<>();
     List<String> teamURLs = new ArrayList<>();
-    private String LOG_TAG;
     private long mId;
     private List<String> mEditedFields;
     private String mDoneDate = null;
@@ -37,8 +37,6 @@ public class NewDoneActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        LOG_TAG = getString(R.string.APP_LOG_IDENTIFIER) + " " + this.getClass().getSimpleName();
-        
         
         setContentView(R.layout.activity_new_done);
     
@@ -52,7 +50,7 @@ public class NewDoneActivity extends AppCompatActivity {
         else {
             // Populate task text from saved data, if available
             String[] state = Utils.getNewTaskActivityState(this);
-            Log.v(LOG_TAG, "State length: " + state.length);
+    
             if (state.length > 0) {
                 EditText editText = (EditText) findViewById(R.id.done_edit_text);
                 editText.setText(state[0]);
@@ -183,15 +181,17 @@ public class NewDoneActivity extends AppCompatActivity {
             
             Spinner teamPicker = (Spinner) findViewById(R.id.team_picker);
             String taskTeam = teamURLs.get(teamPicker.getSelectedItemPosition());
-            
-            String[] state = new String[]{taskText, taskTeam, "" /**for Date**/};
+    
+            String[] state = new String[]{
+                    taskText,
+                    taskTeam,
+                    "" /**for Date**/
+            };
             Utils.setNewTaskActivityState(this, state);
             
             Log.v(LOG_TAG, "Saved: " + state[0] + ", " + state[1]);
-        } else {
-            // TODO: 14/03/16 If defaultTeam is last used, don't clear team even if text is null 
+        } else
             Utils.clearNewTaskActivityState(this);
-        }
     }
     
     @Override
@@ -245,13 +245,13 @@ public class NewDoneActivity extends AppCompatActivity {
                 if (result) {
                     setResult(RESULT_OK);
                 } else {
-                    setResult(R.integer.RESULT_ERROR);
+                    setResult(Utils.RESULT_ERROR);
                 }
                 
             } else {
                 // Case: Add new done
     
-                String taskDate = null;
+                String taskDate;
                 Bundle newDoneDetails = new Bundle();
                 
                 // Get counter from sharedPreferences for new local done's id
@@ -307,7 +307,7 @@ public class NewDoneActivity extends AppCompatActivity {
                 if (result) {
                     setResult(RESULT_OK);
                 } else {
-                    setResult(R.integer.RESULT_ERROR);
+                    setResult(Utils.RESULT_ERROR);
                 }
             }
     

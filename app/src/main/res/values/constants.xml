@@ -1,42 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!--Save non-translating internal constant values here-->
-    <string name="APP_LOG_IDENTIFIER">AppMessage</string>
-
-    <string name="DONE_LOCAL_BROADCAST_LISTENER_INTENT">mainActivityListenerIntent</string>
-
-    <integer name="RESULT_ERROR">-1</integer>
-    <integer name="MIN_LOCAL_DONE_ID">100000000</integer>
-
-    <!-- For dev only, till team selection in settings is implemented -->
-    <!--<string name="DEV_TEAM_NAME">adityabhaskar</string>-->
 
     <!-- SharedPreferences string names -->
-    <string name="AUTH_TOKEN">authToken</string>
-    <string name="DEFAULT_TEAM">defaultTeam</string>
-    <string name="TEAMS">teams</string>
-    <string name="VALID_TOKEN">validToken</string>
-    <string name="LAST_UPDATED_SETTING_NAME">lastUpdated</string>
-    <string name="PENDING_ACTIONS">pendingActions</string>
-    <string name="USERNAME">username</string>
-    <string name="LOCAL_DONE_ID_COUNTER">localDoneIdCounter</string>
-    <string name="NEW_TASK_ACTIVITY_STATE">newTaskActivityState</string>
-
-    <!-- Local Broadcast identifier strings-->
-    <string name="TASK_STARTED">task_Started</string>
-    <string name="TASK_SUCCESSFUL">task_Successful</string>
-    <string name="TASK_FAILED">task_Failed</string>
-    <string name="TASK_UNAUTH">task_Unauthorised</string>
-    <string name="TASK_CANCELLED_OFFLINE">task_CancelledOffline</string>
-    <string name="TASK_OTHER_ERROR">task_OtherError</string>
-
-    <string name="CHECK_TOKEN_STARTED">checkTokenRequest_Started</string>
-    <string name="CHECK_TOKEN_SUCCESSFUL">checkTokenRequest_Successful</string>
-    <string name="CHECK_TOKEN_FAILED">checkTokenRequest_Failed</string>
-    <string name="CHECK_TOKEN_CANCELLED_OFFLINE">checkTokenRequest_CancelledOffline</string>
-    <string name="CHECK_TOKEN_OTHER_ERROR">checkTokenOtherError</string>
+    <string name="AUTH_TOKEN">authToken</string> <!-- Should always have the same value as Utils.AUTH_TOKEN-->
+    <string name="DEFAULT_TEAM">defaultTeam</string> <!-- Should always have the same value as Utils.DEFAULT_TEAM-->
 
     <!-- SyncAdapter related -->
     <string name="sync_account_type">done.c306.net</string>
     <string name="content_authority">net.c306.done.app</string>
+
 </resources>

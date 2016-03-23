@@ -10,26 +10,20 @@ import android.widget.Toast;
 
 import com.google.gson.Gson;
 
-import net.c306.done.R;
 import net.c306.done.Utils;
 import net.c306.done.db.DoneListContract;
 
 import java.util.Arrays;
 import java.util.List;
 
-/**
- * Created by raven on 29/02/16.
- */
 public class DoneActions {
     
+    private final String LOG_TAG = Utils.LOG_TAG + DoneActions.class.getSimpleName();
     private Context mContext;
     private String mUsername;
-    private String LOG_TAG;
     
     public DoneActions(Context mContext) {
         this.mContext = mContext;
-    
-        LOG_TAG = mContext.getString(R.string.APP_LOG_IDENTIFIER) + " " + DoneActions.class.getSimpleName();
     
         mUsername = Utils.getUsername(mContext);
     }
@@ -170,7 +164,7 @@ public class DoneActions {
         int rowsMarkedAsDeleted = mContext.getContentResolver().update(
                 DoneListContract.DoneEntry.CONTENT_URI,
                 contentValues,
-                DoneListContract.DoneEntry.COLUMN_NAME_ID + " IN " + allowedIdListString,
+                deleteSelectionClause,
                 null
         );
     

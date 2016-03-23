@@ -1,6 +1,7 @@
 <resources>
     <string name="app_name">Done!</string>
     <string name="action_settings">Settings</string>
+    <string name="action_login">Login</string>
     <string name="action_logout">Logout</string>
     <string name="title_activity_settings">Settings</string>
 
@@ -33,7 +34,7 @@
     </string>
 
     <string name="pref_title_auth_token">API Token</string>
-    <string name="pref_default_auth_token">9944b09...</string>
+    <string name="pref_default_auth_token">9944b09…</string>
 
     <string name="pref_title_default_team">Default Team</string>
     <string name="pref_summary_default_team">Default team to posts tasks to.</string>

@@ -96,8 +96,8 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
             return true;
         }
     };
+    private final String LOG_TAG = Utils.LOG_TAG + this.getClass().getSimpleName();
     Snackbar mSnackbar = null;
-    private String LOG_TAG;
     // Our handler for received Intents. This will be called whenever an Intent
     // with an action named "custom-event-name" is broadcasted.
     // Src: http://stackoverflow.com/questions/8802157/how-to-use-localbroadcastmanager    
@@ -112,7 +112,7 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
     
             if (sender.equals(CheckTokenTask.class.getSimpleName())) {
                 switch (action) {
-                    case R.string.CHECK_TOKEN_STARTED: {
+                    case Utils.CHECK_TOKEN_STARTED: {
                         // Do nothing for now
                         if (mSnackbar != null && mSnackbar.isShownOrQueued())
                             mSnackbar.dismiss();
@@ -122,7 +122,7 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
                         break;
                     }
     
-                    case R.string.CHECK_TOKEN_SUCCESSFUL: {
+                    case Utils.CHECK_TOKEN_SUCCESSFUL: {
                         if (mSnackbar != null && mSnackbar.isShownOrQueued())
                             mSnackbar.dismiss();
                         mSnackbar = Snackbar.make(getListView(), "User " + message + " authenticated.", Snackbar.LENGTH_SHORT);
@@ -130,12 +130,10 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
                         mSnackbar.show();
                         //Toast.makeText(getApplicationContext(), "User " + message + " authenticated. Thank you!", Toast.LENGTH_LONG).show();
                         Log.v(LOG_TAG, "Broadcast Receiver - User " + message + " authenticated.");
-                        // TODO: 14/03/16 Enable default team preference
-                        
                         break;
                     }
     
-                    case R.string.CHECK_TOKEN_FAILED: {
+                    case Utils.CHECK_TOKEN_FAILED: {
                         if (mSnackbar != null && mSnackbar.isShownOrQueued())
                             mSnackbar.dismiss();
                         mSnackbar = Snackbar.make(getListView(), "Authentication failed!", Snackbar.LENGTH_LONG);
@@ -146,7 +144,7 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
                         break;
                     }
     
-                    case R.string.CHECK_TOKEN_CANCELLED_OFFLINE: {
+                    case Utils.CHECK_TOKEN_CANCELLED_OFFLINE: {
                         if (mSnackbar != null && mSnackbar.isShownOrQueued())
                             mSnackbar.dismiss();
                         Toast.makeText(getApplicationContext(), "Offline! Will check authentication when online.", Toast.LENGTH_LONG).show();
@@ -154,14 +152,15 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
                         break;
                     }
     
-                    case R.string.CHECK_TOKEN_OTHER_ERROR: {
+                    case Utils.CHECK_TOKEN_OTHER_ERROR: {
                         Toast.makeText(getApplicationContext(), "Server/Network error. Will try again later.", Toast.LENGTH_LONG).show();
                         Log.v(LOG_TAG, "Broadcast Receiver - Some other error happened while checking auth: " + message);
                     }
-            
+    
                 }
             }
-            Log.v(LOG_TAG, "Original message from:" + sender + ",\nwith action:" + getString(action) + ", and\nmessage:" + message);
+    
+            Log.v(LOG_TAG, "Original message from:" + sender + ",\nwith action:" + action + ", and\nmessage:" + message);
         }
     };
     
@@ -199,9 +198,6 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setupActionBar();
-    
-        LOG_TAG = getString(R.string.APP_LOG_IDENTIFIER) + " " + this.getClass().getSimpleName();
-    
     }
     
     @Override
@@ -213,7 +209,7 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
         
         // Register to receive messages.
         LocalBroadcastManager.getInstance(this).registerReceiver(mMessageReceiver,
-                new IntentFilter(getString(R.string.DONE_LOCAL_BROADCAST_LISTENER_INTENT)));
+                new IntentFilter(Utils.DONE_LOCAL_BROADCAST_LISTENER_INTENT));
         
     }
     
@@ -232,18 +228,26 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
     * */
     @Override
     public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
-        if (key.equals(getString(R.string.AUTH_TOKEN))) {
-            Log.wtf(LOG_TAG, key + " changed.");
-            new CheckTokenTask(this).execute();
-        } else if (key.equals(getString(R.string.DEFAULT_TEAM))) {
-            Log.v(LOG_TAG, key + " changed to: " +
-                    sharedPreferences.getString(
-                            getString(R.string.DEFAULT_TEAM),
-                            ""
-                    )
-            );
-        } else
-            Log.wtf(LOG_TAG, "Unidentified pref change: " + key);
+        switch (key) {
+        
+            case Utils.AUTH_TOKEN:
+                Log.wtf(LOG_TAG, key + " changed.");
+                new CheckTokenTask(this).execute();
+                break;
+        
+            case Utils.DEFAULT_TEAM:
+                Log.v(LOG_TAG, key + " changed to: " +
+                        sharedPreferences.getString(
+                                Utils.DEFAULT_TEAM,
+                                ""
+                        )
+                );
+                break;
+        
+            default:
+                Log.wtf(LOG_TAG, "Unidentified pref change: " + key);
+                break;
+        }
     }
     
     /**
@@ -313,21 +317,20 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
             // to their values. When their values change, their summaries are
             // updated to reflect the new value, per the Android Design
             // guidelines.
-            bindPreferenceSummaryToValue(findPreference(getString(R.string.AUTH_TOKEN)));
-            bindPreferenceSummaryToValue(findPreference(getString(R.string.DEFAULT_TEAM)));
-    
-    
+            bindPreferenceSummaryToValue(findPreference(Utils.AUTH_TOKEN));
+            bindPreferenceSummaryToValue(findPreference(Utils.DEFAULT_TEAM));
+            
         }
     
         private void setupTeamsSelector() {
-        
-            ListPreference defaultTeamListPreference = (ListPreference) findPreference(getString(R.string.DEFAULT_TEAM));
-        
+    
+            ListPreference defaultTeamListPreference = (ListPreference) findPreference(Utils.DEFAULT_TEAM);
+    
             if (Utils.haveValidToken(getActivity().getApplicationContext())) {
-            
+                
                 // Fill up team names in listPreference in General Preferences
                 defaultTeamListPreference.setEnabled(true);
-            
+        
                 Cursor cursor = getActivity().getContentResolver().query(
                         DoneListContract.TeamEntry.CONTENT_URI,
                         new String[]{
@@ -339,26 +342,25 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
                         null,
                         null
                 );
-            
+        
                 if (cursor != null && cursor.getCount() > 0) {
-                
+                    
                     List<String> teamNames = new ArrayList<>();
                     List<String> teamURLs = new ArrayList<>();
-                
+            
                     int columnTeamName = cursor.getColumnIndex(DoneListContract.TeamEntry.COLUMN_NAME_NAME);
                     int columnTeamURL = cursor.getColumnIndex(DoneListContract.TeamEntry.COLUMN_NAME_URL);
-                
+            
                     while (cursor.moveToNext()) {
                         teamNames.add(cursor.getString(columnTeamName));
                         teamURLs.add(cursor.getString(columnTeamURL));
                     }
-                
+            
                     cursor.close();
-                
+            
                     defaultTeamListPreference.setEntries(teamNames.toArray(new String[teamNames.size()]));
                     defaultTeamListPreference.setEntryValues(teamURLs.toArray(new String[teamURLs.size()]));
                 } else {
-                    // TODO: 10/03/16 When database is updated, schedule an automatic team fetch 
                     defaultTeamListPreference.setEntries(new String[]{});
                     defaultTeamListPreference.setEntryValues(new String[]{});
                 }

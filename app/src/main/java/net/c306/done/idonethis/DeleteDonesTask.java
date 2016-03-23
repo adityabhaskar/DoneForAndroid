@@ -1,18 +1,14 @@
 package net.c306.done.idonethis;
 
 import android.content.Context;
-import android.content.Intent;
 import android.database.Cursor;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
 import android.os.AsyncTask;
-import android.support.v4.content.LocalBroadcastManager;
 import android.text.TextUtils;
 import android.util.Log;
 
-import net.c306.done.R;
 import net.c306.done.Utils;
 import net.c306.done.db.DoneListContract;
+import net.c306.done.sync.IDTAccountManager;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -24,15 +20,14 @@ import java.util.List;
 
 public class DeleteDonesTask extends AsyncTask<Boolean, Void, Integer> {
     
+    private final String LOG_TAG = Utils.LOG_TAG + this.getClass().getSimpleName();
     // Holds application context, passed in constructor
     private Context mContext;
     private boolean mFromPreFetch = false;
     private String mAuthToken;
-    private String LOG_TAG;
     
     public DeleteDonesTask(Context c) {
         mContext = c;
-        LOG_TAG = mContext.getString(R.string.APP_LOG_IDENTIFIER) + " " + this.getClass().getSimpleName();
     }
     
     @Override
@@ -40,26 +35,26 @@ public class DeleteDonesTask extends AsyncTask<Boolean, Void, Integer> {
         super.onPreExecute();
     
         // Check if internet connection is available else cancel fetch 
-        if (!isOnline()) {
+        if (!Utils.isOnline(mContext)) {
             Log.w(LOG_TAG, "Offline, so cancelling token check");
-            sendMessage("Offline", R.string.TASK_CANCELLED_OFFLINE, -1);
+            Utils.sendMessage(mContext, Utils.SENDER_DELETE_TASK, "Offline", Utils.STATUS_TASK_CANCELLED_OFFLINE, -1);
             cancel(true);
             return;
         }
     
         // Get auth token from SharedPrefs
-        mAuthToken = Utils.getAuthToken(mContext);
+        mAuthToken = IDTAccountManager.getAuthToken(mContext);
     
         // Token not present or invalid
         if (mAuthToken == null) {
             Log.e(LOG_TAG, "No Valid Auth Token Found!");
-            sendMessage("No valid auth token found!", R.string.TASK_UNAUTH, -1);
+            Utils.sendMessage(mContext, Utils.SENDER_DELETE_TASK, "No valid auth token found!", Utils.STATUS_TASK_UNAUTH, -1);
             cancel(true);
             return;
         }
         
         Log.v(LOG_TAG, "Starting delete...");
-        sendMessage("Starting delete...", R.string.TASK_STARTED, -1);
+        Utils.sendMessage(mContext, Utils.SENDER_DELETE_TASK, "Starting delete...", Utils.STATUS_TASK_STARTED, 0);
     }
     
     @Override
@@ -124,7 +119,7 @@ public class DeleteDonesTask extends AsyncTask<Boolean, Void, Integer> {
                             Log.w(LOG_TAG, "Didn't delete task - " + resultStatus + ": " + responseMessage);
                             // Set token invalid
                             Utils.setTokenValidity(mContext, false);
-                            sendMessage(responseMessage, R.string.TASK_UNAUTH, -1);
+                            Utils.sendMessage(mContext, Utils.SENDER_DELETE_TASK, responseMessage, Utils.STATUS_TASK_UNAUTH, -1);
                             cancel(true);
                             return null;
                     
@@ -186,7 +181,7 @@ public class DeleteDonesTask extends AsyncTask<Boolean, Void, Integer> {
         // If done(s) sent successfully, update local doneList from server
         if (deletedCount > 0) {
             // Send message to MainActivity saying done(s) have been posted, so Snackbar can be shown/updated
-            sendMessage("Deleted " + deletedCount + " tasks on server", R.string.TASK_SUCCESSFUL, deletedCount);
+            Utils.sendMessage(mContext, Utils.SENDER_DELETE_TASK, "Deleted " + deletedCount + " tasks on server", Utils.STATUS_TASK_SUCCESSFUL, deletedCount);
         }
     
         if (mFromPreFetch || deletedCount > 0) {
@@ -194,26 +189,5 @@ public class DeleteDonesTask extends AsyncTask<Boolean, Void, Integer> {
             new PostEditedDoneTask(mContext).execute(mFromPreFetch);
         }
         
-    }
-    
-    private void sendMessage(String message, int action, int deletedCounter) {
-        Intent intent = new Intent(mContext.getString(R.string.DONE_LOCAL_BROADCAST_LISTENER_INTENT));
-        
-        // You can also include some extra data.
-        intent.putExtra("sender", this.getClass().getSimpleName());
-        intent.putExtra("action", action);
-        intent.putExtra("count", deletedCounter);
-        intent.putExtra("message", message);
-        LocalBroadcastManager.getInstance(mContext.getApplicationContext()).sendBroadcast(intent);
-    }
-    
-    private boolean isOnline() {
-        ConnectivityManager cm =
-                (ConnectivityManager) mContext.getSystemService(Context.CONNECTIVITY_SERVICE);
-        
-        NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
-        
-        return activeNetwork != null &&
-                activeNetwork.isConnected();
     }
 }

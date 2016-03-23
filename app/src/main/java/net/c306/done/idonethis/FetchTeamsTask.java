@@ -3,18 +3,16 @@ package net.c306.done.idonethis;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
 import android.os.AsyncTask;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
 import com.google.gson.Gson;
 
-import net.c306.done.R;
 import net.c306.done.TeamItem;
 import net.c306.done.Utils;
 import net.c306.done.db.DoneListContract;
+import net.c306.done.sync.IDTAccountManager;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -25,33 +23,26 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Vector;
 
-/**
- * Created by raven on 27/02/16.
- */
+@Deprecated
 public class FetchTeamsTask extends AsyncTask<Void, Void, Integer> {
     
     
-    private String LOG_TAG;
+    private final String LOG_TAG = Utils.LOG_TAG + this.getClass().getSimpleName();
     private Context mContext;
     private String mAuthToken;
     private boolean mFromDoneDeleteOrEditTasks = false;
     
-    private SimpleDateFormat sdf;
-    
     public FetchTeamsTask(Context c) {
         mContext = c;
-        LOG_TAG = mContext.getString(R.string.APP_LOG_IDENTIFIER) + " " + this.getClass().getSimpleName();
     }
     
     public FetchTeamsTask(Context mContext, boolean mFromDoneDeleteOrEditTasks) {
         this.mContext = mContext;
         this.mFromDoneDeleteOrEditTasks = mFromDoneDeleteOrEditTasks;
-        LOG_TAG = mContext.getString(R.string.APP_LOG_IDENTIFIER) + " " + this.getClass().getSimpleName();
     }
     
     @Override
@@ -59,30 +50,25 @@ public class FetchTeamsTask extends AsyncTask<Void, Void, Integer> {
         super.onPreExecute();
         
         //// DONE: 22/02/16 Check if internet connection is available else cancel fetch 
-        if (!isOnline()) {
+        if (!Utils.isOnline(mContext)) {
             Log.w(LOG_TAG, "Offline, so cancelling fetch");
-            sendMessage("Offline", R.string.TASK_CANCELLED_OFFLINE, -1);
+            sendMessage("Offline", Utils.STATUS_TASK_CANCELLED_OFFLINE, -1);
             cancel(true);
             return;
         }
         
         // Get authtoken from SharedPrefs
-        mAuthToken = Utils.getAuthToken(mContext);
+        mAuthToken = IDTAccountManager.getAuthToken(mContext);
     
         if (mAuthToken == null) {
             Log.e(LOG_TAG, "No Auth Token Found!");
-            sendMessage("No auth token found!", R.string.TASK_UNAUTH, -1);
+            sendMessage("No auth token found!", Utils.STATUS_TASK_UNAUTH, -1);
             cancel(true);
             return;
         }
     
-        sendMessage("Starting fetch...", R.string.TASK_STARTED, -1);
+        sendMessage("Starting fetch...", Utils.STATUS_TASK_STARTED, -1);
         
-        /*
-        * Not to be used till we can get all updates from server, including deletes
-        * 
-        * */
-        //lastUpdated = prefs.getString("lastUpdate", "");
     }
     
     @Override
@@ -142,14 +128,14 @@ public class FetchTeamsTask extends AsyncTask<Void, Void, Integer> {
                     Log.w(LOG_TAG, " Authcode invalid - " + resultStatus + ": " + responseMessage);
                     // Set invalid token
                     Utils.setTokenValidity(mContext, false);
-                    sendMessage(responseMessage, R.string.TASK_UNAUTH, -1);
+                    sendMessage(responseMessage, Utils.STATUS_TASK_UNAUTH, -1);
                     // Cancel everything and return to app with alarm message
                     cancel(true);
                     return null;
                 
                 default:
                     Log.w(LOG_TAG, "Couldn't fetch teams - " + resultStatus + ": " + responseMessage);
-                    sendMessage(responseMessage, R.string.TASK_OTHER_ERROR, -1);
+                    sendMessage(responseMessage, Utils.STATUS_TASK_OTHER_ERROR, -1);
                     result = null;
             }
             
@@ -158,7 +144,7 @@ public class FetchTeamsTask extends AsyncTask<Void, Void, Integer> {
             result = null;
             e.printStackTrace();
             Log.e(LOG_TAG, e.getMessage());
-            sendMessage(e.getMessage(), R.string.TASK_OTHER_ERROR, -1);
+            sendMessage(e.getMessage(), Utils.STATUS_TASK_OTHER_ERROR, -1);
             
         } finally {
     
@@ -204,7 +190,7 @@ public class FetchTeamsTask extends AsyncTask<Void, Void, Integer> {
         JSONArray teamsListArray = masterObj.getJSONArray("results");
         
         // Insert the new weather information into the database
-        Vector<ContentValues> cVVector = new Vector<ContentValues>(teamsListArray.length());
+        Vector<ContentValues> cVVector = new Vector<>(teamsListArray.length());
         
         for (int i = 0; i < teamsListArray.length(); i++) {
             teamItemString = teamsListArray.getJSONObject(i).toString();
@@ -249,8 +235,7 @@ public class FetchTeamsTask extends AsyncTask<Void, Void, Integer> {
         
         } else if (Utils.findTeam(mContext, defaultTeam) == -1) {
             // Previous default team not in fetched teams. Else raise error!
-            sendMessage("Default team not in teams", -1, -1);
-        
+            sendMessage("Default team not in teams", Utils.STATUS_TASK_OTHER_ERROR, -1);
         }
         
         // Return number of fetched teams
@@ -263,14 +248,14 @@ public class FetchTeamsTask extends AsyncTask<Void, Void, Integer> {
         super.onPostExecute(teamCount);
     
         if (teamCount > 0) {
-            sendMessage("Got " + teamCount + " teams.", R.string.TASK_SUCCESSFUL, teamCount);
+            sendMessage("Got " + teamCount + " teams.", Utils.STATUS_TASK_SUCCESSFUL, teamCount);
     
             new FetchDonesTask(mContext, mFromDoneDeleteOrEditTasks).execute();
         }
     }
     
     private void sendMessage(String message, int action, int count) {
-        Intent intent = new Intent(mContext.getString(R.string.DONE_LOCAL_BROADCAST_LISTENER_INTENT));
+        Intent intent = new Intent(Utils.DONE_LOCAL_BROADCAST_LISTENER_INTENT);
         
         // You can also include some extra data.
         intent.putExtra("sender", this.getClass().getSimpleName());
@@ -278,16 +263,6 @@ public class FetchTeamsTask extends AsyncTask<Void, Void, Integer> {
         intent.putExtra("action", action);
         intent.putExtra("message", message);
         LocalBroadcastManager.getInstance(mContext.getApplicationContext()).sendBroadcast(intent);
-    }
-    
-    private boolean isOnline() {
-        ConnectivityManager cm =
-                (ConnectivityManager) mContext.getSystemService(Context.CONNECTIVITY_SERVICE);
-        
-        NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
-        
-        return activeNetwork != null &&
-                activeNetwork.isConnected();
     }
     
 }

@@ -4,18 +4,15 @@ import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 
-import net.c306.done.R;
+import net.c306.done.Utils;
 
-/**
- * Created by raven on 13/02/16.
- */
 public class DoneListDbHelper extends SQLiteOpenHelper {
     
     // If you change the database schema, you must increment the database version.
     public static final int DATABASE_VERSION = 11;
     public static final String DATABASE_NAME = "DoneList.db";
     private static DoneListDbHelper sInstance;
-    private static String LOG_TAG;
+    private final String LOG_TAG = Utils.LOG_TAG + this.getClass().getSimpleName();
     
     private DoneListDbHelper(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
@@ -29,7 +26,6 @@ public class DoneListDbHelper extends SQLiteOpenHelper {
             sInstance = new DoneListDbHelper(context.getApplicationContext());
         }
     
-        LOG_TAG = context.getString(R.string.APP_LOG_IDENTIFIER) + " " + DoneListDbHelper.class.getSimpleName();
         return sInstance;
     }
     

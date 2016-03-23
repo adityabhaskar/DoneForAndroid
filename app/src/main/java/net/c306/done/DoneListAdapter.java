@@ -25,10 +25,10 @@ import java.util.regex.Pattern;
 
 public class DoneListAdapter extends ResourceCursorAdapter{
     
+    private final String LOG_TAG = Utils.LOG_TAG + this.getClass().getSimpleName();
     private SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
     private SimpleDateFormat sdf2 = (SimpleDateFormat) DateFormat.getDateInstance(DateFormat.DEFAULT);
     private Calendar calendar = Calendar.getInstance();
-    private String LOG_TAG;
     private int colorArray[] = {
             R.color.team1,
             R.color.team2,
@@ -44,7 +44,6 @@ public class DoneListAdapter extends ResourceCursorAdapter{
     
     public DoneListAdapter(Context context, int layout, Cursor c, int flags) {
         super(context, layout, c, flags);
-        LOG_TAG = context.getString(R.string.APP_LOG_IDENTIFIER) + " " + this.getClass().getSimpleName();
     }
     
     /*
