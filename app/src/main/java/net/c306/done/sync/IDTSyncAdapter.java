@@ -125,7 +125,7 @@ public class IDTSyncAdapter extends AbstractThreadedSyncAdapter {
         
             // 1. Refresh team list
             teamCount = fetchTeams(authToken);
-        
+    
             // 2. Check for unsent task actions - add, edit, delete
             Cursor cursor = getContext().getContentResolver().query(
                     DoneListContract.DoneEntry.buildDoneListUri(),                  // URI
@@ -140,12 +140,12 @@ public class IDTSyncAdapter extends AbstractThreadedSyncAdapter {
             if (cursor != null) {
                 if (cursor.getCount() > 0) {
                     Log.v(LOG_TAG, "Found " + cursor.getCount() + " unsent tasks, post them before fetching");
-                
+    
                     new DeleteDonesTask(getContext()).execute();
+    
+                    cursor.close();
+                    return;
                 }
-            
-                cursor.close();
-                return;
             }
         }
         
