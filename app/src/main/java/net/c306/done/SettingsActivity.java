@@ -96,11 +96,13 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
             return true;
         }
     };
+    
     private final String LOG_TAG = Utils.LOG_TAG + this.getClass().getSimpleName();
     Snackbar mSnackbar = null;
     // Our handler for received Intents. This will be called whenever an Intent
     // with an action named "custom-event-name" is broadcasted.
     // Src: http://stackoverflow.com/questions/8802157/how-to-use-localbroadcastmanager    
+    
     private BroadcastReceiver mMessageReceiver = new BroadcastReceiver() {
         
         @Override
@@ -110,7 +112,7 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
             int action = intent.getIntExtra("action", -1);
             String message = intent.getStringExtra("message");
     
-            if (sender.equals(CheckTokenTask.class.getSimpleName())) {
+            if (sender.equals(Utils.SENDER_CHECK_TOKEN)) {
                 switch (action) {
                     case Utils.CHECK_TOKEN_STARTED: {
                         // Do nothing for now

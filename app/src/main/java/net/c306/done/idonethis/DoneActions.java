@@ -12,10 +12,17 @@ import com.google.gson.Gson;
 
 import net.c306.done.Utils;
 import net.c306.done.db.DoneListContract;
+import net.c306.done.sync.IDTSyncAdapter;
 
 import java.util.Arrays;
 import java.util.List;
 
+
+/**
+ * Class providing methods to perform database actions for create, edit & delete tasks.
+ * Successful database actions are followed by calls to IDTSyncAdapter.syncImmediately to
+ * send actions to server.
+ */
 public class DoneActions {
     
     private final String LOG_TAG = Utils.LOG_TAG + DoneActions.class.getSimpleName();
@@ -51,8 +58,8 @@ public class DoneActions {
         newDoneValues.put(DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE, doneDate);
         newDoneValues.put(DoneListContract.DoneEntry.COLUMN_NAME_IS_LOCAL, "TRUE");
         mContext.getContentResolver().insert(DoneListContract.DoneEntry.CONTENT_URI, newDoneValues);
-        
-        new PostNewDoneTask(mContext).execute(false);
+    
+        IDTSyncAdapter.syncImmediately(mContext);
         return true;
     }
     
@@ -99,8 +106,8 @@ public class DoneActions {
         );
     
         // Submit to server, update local database from server
-        new PostEditedDoneTask(mContext).execute(false);
-        
+        IDTSyncAdapter.syncImmediately(mContext);
+    
         return true;
     }
     
@@ -179,10 +186,10 @@ public class DoneActions {
         Log.v(LOG_TAG, "Rows marked as deleted in database: " + rowsMarkedAsDeleted);
         Log.v(LOG_TAG, "Rows completely deleted from database: " + rowsDeleted);
     
-        // Delete on server, update local database from server
-        if (rowsMarkedAsDeleted > 0) {
-            new DeleteDonesTask(mContext).execute(false);
-        }
+        // If >0 non-Local tasks deleted, delete on server, update local database from server
+        if (rowsMarkedAsDeleted - rowsDeleted > 0)
+            IDTSyncAdapter.syncImmediately(mContext);
+    
     
         // For any, if owner was not the same as user, show error toast
         if (allowedIdList.length < taskIds.length) {

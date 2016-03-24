@@ -161,7 +161,7 @@ public class MainActivity
                     }
             }
     
-            Log.v(LOG_TAG, "Sender: " + sender + "\nAction: " + action + "\nMessage: " + message);
+            //Log.v(LOG_TAG, "Sender: " + sender + "\nAction: " + action + "\nMessage: " + message);
         }
     };
     
@@ -199,7 +199,8 @@ public class MainActivity
                 R.color.team1,
                 R.color.primary
         );
-        
+    
+        IDTSyncAdapter.initializeSyncAdapter(this, Utils.getUsername(this));
     }
     
     
@@ -287,8 +288,6 @@ public class MainActivity
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.menu_main, menu);
-        
-        Log.v(LOG_TAG, String.valueOf(Utils.haveValidToken(this)));
         
         // Check if logged in, and show Login/Logout buttons accordingly
         if (Utils.haveValidToken(this))
@@ -604,7 +603,7 @@ public class MainActivity
     public void onRefresh() {
         Log.v(LOG_TAG, "Calling syncImmediately from swipe to refresh");
     
-        IDTSyncAdapter.syncImmediately(this, true);
+        IDTSyncAdapter.syncImmediately(this);
     }
     
 }

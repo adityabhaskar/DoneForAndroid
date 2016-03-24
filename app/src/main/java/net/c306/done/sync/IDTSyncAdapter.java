@@ -53,7 +53,7 @@ public class IDTSyncAdapter extends AbstractThreadedSyncAdapter {
         Bundle bundle = new Bundle();
         bundle.putBoolean(ContentResolver.SYNC_EXTRAS_EXPEDITED, true);
         bundle.putBoolean(ContentResolver.SYNC_EXTRAS_MANUAL, true);
-        bundle.putBoolean(Utils.INTENT_EXTRA_FETCH_TEAMS, fetchTeams);
+        bundle.putBoolean(Utils.INTENT_EXTRA_FROM_DONE_DELETE_EDIT_TASKS, fetchTeams);
         
         Account syncAccount = IDTAccountManager.getSyncAccount(context);
         
@@ -100,7 +100,7 @@ public class IDTSyncAdapter extends AbstractThreadedSyncAdapter {
         /*
          * Finally, let's do a sync to get things started
          */
-        syncImmediately(context, true);
+        syncImmediately(context, false);
     }
     
     public static void initializeSyncAdapter(Context context, String username) {
@@ -116,39 +116,41 @@ public class IDTSyncAdapter extends AbstractThreadedSyncAdapter {
         
         if (authToken == null)
             return;
-        
-        // 1. Refresh team list
-        boolean fetchTeamsFlag = extras.getBoolean(Utils.INTENT_EXTRA_FETCH_TEAMS, true);
+    
+        boolean fromDoneDeleteEditTasks = extras.getBoolean(Utils.INTENT_EXTRA_FROM_DONE_DELETE_EDIT_TASKS, false);
         int teamCount = 0;
+    
+        // Check to prevent cyclicity
+        if (!fromDoneDeleteEditTasks) {
         
-        if (fetchTeamsFlag)
+            // 1. Refresh team list
             teamCount = fetchTeams(authToken);
         
-        // 2. Check for unsent task actions - add, edit, delete
-        Cursor cursor = getContext().getContentResolver().query(
-                DoneListContract.DoneEntry.buildDoneListUri(),                  // URI
-                new String[]{DoneListContract.DoneEntry.COLUMN_NAME_ID},        // Projection
-                DoneListContract.DoneEntry.COLUMN_NAME_IS_LOCAL + " IS 'TRUE' OR " + // Selection
-                        DoneListContract.DoneEntry.COLUMN_NAME_IS_DELETED + " IS 'TRUE' OR " +
-                        DoneListContract.DoneEntry.COLUMN_NAME_EDITED_FIELDS + " IS NOT NULL",
-                null, // Selection Args
-                null  // Sort Order
-        );
+            // 2. Check for unsent task actions - add, edit, delete
+            Cursor cursor = getContext().getContentResolver().query(
+                    DoneListContract.DoneEntry.buildDoneListUri(),                  // URI
+                    new String[]{DoneListContract.DoneEntry.COLUMN_NAME_ID},        // Projection
+                    DoneListContract.DoneEntry.COLUMN_NAME_IS_LOCAL + " IS 'TRUE' OR " + // Selection
+                            DoneListContract.DoneEntry.COLUMN_NAME_IS_DELETED + " IS 'TRUE' OR " +
+                            DoneListContract.DoneEntry.COLUMN_NAME_EDITED_FIELDS + " IS NOT NULL",
+                    null, // Selection Args
+                    null  // Sort Order
+            );
         
-        if (cursor != null && cursor.getCount() > 0) {
-            Log.v(LOG_TAG, "Found " + cursor.getCount() + " unsent tasks, post them before fetching");
+            if (cursor != null) {
+                if (cursor.getCount() > 0) {
+                    Log.v(LOG_TAG, "Found " + cursor.getCount() + " unsent tasks, post them before fetching");
+                
+                    new DeleteDonesTask(getContext()).execute();
+                }
             
-            // Check to prevent cyclicity
-            if (!fetchTeamsFlag) {
-                new DeleteDonesTask(getContext()).execute(true);
+                cursor.close();
+                return;
             }
-            
-            cursor.close();
-            return;
         }
         
         // 3. Refresh task list
-        if (teamCount > 0)
+        if (teamCount > -1)
             fetchTasks(authToken);
     }
     

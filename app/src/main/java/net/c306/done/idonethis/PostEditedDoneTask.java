@@ -25,14 +25,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 
-public class PostEditedDoneTask extends AsyncTask<Boolean, Void, Integer> {
+public class PostEditedDoneTask extends AsyncTask<Void, Void, Integer> {
     
     private final String LOG_TAG = Utils.LOG_TAG + this.getClass().getSimpleName();
     // Holds application context, passed in constructor
     private Context mContext;
     private Gson gson = new Gson();
     private String mAuthToken;
-    private boolean mFromPreFetch = false;
     
     public PostEditedDoneTask(Context c) {
         mContext = c;
@@ -66,19 +65,17 @@ public class PostEditedDoneTask extends AsyncTask<Boolean, Void, Integer> {
     }
     
     @Override
-    protected Integer doInBackground(Boolean... fromPreFetch) {
+    protected Integer doInBackground(Void... voids) {
         
         HttpURLConnection httpcon = null;
         BufferedReader br = null;
         final String url = "https://idonethis.com/api/v0.1/dones/";
         
         String result = "";
-        int patchedTaskCount = -1;
+        int patchedTaskCount = 0;
         String patchedDoneString = null;
         EditedTaskClass patchedDoneObj = null;
         List<Integer> patchedDonesList = new ArrayList<>();
-        
-        this.mFromPreFetch = fromPreFetch[0];
         
         // Get local, undeleted dones from database
         Cursor cursor = mContext.getContentResolver().query(
@@ -98,11 +95,9 @@ public class PostEditedDoneTask extends AsyncTask<Boolean, Void, Integer> {
         );
         
         if (cursor != null) {
-            
-            Log.v(LOG_TAG, "Found " + cursor.getCount() + " edited tasks");
     
-            patchedTaskCount = 0;
-            
+            Log.v(LOG_TAG, "Got " + cursor.getCount() + " pending dones to post to server");
+    
             if (cursor.getCount() > 0) {
                 
                 int resultStatus;
@@ -112,10 +107,8 @@ public class PostEditedDoneTask extends AsyncTask<Boolean, Void, Integer> {
                 int columnIndexTeamURL = cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_TEAM);
                 int columnIndexDoneURL = cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_URL);
                 
-                Log.v(LOG_TAG, "Got " + cursor.getCount() + " pending dones to post to server");
-                
                 // Iterate over unsent dones 
-                while (cursor.moveToNext()) {
+                while (cursor.moveToNext() && !isCancelled()) {
                     // Get next done
                     
                     // Create editdone object with edited fields
@@ -170,7 +163,8 @@ public class PostEditedDoneTask extends AsyncTask<Boolean, Void, Integer> {
                                 Utils.setTokenValidity(mContext, false);
                                 Utils.sendMessage(mContext, Utils.SENDER_EDIT_TASK, responseMessage, Utils.STATUS_TASK_UNAUTH, -1);
                                 cancel(true);
-                                return null;
+                                patchedTaskCount = -1;
+                                break;
                             
                             default:
                                 Log.w(LOG_TAG, "Didn't Update Done - " + resultStatus + ": " + responseMessage);
@@ -178,8 +172,8 @@ public class PostEditedDoneTask extends AsyncTask<Boolean, Void, Integer> {
                         
                         //Read      
                         br = new BufferedReader(new InputStreamReader(httpcon.getInputStream(), "UTF-8"));
-                        
-                        String line = null;
+    
+                        String line;
                         StringBuilder sb = new StringBuilder();
                         
                         while ((line = br.readLine()) != null) {
@@ -204,28 +198,31 @@ public class PostEditedDoneTask extends AsyncTask<Boolean, Void, Integer> {
                         }
                     }
                 }
-                
-                Log.v(LOG_TAG, "Patched " + patchedTaskCount + " dones");
-                
-                // Set edited_fields to null for ids in sentDonesList
-                ContentValues updateValues = new ContentValues();
-                updateValues.putNull(DoneListContract.DoneEntry.COLUMN_NAME_EDITED_FIELDS);
-                
-                String patchedDonesIdString = TextUtils.join(",", patchedDonesList);
-                
-                mContext.getContentResolver().update(
-                        DoneListContract.DoneEntry.CONTENT_URI,
-                        updateValues,
-                        DoneListContract.DoneEntry.COLUMN_NAME_ID + " IN (" + patchedDonesIdString + ")",
-                        null
-                );
+    
+                if (patchedDonesList.size() > 0) {
+                    // Set edited_fields to null for ids in sentDonesList
+                    ContentValues updateValues = new ContentValues();
+                    updateValues.putNull(DoneListContract.DoneEntry.COLUMN_NAME_EDITED_FIELDS);
+        
+                    String patchedDonesIdString = TextUtils.join(",", patchedDonesList);
+        
+                    mContext.getContentResolver().update(
+                            DoneListContract.DoneEntry.CONTENT_URI,
+                            updateValues,
+                            DoneListContract.DoneEntry.COLUMN_NAME_ID + " IN (" + patchedDonesIdString + ")",
+                            null
+                    );
+                }
             }
             
             cursor.close();
             
         }
-        
-        Log.v(LOG_TAG, "Response from server: " + result);
+    
+        if (patchedTaskCount > -1)
+            Log.v(LOG_TAG, "Patched " + patchedTaskCount + " dones");
+        else
+            Log.v(LOG_TAG, "Response from server: " + result);
         
         return patchedTaskCount;
     }
@@ -237,11 +234,9 @@ public class PostEditedDoneTask extends AsyncTask<Boolean, Void, Integer> {
         if (patchedCount > -1) {
             // Send message to MainActivity saying done(s) have been posted, so Snackbar can be shown/updated
             Utils.sendMessage(mContext, Utils.SENDER_EDIT_TASK, "Sent " + patchedCount + " tasks.", Utils.STATUS_TASK_SUCCESSFUL, patchedCount);
-        }
-        
-        if (mFromPreFetch || patchedCount > -1) {
-            // Post any unsent dones
-            new PostNewDoneTask(mContext).execute(mFromPreFetch);
+    
+            // No errors, so call next chained task
+            new PostNewDoneTask(mContext).execute();
         }
     }
     

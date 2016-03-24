@@ -56,7 +56,6 @@ public class IDTAccountManager {
             }
         }
         
-        
         String authToken = Utils.getAuthToken(context);
         
         if (authToken == null || authToken.equals("")) {
@@ -83,12 +82,12 @@ public class IDTAccountManager {
             if (!accountManager.addAccountExplicitly(newAccount, "", null)) {
                 return null;
             }
-            
-        }
-        
-        accountManager.setAuthToken(newAccount, Utils.AUTH_TOKEN, authToken);
-        
-        IDTSyncAdapter.onAccountCreated(newAccount, context);
+    
+            accountManager.setAuthToken(newAccount, Utils.AUTH_TOKEN, authToken);
+    
+            IDTSyncAdapter.onAccountCreated(newAccount, context);
+        } else
+            accountManager.setAuthToken(newAccount, Utils.AUTH_TOKEN, authToken);
         
         return newAccount;
     }

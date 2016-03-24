@@ -36,7 +36,7 @@ public class Utils {
     public static final String NEW_TASK_ACTIVITY_STATE = "newTaskActivityState";
     
     //<!-- Intent extra identifiers -->
-    public static final String INTENT_EXTRA_FROM_DONE_DELETE_OR_EDIT_TASKS = "fromDoneDeleteOrEditTasks";
+    public static final String INTENT_EXTRA_FROM_DONE_DELETE_EDIT_TASKS = "fromDoneDeleteOrEditTasks";
     public static final String INTENT_EXTRA_FETCH_TEAMS = "fetchTeams";
     public static final String ACTION_SHOW_AUTH = "showAuthScreen";
     

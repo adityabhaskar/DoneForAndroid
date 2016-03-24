@@ -29,14 +29,13 @@ import java.util.Date;
 import java.util.List;
 
 
-public class PostNewDoneTask extends AsyncTask<Boolean, Void, Integer> {
+public class PostNewDoneTask extends AsyncTask<Void, Void, Integer> {
     
     private final String LOG_TAG = Utils.LOG_TAG + this.getClass().getSimpleName();
     // Holds application context, passed in constructor
     private Context mContext;
     private Gson gson = new Gson();
     private String mAuthToken;
-    private boolean mFromPreFetch = false;
     
     public PostNewDoneTask(Context c){
         mContext = c;
@@ -70,20 +69,18 @@ public class PostNewDoneTask extends AsyncTask<Boolean, Void, Integer> {
     }
     
     @Override
-    protected Integer doInBackground(Boolean... fromPreFetch) {
+    protected Integer doInBackground(Void... voids) {
     
         HttpURLConnection httpcon = null;
         BufferedReader br = null;
         final String url = "https://idonethis.com/api/v0.1/dones/";
         // Contains server response (or error message)
         String result = "";
-        int sentTaskCount = -1;
-    
+        int sentTaskCount = 0; // 0 - init/noerror-nosent, -1 - error, +xxx - xxx sent
+        
         String newDoneString;
         NewTaskClass newDoneObj;
         List<Integer> sentDonesList = new ArrayList<>();
-    
-        this.mFromPreFetch = fromPreFetch[0];
     
         // Get local, undeleted dones from database
         Cursor cursor = mContext.getContentResolver().query(
@@ -100,11 +97,9 @@ public class PostNewDoneTask extends AsyncTask<Boolean, Void, Integer> {
         );
     
         if (cursor != null) {
-        
-            if (cursor.getCount() == 0) {
-                sentTaskCount = 0;
-            } else {
-            
+    
+            if (cursor.getCount() > 0) {
+                
                 int resultStatus;
                 int columnIndexID = cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_ID);
                 int columnIndexRawText = cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT);
@@ -114,7 +109,7 @@ public class PostNewDoneTask extends AsyncTask<Boolean, Void, Integer> {
                 Log.v(LOG_TAG, "Got " + cursor.getCount() + " pending dones to post to server");
             
                 // Iterate over unsent dones 
-                while (cursor.moveToNext()) {
+                while (cursor.moveToNext() && !isCancelled()) {
                 
                     // Get next done
                     newDoneObj = new NewTaskClass(
@@ -154,7 +149,7 @@ public class PostNewDoneTask extends AsyncTask<Boolean, Void, Integer> {
                             case HttpURLConnection.HTTP_CREATED:
                             case HttpURLConnection.HTTP_OK:
                                 Log.v(LOG_TAG, "Sent Done - " + resultStatus + ": " + responseMessage);
-                                sentTaskCount = sentTaskCount == -1 ? 1 : sentTaskCount + 1;
+                                sentTaskCount++;
                                 // Add id to sentDonesList
                                 sentDonesList.add(cursor.getInt(columnIndexID));
                                 break; // fine
@@ -165,7 +160,8 @@ public class PostNewDoneTask extends AsyncTask<Boolean, Void, Integer> {
                                 Utils.setTokenValidity(mContext, false);
                                 Utils.sendMessage(mContext, Utils.SENDER_CREATE_TASK, responseMessage, Utils.STATUS_TASK_UNAUTH, -1);
                                 cancel(true);
-                                return null;
+                                sentTaskCount = -1;
+                                break;
                         
                             default:
                                 Log.w(LOG_TAG, "Didn't Send Done - " + resultStatus + ": " + responseMessage);
@@ -180,7 +176,7 @@ public class PostNewDoneTask extends AsyncTask<Boolean, Void, Integer> {
                         while ((line = br.readLine()) != null) {
                             sb.append(line).append("\n");
                         }
-                    
+    
                         result += sb.toString() + "\n";
                     
                     } catch (Exception e) {
@@ -205,26 +201,28 @@ public class PostNewDoneTask extends AsyncTask<Boolean, Void, Integer> {
                     Utils.setLocalDoneIdCounter(mContext, 0);
                 }
             }
-        
+    
             cursor.close();
+    
+    
+            if (sentDonesList.size() > 0) {
+                // Set is_local to false for ids in sentDonesList
+                ContentValues updateValues = new ContentValues();
+                updateValues.put(DoneListContract.DoneEntry.COLUMN_NAME_IS_LOCAL, "FALSE");
         
-            // Set is_local to false for ids in sentDonesList
+                String sentDonesIdString = TextUtils.join(",", sentDonesList);
         
-            ContentValues updateValues = new ContentValues();
-            updateValues.put(DoneListContract.DoneEntry.COLUMN_NAME_IS_LOCAL, "FALSE");
-            
-            String sentDonesIdString = TextUtils.join(",", sentDonesList);
-        
-            mContext.getContentResolver().update(
-                    DoneListContract.DoneEntry.CONTENT_URI,
-                    updateValues,
-                    DoneListContract.DoneEntry.COLUMN_NAME_ID + " IN (" + sentDonesIdString + ")",
-                    null
-            );
+                mContext.getContentResolver().update(
+                        DoneListContract.DoneEntry.CONTENT_URI,
+                        updateValues,
+                        DoneListContract.DoneEntry.COLUMN_NAME_ID + " IN (" + sentDonesIdString + ")",
+                        null
+                );
+            }
         }
     
         Log.v(LOG_TAG, "Response from server: " + result);
-    
+        
         return sentTaskCount;
     }
     
@@ -240,12 +238,9 @@ public class PostNewDoneTask extends AsyncTask<Boolean, Void, Integer> {
                     "Sent " + sentCount + " tasks.",
                     Utils.STATUS_TASK_SUCCESSFUL,
                     sentCount);
-        }
-    
-        if (mFromPreFetch || sentCount > -1) {
+        
             // Update local doneList from server
-            IDTSyncAdapter.syncImmediately(mContext);
-            //new FetchDonesTask(mContext, mFromPreFetch).execute();
+            IDTSyncAdapter.syncImmediately(mContext, true);
         }
     }
     

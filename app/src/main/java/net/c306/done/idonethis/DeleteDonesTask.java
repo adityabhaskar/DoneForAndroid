@@ -18,12 +18,11 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
-public class DeleteDonesTask extends AsyncTask<Boolean, Void, Integer> {
+public class DeleteDonesTask extends AsyncTask<Void, Void, Integer> {
     
     private final String LOG_TAG = Utils.LOG_TAG + this.getClass().getSimpleName();
     // Holds application context, passed in constructor
     private Context mContext;
-    private boolean mFromPreFetch = false;
     private String mAuthToken;
     
     public DeleteDonesTask(Context c) {
@@ -58,17 +57,16 @@ public class DeleteDonesTask extends AsyncTask<Boolean, Void, Integer> {
     }
     
     @Override
-    protected Integer doInBackground(Boolean... fromPreFetch) {
+    protected Integer doInBackground(Void... voids) {
         
         HttpURLConnection httpcon = null;
         BufferedReader br = null;
         final String url = "https://idonethis.com/api/v0.1/dones/";
         List<Integer> deletedDonesList = new ArrayList<>();
+        int returnCount = 0;
         
         // Contains server response (or error message)
         String result = "";
-    
-        this.mFromPreFetch = fromPreFetch[0];
     
         // Get deleted, non-local dones from database
         Cursor cursor = mContext.getContentResolver().query(
@@ -83,95 +81,106 @@ public class DeleteDonesTask extends AsyncTask<Boolean, Void, Integer> {
         );
     
         if (cursor != null) {
+    
+            Log.v(LOG_TAG, "Got " + cursor.getCount() + " pending dones to delete on server");
+    
+            if (cursor.getCount() > 0) {
         
-            int resultStatus;
-            int columnIndexID = cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_ID);
+                int resultStatus;
+                int columnIndexID = cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_ID);
         
-            Log.wtf(LOG_TAG, "Got " + cursor.getCount() + " pending dones to delete on server");
-        
-            // Iterate over unsent dones 
-            while (cursor.moveToNext()) {
-                int id = cursor.getInt(columnIndexID);
+                // Iterate over unsent dones 
+                while (cursor.moveToNext() && !isCancelled()) {
+                    int id = cursor.getInt(columnIndexID);
             
-                try {
-                    //Connect
-                    httpcon = (HttpURLConnection) ((new URL(url + id + "/").openConnection()));
-                    httpcon.setRequestProperty("Authorization", "Token " + mAuthToken);
-                    httpcon.setRequestProperty("Content-Type", "application/json");
-                    httpcon.setRequestProperty("Accept", "application/json");
-                    httpcon.setRequestMethod("DELETE");
-                    httpcon.connect();
+                    try {
+                        //Connect
+                        httpcon = (HttpURLConnection) ((new URL(url + id + "/").openConnection()));
+                        httpcon.setRequestProperty("Authorization", "Token " + mAuthToken);
+                        httpcon.setRequestProperty("Content-Type", "application/json");
+                        httpcon.setRequestProperty("Accept", "application/json");
+                        httpcon.setRequestMethod("DELETE");
+                        httpcon.connect();
                 
-                    //Response Code
-                    resultStatus = httpcon.getResponseCode();
-                    String responseMessage = httpcon.getResponseMessage();
+                        //Response Code
+                        resultStatus = httpcon.getResponseCode();
+                        String responseMessage = httpcon.getResponseMessage();
                 
                 
-                    switch (resultStatus) {
-                        case HttpURLConnection.HTTP_ACCEPTED:
-                        case HttpURLConnection.HTTP_NO_CONTENT:
-                        case HttpURLConnection.HTTP_OK:
-                            Log.v(LOG_TAG, "Task Deleted " + id + " - " + resultStatus + ": " + responseMessage);
-                            deletedDonesList.add(id);
-                            break; // fine
+                        switch (resultStatus) {
+                            case HttpURLConnection.HTTP_ACCEPTED:
+                            case HttpURLConnection.HTTP_NO_CONTENT:
+                            case HttpURLConnection.HTTP_OK:
+                                Log.v(LOG_TAG, "Task Deleted " + id + " - " + resultStatus + ": " + responseMessage);
+                                deletedDonesList.add(id);
+                                returnCount++;
+                                break; // fine
                     
-                        case HttpURLConnection.HTTP_UNAUTHORIZED:
-                            Log.w(LOG_TAG, "Didn't delete task - " + resultStatus + ": " + responseMessage);
-                            // Set token invalid
-                            Utils.setTokenValidity(mContext, false);
-                            Utils.sendMessage(mContext, Utils.SENDER_DELETE_TASK, responseMessage, Utils.STATUS_TASK_UNAUTH, -1);
-                            cancel(true);
-                            return null;
+                            case HttpURLConnection.HTTP_UNAUTHORIZED:
+                                Log.w(LOG_TAG, "Didn't delete task - " + resultStatus + ": " + responseMessage);
+                                // Set token invalid
+                                Utils.setTokenValidity(mContext, false);
+                                Utils.sendMessage(mContext, Utils.SENDER_DELETE_TASK, responseMessage, Utils.STATUS_TASK_UNAUTH, -1);
+                                cancel(true);
+                                returnCount = -1;
+                                break;
                     
-                        default:
-                            Log.w(LOG_TAG, "Didn't delete task - " + resultStatus + ": " + responseMessage);
+                            default:
+                                Log.w(LOG_TAG, "Didn't delete task - " + resultStatus + ": " + responseMessage);
+                                //returnCount = -1;
+                                
+                        }
                 
-                    }
+                        //Read      
+                        br = new BufferedReader(new InputStreamReader(httpcon.getInputStream(), "UTF-8"));
                 
-                    //Read      
-                    br = new BufferedReader(new InputStreamReader(httpcon.getInputStream(), "UTF-8"));
+                        String line;
+                        StringBuilder sb = new StringBuilder();
                 
-                    String line = null;
-                    StringBuilder sb = new StringBuilder();
+                        while ((line = br.readLine()) != null) {
+                            sb.append(line).append("\n");
+                        }
                 
-                    while ((line = br.readLine()) != null) {
-                        sb.append(line).append("\n");
-                    }
+                        result += sb.toString();
                 
-                    result += sb.toString();
+                    } catch (Exception e) {
                 
-                } catch (Exception e) {
-                    result += e.getMessage();
-                    e.printStackTrace();
-                    Log.w(LOG_TAG, "delete id: " + id + ", " + e.getMessage());
-                } finally {
-                    if (httpcon != null) {
-                        httpcon.disconnect();
-                    }
-                    if (br != null) {
-                        try {
-                            br.close();
-                        } catch (final IOException e) {
-                            Log.e(LOG_TAG, "Error closing stream", e);
+                        result += e.getMessage();
+                        e.printStackTrace();
+                        Log.w(LOG_TAG, "delete id: " + id + ", " + e.getMessage());
+                
+                    } finally {
+                
+                        if (httpcon != null)
+                            httpcon.disconnect();
+                
+                        if (br != null) {
+                            try {
+                                br.close();
+                            } catch (final IOException e) {
+                                Log.e(LOG_TAG, "Error closing stream", e);
+                            }
                         }
                     }
                 }
             }
             cursor.close();
+    
+            if (deletedDonesList.size() > 0) {
+                // Delete from database dones sent to server
+                String sentDonesIdString = TextUtils.join(",", deletedDonesList);
         
-            // Delete from database dones sent to server
-            String sentDonesIdString = TextUtils.join(",", deletedDonesList);
-        
-            mContext.getContentResolver().delete(
-                    DoneListContract.DoneEntry.CONTENT_URI,
-                    DoneListContract.DoneEntry.COLUMN_NAME_ID + " IN (" + sentDonesIdString + ")",
-                    null
-            );
+                mContext.getContentResolver().delete(
+                        DoneListContract.DoneEntry.CONTENT_URI,
+                        DoneListContract.DoneEntry.COLUMN_NAME_ID + " IN (" + sentDonesIdString + ")",
+                        null
+                );
+            }
         }
     
         Log.v(LOG_TAG, "Response from server: " + result);
     
-        return deletedDonesList.size();
+        return returnCount;
     }
     
     @Override
@@ -179,15 +188,12 @@ public class DeleteDonesTask extends AsyncTask<Boolean, Void, Integer> {
         super.onPostExecute(deletedCount);
         
         // If done(s) sent successfully, update local doneList from server
-        if (deletedCount > 0) {
+        if (deletedCount > -1) {
             // Send message to MainActivity saying done(s) have been posted, so Snackbar can be shown/updated
             Utils.sendMessage(mContext, Utils.SENDER_DELETE_TASK, "Deleted " + deletedCount + " tasks on server", Utils.STATUS_TASK_SUCCESSFUL, deletedCount);
-        }
-    
-        if (mFromPreFetch || deletedCount > 0) {
-            //Post any pending new tasks
-            new PostEditedDoneTask(mContext).execute(mFromPreFetch);
-        }
         
+            // If no error, call next chained task
+            new PostEditedDoneTask(mContext).execute();
+        }
     }
 }
