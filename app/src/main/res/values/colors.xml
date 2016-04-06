@@ -29,17 +29,17 @@
     <color name="secondary_text">#727272</color>
     <color name="icons">#FFFFFF</color>
     <color name="divider">#B6B6B6</color>
+    <color name="list_primary_bg">#FAFAFA</color>
+    <color name="link_colour">#388E3C</color> <!-- GREEN 700 -->
     <!-- end theme-->
 
     <!-- Other colours -->
-    <color name="list_primary_bg">#FAFAFA</color>
     <color name="idt_color">#D83F21</color>
     <color name="slack">#3aaf85</color>
     <color name="indigo_light">#D1C4E9</color>
     <color name="android_green">#A4C639</color>
     <color name="android_green_700">#728927</color>
     <color name="green_500">#4CAF50</color>
-    <color name="link_colour">#388E3C</color> <!-- GREEN 700 -->
     <color name="deep_orange_a700">#DD2C00</color>
     <!--<color name="accent">#DD2C00</color>-->
 

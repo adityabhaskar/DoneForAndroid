@@ -233,6 +233,7 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
         switch (key) {
         
             case Utils.AUTH_TOKEN:
+                // TODO: 05/04/16 Remove auth token field from settings 
                 Log.wtf(LOG_TAG, key + " changed.");
                 new CheckTokenTask(this).execute();
                 break;
@@ -328,7 +329,7 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
     
             ListPreference defaultTeamListPreference = (ListPreference) findPreference(Utils.DEFAULT_TEAM);
     
-            if (Utils.haveValidToken(getActivity().getApplicationContext())) {
+            if (Utils.getAccessToken(getActivity().getApplicationContext()) != null) {
                 
                 // Fill up team names in listPreference in General Preferences
                 defaultTeamListPreference.setEnabled(true);

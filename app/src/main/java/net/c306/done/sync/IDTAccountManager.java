@@ -55,8 +55,8 @@ public class IDTAccountManager {
                 return null;
             }
         }
-        
-        String authToken = Utils.getAuthToken(context);
+    
+        String authToken = Utils.getAccessToken(context);
         
         if (authToken == null || authToken.equals("")) {
             Log.e(LOG_TAG, "No auth token found");
@@ -86,8 +86,7 @@ public class IDTAccountManager {
             accountManager.setAuthToken(newAccount, Utils.AUTH_TOKEN, authToken);
     
             IDTSyncAdapter.onAccountCreated(newAccount, context);
-        } else
-            accountManager.setAuthToken(newAccount, Utils.AUTH_TOKEN, authToken);
+        }
         
         return newAccount;
     }

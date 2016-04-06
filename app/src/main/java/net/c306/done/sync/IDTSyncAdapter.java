@@ -15,9 +15,7 @@ import android.util.Log;
 
 import com.google.gson.Gson;
 
-import net.c306.done.DoneItem;
 import net.c306.done.R;
-import net.c306.done.TeamItem;
 import net.c306.done.Utils;
 import net.c306.done.db.DoneListContract;
 import net.c306.done.idonethis.DeleteDonesTask;
@@ -67,6 +65,23 @@ public class IDTSyncAdapter extends AbstractThreadedSyncAdapter {
         syncImmediately(context, false);
     }
     
+    public static void onAccountCreated(Account newAccount, Context context) {
+        /*
+         * Since we've created an account
+         */
+        IDTSyncAdapter.configurePeriodicSync(context, Utils.SYNC_INTERVAL, Utils.SYNC_FLEXTIME);
+        
+        /*
+         * Without calling setSyncAutomatically, our periodic sync will not be enabled.
+         */
+        ContentResolver.setSyncAutomatically(newAccount, context.getString(R.string.content_authority), true);
+        
+        /*
+         * Finally, let's do a sync to get things started
+         */
+        syncImmediately(context, false);
+    }
+    
     /**
      * Helper method to schedule the sync adapter periodic execution
      */
@@ -86,23 +101,6 @@ public class IDTSyncAdapter extends AbstractThreadedSyncAdapter {
         ContentResolver.requestSync(request);
     }
     
-    public static void onAccountCreated(Account newAccount, Context context) {
-        /*
-         * Since we've created an account
-         */
-        IDTSyncAdapter.configurePeriodicSync(context, Utils.SYNC_INTERVAL, Utils.SYNC_FLEXTIME);
-        
-        /*
-         * Without calling setSyncAutomatically, our periodic sync will not be enabled.
-         */
-        ContentResolver.setSyncAutomatically(newAccount, context.getString(R.string.content_authority), true);
-        
-        /*
-         * Finally, let's do a sync to get things started
-         */
-        syncImmediately(context, false);
-    }
-    
     public static void initializeSyncAdapter(Context context, String username) {
         Log.v(LOG_TAG, "Initialising sync adapter");
         IDTAccountManager.createSyncAccount(context, username);
@@ -117,12 +115,18 @@ public class IDTSyncAdapter extends AbstractThreadedSyncAdapter {
         if (authToken == null)
             return;
     
+        if (Utils.isTokenExpired(getContext())) {
+            // TODO: 06/04/16 Launch refresh token task 
+            return;
+        }
+            
+        
         boolean fromDoneDeleteEditTasks = extras.getBoolean(Utils.INTENT_EXTRA_FROM_DONE_DELETE_EDIT_TASKS, false);
         int teamCount = 0;
     
         // Check to prevent cyclicity
         if (!fromDoneDeleteEditTasks) {
-        
+    
             // 1. Refresh team list
             teamCount = fetchTeams(authToken);
     
@@ -155,9 +159,6 @@ public class IDTSyncAdapter extends AbstractThreadedSyncAdapter {
     }
     
     private int fetchTasks(String authToken) {
-        // We're fetching only latest 100 entries. May change in future to import whole history by iterating till previous == null
-        final int tasksToFetch = 100;
-        final String requestURL = "https://idonethis.com/api/v0.1/dones/?page_size=" + tasksToFetch + "&done_date_after=";
         HttpURLConnection httpcon = null;
         BufferedReader br = null;
         Context context = getContext();
@@ -172,8 +173,8 @@ public class IDTSyncAdapter extends AbstractThreadedSyncAdapter {
         
         try {
             //Connect
-            httpcon = (HttpURLConnection) ((new URL(requestURL).openConnection()));
-            httpcon.setRequestProperty("Authorization", "Token " + authToken);
+            httpcon = (HttpURLConnection) ((new URL(Utils.IDT_DONE_URL + "?page_size=" + Utils.TASKS_TO_FETCH).openConnection()));
+            httpcon.setRequestProperty("Authorization", "Bearer " + authToken);
             httpcon.setRequestProperty("Content-Type", "application/json");
             httpcon.setRequestProperty("Accept", "application/json");
             httpcon.setRequestMethod("GET");
@@ -188,7 +189,6 @@ public class IDTSyncAdapter extends AbstractThreadedSyncAdapter {
                 case HttpURLConnection.HTTP_CREATED:
                 case HttpURLConnection.HTTP_OK:
                     Log.v(LOG_TAG, "Got Done List - " + resultStatus + ": " + responseMessage);
-                    
                     break; // fine
                 
                 case HttpURLConnection.HTTP_UNAUTHORIZED:
@@ -196,7 +196,7 @@ public class IDTSyncAdapter extends AbstractThreadedSyncAdapter {
                     // Set token invalid
                     Utils.setTokenValidity(context, false);
                     Utils.sendMessage(context, Utils.SENDER_FETCH_TASKS, responseMessage, Utils.STATUS_TASK_UNAUTH, -1);
-                
+    
                 default:
                     Log.w(LOG_TAG, "Couldn't fetch dones" + resultStatus + ": " + responseMessage);
                     Utils.sendMessage(context, Utils.SENDER_FETCH_TASKS, responseMessage, Utils.STATUS_TASK_OTHER_ERROR, -1);
@@ -257,9 +257,7 @@ public class IDTSyncAdapter extends AbstractThreadedSyncAdapter {
         return fetchedTaskCount;
     }
     
-    
     private int fetchTeams(String authToken) {
-        final String TEAMS_URL = "https://idonethis.com/api/v0.1/teams/?page_size=100";
         HttpURLConnection httpcon = null;
         BufferedReader br = null;
         int resultStatus;
@@ -271,8 +269,8 @@ public class IDTSyncAdapter extends AbstractThreadedSyncAdapter {
         
         try {
             //Connect
-            httpcon = (HttpURLConnection) ((new URL(TEAMS_URL).openConnection()));
-            httpcon.setRequestProperty("Authorization", "Token " + authToken);
+            httpcon = (HttpURLConnection) ((new URL(Utils.IDT_TEAM_URL + "?page_size=100").openConnection()));
+            httpcon.setRequestProperty("Authorization", "Bearer " + authToken);
             httpcon.setRequestProperty("Content-Type", "application/json");
             httpcon.setRequestProperty("Accept", "application/json");
             httpcon.setRequestMethod("GET");
@@ -509,5 +507,45 @@ public class IDTSyncAdapter extends AbstractThreadedSyncAdapter {
         return cVVector.size();
     }
     
+    /**
+     * POJO to parse the incoming JSON dones into before entering into the database;
+     */
+    public static class DoneItem {
+        public int id;
+        public String done_date;
+        public String team_short_name;
+        public String raw_text;
+        public String created;
+        public String updated;
+        public String markedup_text;
+        public String owner;
+        public DoneTags[] tags;
+        //public String likes;
+        //public String comments;
+        public DoneMeta meta_data;
+        public String is_goal;
+        public String goal_completed;
+        public String url;
+        public String team;
+        public String permalink;
+        public String is_local = "FALSE";
+        
+        public class DoneTags {
+            public int id;
+            public String name;
+        }
+        
+        public class DoneMeta {
+            public String from;
+        }
+    }
     
+    public class TeamItem {
+        public String url;
+        public String name; // unique
+        public String short_name;
+        public String dones;
+        public boolean is_personal;
+        public String permalink;
+    }
 }

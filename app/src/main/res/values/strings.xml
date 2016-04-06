@@ -18,6 +18,19 @@
 
     <string name="offline_toast_message">Offline! Will try again when connection available.</string>
 
+    <string name="empty"></string>
+    <string name="LOGIN_EXCHANGE_ACCESS_TOKEN">Getting authorisation…</string>
+    <string name="LOGIN_ACCESS_TOKEN_ACQUIRED">Authorised.</string>
+    <string name="LOGIN_FETCH_USERNAME">Fetching user details…</string>
+    <string name="LOGIN_USERNAME_ACQUIRED">Details downloaded.</string>
+    <string name="LOGIN_FETCH_TEAMS">Fetching teams…</string>
+    <string name="LOGIN_TEAMS_ACQUIRED">Teams downloaded.</string>
+    <string name="LOGIN_FETCH_TASKS">Fetching tasks…</string>
+    <string name="LOGIN_ERROR_OR_CANCELLED">Login cancelled, or error.</string>
+    <string name="LOGIN_SUCCESSFUL">Login Successful.</string>
+    <string name="ACCESS_TOKEN_EXPIRED">Access Token expired. Refresh before continuing.</string>
+
+
     <!-- Strings related to Contextual Action Bar -->
     <string name="edit_task">Edit</string>
     <string name="delete_task">Delete</string>
@@ -75,18 +88,32 @@
         <item>360</item>
         <item>-1</item>
     </string-array>
-    
+
     <string name="pref_title_system_sync_settings">System sync settings</string>
-    
+
     <!-- Example settings for Notifications -->
     <string name="pref_header_notifications">Notifications</string>
-    
+
     <string name="pref_title_new_message_notifications">New message notifications</string>
-    
+
     <string name="pref_title_ringtone">Ringtone</string>
     <string name="pref_ringtone_silent">Silent</string>
-    
+
     <string name="pref_title_vibrate">Vibrate</string>
-    
-    
+    <string name="title_activity_login">Sign in</string>
+
+    <!-- Strings related to login -->
+    <string name="prompt_email">Email</string>
+    <string name="prompt_password">Password (optional)</string>
+    <string name="action_sign_in">Sign in or register</string>
+    <string name="action_sign_in_short">Sign in</string>
+    <string name="error_invalid_email">This email address is invalid</string>
+    <string name="error_invalid_password">This password is too short</string>
+    <string name="error_incorrect_password">This password is incorrect</string>
+    <string name="error_field_required">This field is required</string>
+    <string name="permission_rationale">"Contacts permissions are needed for providing email
+        completions."
+    </string>
+
+
 </resources>

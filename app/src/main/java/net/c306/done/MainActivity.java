@@ -38,6 +38,7 @@ import net.c306.done.sync.IDTAccountManager;
 import net.c306.done.sync.IDTSyncAdapter;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 // TODO: 20/02/16 Group dones under date headers in listView
@@ -201,6 +202,8 @@ public class MainActivity
         );
     
         IDTSyncAdapter.initializeSyncAdapter(this, Utils.getUsername(this));
+    
+        Log.wtf(LOG_TAG, "Access token expires at: " + new Date(Utils.getExpiryTime(this)));
     }
     
     
@@ -290,7 +293,7 @@ public class MainActivity
         getMenuInflater().inflate(R.menu.menu_main, menu);
         
         // Check if logged in, and show Login/Logout buttons accordingly
-        if (Utils.haveValidToken(this))
+        if (Utils.getAccessToken(this) != null)
             menu.removeItem(R.id.action_login);
         else
             menu.removeItem(R.id.action_logout);
@@ -308,15 +311,16 @@ public class MainActivity
         
         switch (id) {
             case R.id.action_settings:
-            case R.id.action_login: {
                 Intent settingsIntent = new Intent(MainActivity.this, SettingsActivity.class);
                 settingsIntent.putExtra(PreferenceActivity.EXTRA_SHOW_FRAGMENT, SettingsActivity.GeneralPreferenceFragment.class.getName());
                 settingsIntent.putExtra(PreferenceActivity.EXTRA_NO_HEADERS, true);
-                
-                if (id == R.id.action_login)
-                    settingsIntent.putExtra(PreferenceActivity.EXTRA_SHOW_FRAGMENT_ARGUMENTS, Utils.ACTION_SHOW_AUTH);
-                
+                //settingsIntent.putExtra(PreferenceActivity.EXTRA_SHOW_FRAGMENT_ARGUMENTS, Utils.ACTION_SHOW_AUTH);
                 startActivity(settingsIntent);
+                return true;
+    
+            case R.id.action_login: {
+                Intent loginActivityIntent = new Intent(this, LoginActivity.class);
+                startActivityForResult(loginActivityIntent, Utils.LOGIN_ACTIVITY_IDENTIFIER);
                 return true;
             }
             
@@ -328,6 +332,38 @@ public class MainActivity
         return super.onOptionsItemSelected(item);
     }
     
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        
+        switch (requestCode) {
+            case Utils.LOGIN_ACTIVITY_IDENTIFIER: {
+                
+                if (mSnackbar != null && mSnackbar.isShown())
+                    mSnackbar.dismiss();
+                
+                if (resultCode == RESULT_CANCELED) {
+                    // If error, show toast/snackbar.
+                    mSnackbar = Snackbar.make(findViewById(R.id.fab), R.string.LOGIN_ERROR_OR_CANCELLED, Snackbar.LENGTH_LONG);
+                    mSnackbar.setAction("Dismiss", new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            if (mSnackbar != null && mSnackbar.isShown())
+                                mSnackbar.dismiss();
+                        }
+                    })
+                            .setActionTextColor(ContextCompat.getColor(this, R.color.link_colour))
+                            .show();
+                    
+                } else if (resultCode == RESULT_OK) {
+                    // If success, do nothing
+                    mSnackbar = Snackbar.make(findViewById(R.id.fab), R.string.LOGIN_SUCCESSFUL, Snackbar.LENGTH_SHORT);
+                    mSnackbar.setAction("Dismiss", null).show();
+                }
+                
+            }
+        }
+    }
     
     /* Save scroll state */
     @Override

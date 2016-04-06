@@ -1,12 +1,11 @@
-package net.c306.done.sync;
+package net.c306.done.auth;
 
 import android.app.Service;
 import android.content.Intent;
 import android.os.IBinder;
 
-/**
- * Created by raven on 17/03/16.
- */
+import net.c306.done.sync.IDTAuthenticator;
+
 public class IDTAuthenticatorService extends Service {
     
     /**

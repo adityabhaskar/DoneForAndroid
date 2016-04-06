@@ -17,7 +17,7 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
-
+@Deprecated
 public class CheckTokenTask extends AsyncTask<Void, Void, String> {
     
     private final String LOG_TAG = Utils.LOG_TAG + this.getClass().getSimpleName();
@@ -46,7 +46,7 @@ public class CheckTokenTask extends AsyncTask<Void, Void, String> {
         Utils.setTokenValidity(mContext, false);
         
         // Get authtoken from SharedPrefs
-        mAuthToken = Utils.getAuthTokenWithoutValidityCheck(mContext);
+        mAuthToken = Utils.getAccessToken(mContext);
     
         if (mAuthToken == null) {
             Log.e(LOG_TAG, "No Auth Token Found!");

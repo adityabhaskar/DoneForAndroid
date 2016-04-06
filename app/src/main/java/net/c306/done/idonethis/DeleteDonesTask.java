@@ -61,7 +61,6 @@ public class DeleteDonesTask extends AsyncTask<Void, Void, Integer> {
         
         HttpURLConnection httpcon = null;
         BufferedReader br = null;
-        final String url = "https://idonethis.com/api/v0.1/dones/";
         List<Integer> deletedDonesList = new ArrayList<>();
         int returnCount = 0;
         
@@ -95,8 +94,8 @@ public class DeleteDonesTask extends AsyncTask<Void, Void, Integer> {
             
                     try {
                         //Connect
-                        httpcon = (HttpURLConnection) ((new URL(url + id + "/").openConnection()));
-                        httpcon.setRequestProperty("Authorization", "Token " + mAuthToken);
+                        httpcon = (HttpURLConnection) ((new URL(Utils.IDT_DONE_URL + id + "/").openConnection()));
+                        httpcon.setRequestProperty("Authorization", "Bearer " + mAuthToken);
                         httpcon.setRequestProperty("Content-Type", "application/json");
                         httpcon.setRequestProperty("Accept", "application/json");
                         httpcon.setRequestMethod("DELETE");

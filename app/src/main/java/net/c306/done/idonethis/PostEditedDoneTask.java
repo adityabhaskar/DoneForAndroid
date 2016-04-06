@@ -69,7 +69,6 @@ public class PostEditedDoneTask extends AsyncTask<Void, Void, Integer> {
         
         HttpURLConnection httpcon = null;
         BufferedReader br = null;
-        final String url = "https://idonethis.com/api/v0.1/dones/";
         
         String result = "";
         int patchedTaskCount = 0;
@@ -129,7 +128,7 @@ public class PostEditedDoneTask extends AsyncTask<Void, Void, Integer> {
                         httpcon = (HttpURLConnection) (patchTaskURL.openConnection());
                         httpcon.setRequestMethod("PUT");
                         httpcon.setDoOutput(true);
-                        httpcon.setRequestProperty("Authorization", "Token " + mAuthToken);
+                        httpcon.setRequestProperty("Authorization", "Bearer " + mAuthToken);
                         httpcon.setRequestProperty("Content-Type", "application/json");
                         httpcon.setRequestProperty("Accept", "application/json");
                         
