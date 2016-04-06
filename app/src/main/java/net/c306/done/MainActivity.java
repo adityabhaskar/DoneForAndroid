@@ -359,6 +359,9 @@ public class MainActivity
                     // If success, do nothing
                     mSnackbar = Snackbar.make(findViewById(R.id.fab), R.string.LOGIN_SUCCESSFUL, Snackbar.LENGTH_SHORT);
                     mSnackbar.setAction("Dismiss", null).show();
+    
+                    // Switch login & logout buttons
+                    invalidateOptionsMenu();
                 }
                 
             }
