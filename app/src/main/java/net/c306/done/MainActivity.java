@@ -194,16 +194,17 @@ public class MainActivity
         
         // Set colours for refresher
         SwipeRefreshLayout swp = (SwipeRefreshLayout) findViewById(R.id.swipe_refresh_layout);
-        swp.setColorSchemeResources(
-                R.color.accent,
-                R.color.link_colour,
-                R.color.team1,
-                R.color.primary
-        );
+        if (swp != null)
+            swp.setColorSchemeResources(
+                    R.color.accent,
+                    R.color.link_colour,
+                    R.color.team1,
+                    R.color.primary
+            );
     
-        IDTSyncAdapter.initializeSyncAdapter(this, Utils.getUsername(this));
+        IDTSyncAdapter.initializeSyncAdapter(this);
     
-        Log.wtf(LOG_TAG, "Access token expires at: " + new Date(Utils.getExpiryTime(this)));
+        Log.i(LOG_TAG, "Access token expires at: " + new Date(Utils.getExpiryTime(this)));
     }
     
     

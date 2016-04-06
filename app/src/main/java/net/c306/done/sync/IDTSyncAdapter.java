@@ -101,9 +101,9 @@ public class IDTSyncAdapter extends AbstractThreadedSyncAdapter {
         ContentResolver.requestSync(request);
     }
     
-    public static void initializeSyncAdapter(Context context, String username) {
+    public static void initializeSyncAdapter(Context context) {
         Log.v(LOG_TAG, "Initialising sync adapter");
-        IDTAccountManager.createSyncAccount(context, username);
+        IDTAccountManager.createSyncAccount(context);
     }
     
     @Override
@@ -116,11 +116,12 @@ public class IDTSyncAdapter extends AbstractThreadedSyncAdapter {
             return;
     
         if (Utils.isTokenExpired(getContext())) {
-            // TODO: 06/04/16 Launch refresh token task 
+            // Launch refresh token task
+            new RefreshTokenTask(getContext()).execute();
             return;
         }
-            
-        
+    
+    
         boolean fromDoneDeleteEditTasks = extras.getBoolean(Utils.INTENT_EXTRA_FROM_DONE_DELETE_EDIT_TASKS, false);
         int teamCount = 0;
     
@@ -140,7 +141,7 @@ public class IDTSyncAdapter extends AbstractThreadedSyncAdapter {
                     null, // Selection Args
                     null  // Sort Order
             );
-        
+    
             if (cursor != null) {
                 if (cursor.getCount() > 0) {
                     Log.v(LOG_TAG, "Found " + cursor.getCount() + " unsent tasks, post them before fetching");

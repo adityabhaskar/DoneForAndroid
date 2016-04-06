@@ -29,7 +29,6 @@ import android.view.MenuItem;
 import android.widget.Toast;
 
 import net.c306.done.db.DoneListContract;
-import net.c306.done.idonethis.CheckTokenTask;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -235,7 +234,7 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
             case Utils.AUTH_TOKEN:
                 // TODO: 05/04/16 Remove auth token field from settings 
                 Log.wtf(LOG_TAG, key + " changed.");
-                new CheckTokenTask(this).execute();
+                //new CheckTokenTask(this).execute();
                 break;
         
             case Utils.DEFAULT_TEAM:

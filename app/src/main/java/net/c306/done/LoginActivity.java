@@ -261,7 +261,6 @@ public class LoginActivity extends AccountAuthenticatorActivity {
                 HttpsURLConnection httpcon = null;
                 String result = "";
                 
-                // Iterate over unsent dones 
                 if (!isCancelled()) {
                     
                     try {
@@ -275,7 +274,7 @@ public class LoginActivity extends AccountAuthenticatorActivity {
                         httpcon.setDoOutput(true);
                         httpcon.setRequestProperty("Authorization", Utils.AUTH_HEADER);
                         httpcon.setRequestProperty("Cache-Control", "no-cache");
-                        httpcon.setRequestProperty("Content-Type", "application/json");
+                        httpcon.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
                         httpcon.setRequestProperty("Accept", "application/json");
                         httpcon.setRequestMethod("POST");
                         httpcon.setUseCaches(false);
@@ -468,7 +467,7 @@ public class LoginActivity extends AccountAuthenticatorActivity {
                 Log.v(LOG_TAG, "Retrieved username successfully");
                 
                 // Create sync account with username. Also schedules and starts sync
-                if (null != IDTAccountManager.createSyncAccount(mContext, username)) {
+                if (null != IDTAccountManager.createSyncAccount(mContext)) {
                     
                     // Send message to finish activity
                     updateBus.post(new LoginUpdateEvent(mContext.getString(R.string.LOGIN_USERNAME_ACQUIRED), View.VISIBLE, Utils.LOGIN_FINISHED));

@@ -26,7 +26,6 @@ public class Utils {
     /****
      * CONSTANTS FOR THE AUTHORIZATION PROCESS
      ****/
-    // TODO: 06/04/16 Delete values in this section before git upload 
     
     // This is the public api key of our application
     public static final String CLIENT_ID = "";
@@ -42,7 +41,9 @@ public class Utils {
     // We use a made up url that we will intercept when redirecting. Avoid Uppercases. 
     public static final String REDIRECT_URI = "";
     
+    
     /*************************************************/
+    
     
     // SyncAdapter related
     public static final int SYNC_INTERVAL = 15 * 60; // every 15 minutes

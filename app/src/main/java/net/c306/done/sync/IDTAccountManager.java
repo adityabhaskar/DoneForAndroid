@@ -46,16 +46,59 @@ public class IDTAccountManager {
     
     
     @Nullable
-    public static Account createSyncAccount(Context context, String username) {
-        
+    public static Account createSyncAccount(Context context) {
+    
+        String username = Utils.getUsername(context);
         if (username == null || username.equals("")) {
-            username = Utils.getUsername(context);
-            if (username == null || username.equals("")) {
-                Log.e(LOG_TAG, "No username found");
-                return null;
-            }
+            Log.e(LOG_TAG, "No username found");
+            return null;
         }
     
+        String authToken = Utils.getAccessToken(context);
+    
+        if (authToken == null || authToken.equals("")) {
+            Log.e(LOG_TAG, "No auth token found");
+            return null;
+        }
+    
+        // Get an instance of the Android account manager
+        AccountManager accountManager =
+                (AccountManager) context.getSystemService(Context.ACCOUNT_SERVICE);
+    
+        // Create the account type and default account
+        Account newAccount = new Account(
+                username, context.getString(R.string.sync_account_type));
+    
+        // If the password doesn't exist, the account doesn't exist
+        if (null == accountManager.getPassword(newAccount)) {
+            Log.v(LOG_TAG, "Account doesn't exist, trying to create it");
+            
+            /*
+             * Add the account and account type, no password or user data
+             * If successful, return the Account object, otherwise report an error.
+             */
+            if (!accountManager.addAccountExplicitly(newAccount, "", null)) {
+                return null;
+            }
+        
+            accountManager.setAuthToken(newAccount, Utils.AUTH_TOKEN, authToken);
+        
+            IDTSyncAdapter.onAccountCreated(newAccount, context);
+        }
+    
+        return newAccount;
+    }
+    
+    
+    @Nullable
+    public static Account updateSyncAccountToken(Context context) {
+        
+        String username = Utils.getUsername(context);
+        if (username == null || username.equals("")) {
+            Log.e(LOG_TAG, "No username found");
+            return null;
+        }
+        
         String authToken = Utils.getAccessToken(context);
         
         if (authToken == null || authToken.equals("")) {
@@ -86,6 +129,8 @@ public class IDTAccountManager {
             accountManager.setAuthToken(newAccount, Utils.AUTH_TOKEN, authToken);
     
             IDTSyncAdapter.onAccountCreated(newAccount, context);
+        } else {
+            accountManager.setAuthToken(newAccount, Utils.AUTH_TOKEN, authToken);
         }
         
         return newAccount;
