@@ -6,7 +6,6 @@ import android.content.ContentProviderClient;
 import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
-import android.content.SyncRequest;
 import android.content.SyncResult;
 import android.database.Cursor;
 import android.os.Bundle;
@@ -66,15 +65,11 @@ public class IDTSyncAdapter extends AbstractThreadedSyncAdapter {
     }
     
     public static void onAccountCreated(Account newAccount, Context context) {
+        Log.v(LOG_TAG, "In onAccountCreated...");
         /*
-         * Since we've created an account
+         * Since we've created an account, configure & initialize sync
          */
-        IDTSyncAdapter.configurePeriodicSync(context, Utils.SYNC_INTERVAL, Utils.SYNC_FLEXTIME);
-        
-        /*
-         * Without calling setSyncAutomatically, our periodic sync will not be enabled.
-         */
-        ContentResolver.setSyncAutomatically(newAccount, context.getString(R.string.content_authority), true);
+        IDTSyncAdapter.configurePeriodicSync(context, Utils.getSyncInterval(context));
         
         /*
          * Finally, let's do a sync to get things started
@@ -85,7 +80,7 @@ public class IDTSyncAdapter extends AbstractThreadedSyncAdapter {
     /**
      * Helper method to schedule the sync adapter periodic execution
      */
-    public static void configurePeriodicSync(Context context, int syncInterval, int flexTime) {
+    public static void configurePeriodicSync(Context context, int syncInterval) {
         String authority = context.getString(R.string.content_authority);
         Account account = IDTAccountManager.getSyncAccount(context);
         
@@ -94,16 +89,44 @@ public class IDTSyncAdapter extends AbstractThreadedSyncAdapter {
             return;
         }
         
-        SyncRequest request = new SyncRequest.Builder().
-                syncPeriodic(syncInterval, flexTime).
-                setSyncAdapter(account, authority).
-                setExtras(new Bundle()).build();
-        ContentResolver.requestSync(request);
+        /*
+         * Without calling setSyncAutomatically, our periodic sync will not be enabled.
+         */
+        ContentResolver.setIsSyncable(account, authority, Utils.SYNC_SYNCABLE);
+        ContentResolver.setSyncAutomatically(account, authority, true);
+    
+        ContentResolver.addPeriodicSync(account, authority, new Bundle(), syncInterval);
+    }
+    
+    public static void stopPeriodicSync(Context context) {
+        
+        Account account = IDTAccountManager.getSyncAccount(context);
+        
+        if (account == null) {
+            Log.e(LOG_TAG, "No account found to remove periodic sync");
+            return;
+        }
+        
+        String authority = context.getString(R.string.content_authority);
+        
+        ContentResolver.removePeriodicSync(
+                account,
+                authority,
+                new Bundle()
+        );
+        ContentResolver.setIsSyncable(account, authority, Utils.SYNC_NOT_SYNCABLE);
+        ContentResolver.setSyncAutomatically(account, authority, false);
     }
     
     public static void initializeSyncAdapter(Context context) {
         Log.v(LOG_TAG, "Initialising sync adapter");
-        IDTAccountManager.createSyncAccount(context);
+    
+        Account account = IDTAccountManager.getSyncAccount(context);
+    
+        if (account != null)
+            IDTSyncAdapter.configurePeriodicSync(context, Utils.getSyncInterval(context));
+        else
+            Log.w(LOG_TAG, "No sync account found");
     }
     
     @Override

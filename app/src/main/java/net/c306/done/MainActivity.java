@@ -88,8 +88,8 @@ public class MainActivity
                     ) {
                 
                 SwipeRefreshLayout swp = (SwipeRefreshLayout) findViewById(R.id.swipe_refresh_layout);
-        
-                //if (swp.isRefreshing())
+    
+                if (swp != null)
                     swp.setRefreshing(false);
         
             }
@@ -147,8 +147,8 @@ public class MainActivity
                     if (sender.equals(Utils.SENDER_FETCH_TASKS)) {
                         
                         SwipeRefreshLayout swp = (SwipeRefreshLayout) findViewById(R.id.swipe_refresh_layout);
-            
-                        if (!swp.isRefreshing()) {
+    
+                        if (swp != null && !swp.isRefreshing()) {
                             // If fetch started, and refresher not showing, start it
                             swp.setRefreshing(true);
                         }
@@ -178,8 +178,9 @@ public class MainActivity
         mDoneListAdapter = new DoneListAdapter(this, R.layout.list_row_layout, null, 0);
         
         mListView = (ListView) findViewById(R.id.dones_list_view);
-        
-        mListView.setAdapter(mDoneListAdapter);
+    
+        if (mListView != null)
+            mListView.setAdapter(mDoneListAdapter);
         
         // If there's instance state, mine it for useful information.
         if (savedInstanceState != null && savedInstanceState.containsKey(SELECTED_KEY)) {
@@ -202,8 +203,9 @@ public class MainActivity
                     R.color.primary
             );
     
-        IDTSyncAdapter.initializeSyncAdapter(this);
-    
+        // Initialize sync (if there's an existing account)
+        IDTSyncAdapter.initializeSyncAdapter(getApplicationContext());
+        
         Log.i(LOG_TAG, "Access token expires at: " + new Date(Utils.getExpiryTime(this)));
     }
     
@@ -224,7 +226,8 @@ public class MainActivity
         
         // Register to get on swiped events
         SwipeRefreshLayout swp = (SwipeRefreshLayout) findViewById(R.id.swipe_refresh_layout);
-        swp.setOnRefreshListener(this);
+        if (swp != null)
+            swp.setOnRefreshListener(this);
     }
     
     
@@ -255,15 +258,18 @@ public class MainActivity
                         // User confirmed Logout
                         Log.v(LOG_TAG, "Logging out...");
     
-                        // remove Account from system account manager
+                        // Stop periodic sync
+                        IDTSyncAdapter.stopPeriodicSync(getApplicationContext());
+    
+                        // Remove Account from system account manager
                         IDTAccountManager.removeSyncAccount(context);
                         Log.v(LOG_TAG, "Account removed...");
-                        
-                        // empty database
+    
+                        // Empty database
                         getContentResolver().delete(DoneListContract.DoneEntry.CONTENT_URI, null, null);
                         Log.v(LOG_TAG, "Database deleted.");
-                        
-                        // empty sharedPreferences
+    
+                        // Empty sharedPreferences
                         Utils.resetSharedPreferences(context);
                         Log.v(LOG_TAG, "SharedPreferences emptied.");
     
@@ -313,8 +319,8 @@ public class MainActivity
         switch (id) {
             case R.id.action_settings:
                 Intent settingsIntent = new Intent(MainActivity.this, SettingsActivity.class);
-                settingsIntent.putExtra(PreferenceActivity.EXTRA_SHOW_FRAGMENT, SettingsActivity.GeneralPreferenceFragment.class.getName());
-                settingsIntent.putExtra(PreferenceActivity.EXTRA_NO_HEADERS, true);
+                //settingsIntent.putExtra(PreferenceActivity.EXTRA_SHOW_FRAGMENT, SettingsActivity.GeneralPreferenceFragment.class.getName());
+                //settingsIntent.putExtra(PreferenceActivity.EXTRA_NO_HEADERS, true);
                 //settingsIntent.putExtra(PreferenceActivity.EXTRA_SHOW_FRAGMENT_ARGUMENTS, Utils.ACTION_SHOW_AUTH);
                 startActivity(settingsIntent);
                 return true;

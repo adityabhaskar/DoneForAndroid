@@ -2,8 +2,12 @@
 <resources>
 
     <!-- SharedPreferences string names -->
-    <string name="AUTH_TOKEN">authToken</string> <!-- Should always have the same value as Utils.AUTH_TOKEN-->
-    <string name="DEFAULT_TEAM">defaultTeam</string> <!-- Should always have the same value as Utils.DEFAULT_TEAM-->
+
+    <!-- Should always have the same value as Utils.DEFAULT_TEAM-->
+    <string name="DEFAULT_TEAM">defaultTeam</string>
+
+    <!-- Should always have the same value as Utils.PREFS_SYNC_FREQUENCY-->
+    <string name="PREF_SYNC_FREQUENCY">sync_frequency</string>
 
     <!-- SyncAdapter related -->
     <string name="sync_account_type">done.c306.net</string>

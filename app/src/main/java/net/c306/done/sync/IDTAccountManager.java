@@ -20,10 +20,24 @@ public class IDTAccountManager {
      * onAccountCreated method so we can initialize things.
      *
      * @param context The context used to access the account service
-     * @return a fake account.
+     * @return The sync account, or null if none found
      */
     @Nullable
     public static Account getSyncAccount(Context context) {
+    
+        // Get username
+        String username = Utils.getUsername(context);
+        if (username == null || username.equals("")) {
+            Log.w(LOG_TAG, "No username found");
+            return null;
+        }
+    
+        // Get accessToken
+        String accessToken = Utils.getAccessToken(context);
+        if (accessToken == null || accessToken.equals("")) {
+            Log.w(LOG_TAG, "No auth token found");
+            return null;
+        }
         
         // Get an instance of the Android account manager
         AccountManager accountManager =
@@ -34,10 +48,9 @@ public class IDTAccountManager {
                 Utils.getUsername(context), context.getString(R.string.sync_account_type));
         
         // If the password doesn't exist, the account doesn't exist
-        if (null == accountManager.peekAuthToken(newAccount, Utils.AUTH_TOKEN)) {
+        if (null == accountManager.getPassword(newAccount)) {
             Log.v(LOG_TAG, "No sync account found!");
             return null;
-            //newAccount = createSyncAccount(context);
         }
         
         Log.v(LOG_TAG, "Found account for: " + newAccount.name);
@@ -48,16 +61,17 @@ public class IDTAccountManager {
     @Nullable
     public static Account createSyncAccount(Context context) {
     
+        // Get username
         String username = Utils.getUsername(context);
         if (username == null || username.equals("")) {
-            Log.e(LOG_TAG, "No username found");
+            Log.w(LOG_TAG, "No username found");
             return null;
         }
     
-        String authToken = Utils.getAccessToken(context);
-    
-        if (authToken == null || authToken.equals("")) {
-            Log.e(LOG_TAG, "No auth token found");
+        // Get accessToken
+        String accessToken = Utils.getAccessToken(context);
+        if (accessToken == null || accessToken.equals("")) {
+            Log.w(LOG_TAG, "No auth token found");
             return null;
         }
     
@@ -80,9 +94,9 @@ public class IDTAccountManager {
             if (!accountManager.addAccountExplicitly(newAccount, "", null)) {
                 return null;
             }
-        
-            accountManager.setAuthToken(newAccount, Utils.AUTH_TOKEN, authToken);
-        
+    
+            accountManager.setAuthToken(newAccount, Utils.AUTH_TOKEN, accessToken);
+            
             IDTSyncAdapter.onAccountCreated(newAccount, context);
         }
     

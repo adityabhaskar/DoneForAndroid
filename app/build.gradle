@@ -8,8 +8,8 @@ android {
         applicationId "net.c306.done"
         minSdkVersion 19
         targetSdkVersion 23
-        versionCode 7
-        versionName "0.1.0.x dev"
+        versionCode 8
+        versionName "0.1.1.x dev"
     }
     buildTypes {
         alpha {

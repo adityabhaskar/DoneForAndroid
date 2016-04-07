@@ -32,14 +32,25 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+
         <activity
             android:name=".NewDoneActivity"
             android:parentActivityName=".MainActivity">
         </activity>
+
         <activity
             android:name=".SettingsActivity"
             android:label="@string/title_activity_settings"
             android:parentActivityName=".MainActivity">
+        </activity>
+
+        <activity
+            android:name=".LoginActivity"
+            android:label="@string/title_activity_login"
+            android:parentActivityName=".MainActivity">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="net.c306.done.MainActivity"/>
         </activity>
 
         <provider
@@ -71,15 +82,6 @@
                 android:name="android.content.SyncAdapter"
                 android:resource="@xml/syncadapter"/>
         </service>
-
-        <activity
-            android:name=".LoginActivity"
-            android:label="@string/title_activity_login"
-            android:parentActivityName=".MainActivity">
-            <meta-data
-                android:name="android.support.PARENT_ACTIVITY"
-                android:value="net.c306.done.MainActivity"/>
-        </activity>
     </application>
 
 </manifest>

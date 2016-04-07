@@ -19,7 +19,6 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.util.Arrays;
 import java.util.Date;
-import java.util.Map;
 
 public class Utils {
     
@@ -44,11 +43,12 @@ public class Utils {
     
     /*************************************************/
     
-    
     // SyncAdapter related
-    public static final int SYNC_INTERVAL = 15 * 60; // every 15 minutes
-    public static final int SYNC_FLEXTIME = SYNC_INTERVAL / 3;
+    public static final int SYNC_DEFAULT_INTERVAL = 60 * 60; // every 15 minutes
+    public static final int SYNC_SYNCABLE = 1;
+    public static final int SYNC_NOT_SYNCABLE = 0;
     public static final int TASKS_TO_FETCH = 100;
+    
     
     // Activity identifiers in startActivityForResult
     public static final int MAIN_ACTIVITY_IDENTIFIER = 7001;
@@ -82,6 +82,7 @@ public class Utils {
     
     // SharedPreferences property names 
     public static final String AUTH_TOKEN = "authToken";
+    public static final String PREF_SYNC_FREQUENCY = "sync_frequency"; // Must have same value as @R/constants/PREF_SYNC_FREQUENCY
     public static final String DEFAULT_TEAM = "defaultTeam";
     public static final String TEAMS = "teams";
     public static final String VALID_TOKEN = "validToken";
@@ -110,6 +111,21 @@ public class Utils {
     public static final int CHECK_TOKEN_CANCELLED_OFFLINE = 19714;
     public static final int CHECK_TOKEN_OTHER_ERROR = 19715;
     
+    /*
+    *           
+    *           Methods start here
+    *           
+    * */
+    
+    
+    public static int getSyncInterval(Context c) {
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(c);
+        
+        return Integer.parseInt(prefs.getString(
+                Utils.PREF_SYNC_FREQUENCY,
+                String.valueOf(Utils.SYNC_DEFAULT_INTERVAL)
+        ));
+    }
     
     // TODO: 06/04/16 Remove/Edit this function 
     public static void setTokenValidity(Context c, boolean flag) {
@@ -311,28 +327,17 @@ public class Utils {
         // Delete app settings shared prefs
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(c);
         SharedPreferences.Editor editor = prefs.edit();
-        Map<String, ?> prefsAll = prefs.getAll();
+        editor.clear()
+                .putString(Utils.PREF_SYNC_FREQUENCY, String.valueOf(Utils.SYNC_DEFAULT_INTERVAL))
+                .apply();
         
-        for (Map.Entry<String, ?> entry :
-                prefsAll.entrySet()) {
-            editor.remove(entry.getKey());
-        }
         
-        editor.apply();
-    
-    
         // Delete user details shared prefs
-        prefs = c.getSharedPreferences(Utils.USER_DETAILS_PREFS_FILENAME, 0);
+        prefs = c.getSharedPreferences(Utils.USER_DETAILS_PREFS_FILENAME, Context.MODE_PRIVATE);
         editor = prefs.edit();
-        prefsAll = prefs.getAll();
-    
-        for (Map.Entry<String, ?> entry :
-                prefsAll.entrySet()) {
-            editor.remove(entry.getKey());
-        }
-    
-        editor.apply();
-    
+        editor.clear()
+                .apply();
+        
     }
     
 }

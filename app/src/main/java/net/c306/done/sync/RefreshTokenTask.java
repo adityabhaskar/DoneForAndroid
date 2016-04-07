@@ -50,7 +50,7 @@ public class RefreshTokenTask extends AsyncTask<Void, Void, Boolean> {
             cancel(true);
             return;
         }
-        
+    
         Log.v(LOG_TAG, "Starting token refresh... ");
     }
     

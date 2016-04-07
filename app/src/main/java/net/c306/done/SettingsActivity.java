@@ -2,10 +2,8 @@ package net.c306.done;
 
 
 import android.annotation.TargetApi;
-import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.database.Cursor;
@@ -20,15 +18,13 @@ import android.preference.PreferenceActivity;
 import android.preference.PreferenceFragment;
 import android.preference.PreferenceManager;
 import android.preference.RingtonePreference;
-import android.support.design.widget.Snackbar;
-import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.ActionBar;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.MenuItem;
-import android.widget.Toast;
 
 import net.c306.done.db.DoneListContract;
+import net.c306.done.sync.IDTSyncAdapter;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -64,7 +60,7 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
                 // Set the summary to reflect the new value.
                 if (index >= 0)
                     preference.setSummary(listPreference.getEntries()[index]);
-        
+    
             } else if (preference instanceof RingtonePreference) {
                 // For ringtone preferences, look up the correct display value
                 // using RingtoneManager.
@@ -95,75 +91,7 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
             return true;
         }
     };
-    
     private final String LOG_TAG = Utils.LOG_TAG + this.getClass().getSimpleName();
-    Snackbar mSnackbar = null;
-    // Our handler for received Intents. This will be called whenever an Intent
-    // with an action named "custom-event-name" is broadcasted.
-    // Src: http://stackoverflow.com/questions/8802157/how-to-use-localbroadcastmanager    
-    
-    private BroadcastReceiver mMessageReceiver = new BroadcastReceiver() {
-        
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            // Who is sending message?
-            String sender = intent.getStringExtra("sender");
-            int action = intent.getIntExtra("action", -1);
-            String message = intent.getStringExtra("message");
-    
-            if (sender.equals(Utils.SENDER_CHECK_TOKEN)) {
-                switch (action) {
-                    case Utils.CHECK_TOKEN_STARTED: {
-                        // Do nothing for now
-                        if (mSnackbar != null && mSnackbar.isShownOrQueued())
-                            mSnackbar.dismiss();
-                        mSnackbar = Snackbar.make(getListView(), "Checking token...", Snackbar.LENGTH_INDEFINITE);
-                        mSnackbar.setAction("", null);
-                        mSnackbar.show();
-                        break;
-                    }
-    
-                    case Utils.CHECK_TOKEN_SUCCESSFUL: {
-                        if (mSnackbar != null && mSnackbar.isShownOrQueued())
-                            mSnackbar.dismiss();
-                        mSnackbar = Snackbar.make(getListView(), "User " + message + " authenticated.", Snackbar.LENGTH_SHORT);
-                        mSnackbar.setAction("", null);
-                        mSnackbar.show();
-                        //Toast.makeText(getApplicationContext(), "User " + message + " authenticated. Thank you!", Toast.LENGTH_LONG).show();
-                        Log.v(LOG_TAG, "Broadcast Receiver - User " + message + " authenticated.");
-                        break;
-                    }
-    
-                    case Utils.CHECK_TOKEN_FAILED: {
-                        if (mSnackbar != null && mSnackbar.isShownOrQueued())
-                            mSnackbar.dismiss();
-                        mSnackbar = Snackbar.make(getListView(), "Authentication failed!", Snackbar.LENGTH_LONG);
-                        mSnackbar.setAction("", null);
-                        mSnackbar.show();
-                        //Toast.makeText(getApplicationContext(), "Authentication failed! Please check auth token provided.", Toast.LENGTH_LONG).show();
-                        Log.v(LOG_TAG, "Broadcast Receiver - Authentication failed! " + message);
-                        break;
-                    }
-    
-                    case Utils.CHECK_TOKEN_CANCELLED_OFFLINE: {
-                        if (mSnackbar != null && mSnackbar.isShownOrQueued())
-                            mSnackbar.dismiss();
-                        Toast.makeText(getApplicationContext(), "Offline! Will check authentication when online.", Toast.LENGTH_LONG).show();
-                        Log.v(LOG_TAG, "Broadcast Receiver - Offline. Check again later. " + message);
-                        break;
-                    }
-    
-                    case Utils.CHECK_TOKEN_OTHER_ERROR: {
-                        Toast.makeText(getApplicationContext(), "Server/Network error. Will try again later.", Toast.LENGTH_LONG).show();
-                        Log.v(LOG_TAG, "Broadcast Receiver - Some other error happened while checking auth: " + message);
-                    }
-    
-                }
-            }
-    
-            Log.v(LOG_TAG, "Original message from:" + sender + ",\nwith action:" + action + ", and\nmessage:" + message);
-        }
-    };
     
     /**
      * Helper method to determine if the device has an extra-large screen. For
@@ -208,10 +136,6 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
         PreferenceManager.getDefaultSharedPreferences(this)
                 .registerOnSharedPreferenceChangeListener(this);
         
-        // Register to receive messages.
-        LocalBroadcastManager.getInstance(this).registerReceiver(mMessageReceiver,
-                new IntentFilter(Utils.DONE_LOCAL_BROADCAST_LISTENER_INTENT));
-        
     }
     
     @Override
@@ -220,8 +144,6 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
         
         PreferenceManager.getDefaultSharedPreferences(this)
                 .unregisterOnSharedPreferenceChangeListener(this);
-        
-        LocalBroadcastManager.getInstance(this).unregisterReceiver(mMessageReceiver);
     }
     
     /*
@@ -229,21 +151,26 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
     * */
     @Override
     public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
+    
         switch (key) {
-        
-            case Utils.AUTH_TOKEN:
-                // TODO: 05/04/16 Remove auth token field from settings 
-                Log.wtf(LOG_TAG, key + " changed.");
-                //new CheckTokenTask(this).execute();
+            
+            case Utils.DEFAULT_TEAM:
+                Log.v(LOG_TAG, key + " changed to: " + sharedPreferences.getString(key, ""));
+                // Nothing to do
                 break;
         
-            case Utils.DEFAULT_TEAM:
-                Log.v(LOG_TAG, key + " changed to: " +
-                        sharedPreferences.getString(
-                                Utils.DEFAULT_TEAM,
-                                ""
-                        )
+            case Utils.PREF_SYNC_FREQUENCY:
+                int syncFrequency = Integer.parseInt(
+                        sharedPreferences.getString(key, String.valueOf(Utils.SYNC_DEFAULT_INTERVAL))
                 );
+            
+                Log.v(LOG_TAG, key + " changed to: " + syncFrequency);
+            
+                if (syncFrequency > 0)
+                    IDTSyncAdapter.configurePeriodicSync(getApplicationContext(), syncFrequency);
+                else
+                    IDTSyncAdapter.stopPeriodicSync(getApplicationContext());
+                
                 break;
         
             default:
@@ -319,20 +246,18 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
             // to their values. When their values change, their summaries are
             // updated to reflect the new value, per the Android Design
             // guidelines.
-            bindPreferenceSummaryToValue(findPreference(Utils.AUTH_TOKEN));
             bindPreferenceSummaryToValue(findPreference(Utils.DEFAULT_TEAM));
-            
         }
     
         private void setupTeamsSelector() {
-    
+        
             ListPreference defaultTeamListPreference = (ListPreference) findPreference(Utils.DEFAULT_TEAM);
     
             if (Utils.getAccessToken(getActivity().getApplicationContext()) != null) {
                 
                 // Fill up team names in listPreference in General Preferences
                 defaultTeamListPreference.setEnabled(true);
-        
+    
                 Cursor cursor = getActivity().getContentResolver().query(
                         DoneListContract.TeamEntry.CONTENT_URI,
                         new String[]{
@@ -349,7 +274,7 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
                     
                     List<String> teamNames = new ArrayList<>();
                     List<String> teamURLs = new ArrayList<>();
-            
+    
                     int columnTeamName = cursor.getColumnIndex(DoneListContract.TeamEntry.COLUMN_NAME_NAME);
                     int columnTeamURL = cursor.getColumnIndex(DoneListContract.TeamEntry.COLUMN_NAME_URL);
             
@@ -440,5 +365,4 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
             return super.onOptionsItemSelected(item);
         }
     }
-    
 }
