@@ -226,8 +226,10 @@ public class MainActivity
         
         // Register to get on swiped events
         SwipeRefreshLayout swp = (SwipeRefreshLayout) findViewById(R.id.swipe_refresh_layout);
-        if (swp != null)
+        if (swp != null) {
             swp.setOnRefreshListener(this);
+            swp.setRefreshing(false);
+        }
     }
     
     

@@ -1,10 +1,12 @@
 package net.c306.done;
 
 import android.app.DatePickerDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.database.Cursor;
 import android.os.Bundle;
 import android.support.v7.app.ActionBar;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.Menu;
@@ -49,8 +51,8 @@ public class NewDoneActivity extends AppCompatActivity {
         Intent sender = getIntent();
         mId = sender.getLongExtra(DoneListContract.DoneEntry.COLUMN_NAME_ID, -1);
     
-        populateTeamPicker();
-    
+        populateTeamSpinner();
+        
         if (mId > -1)
             populateForEdit(sender);
         else {
@@ -69,12 +71,12 @@ public class NewDoneActivity extends AppCompatActivity {
                     teamPicker.setSelection(teamURLs.indexOf(state[1]));
                 
             }
-        
+    
             EditText doneDateText = (EditText) findViewById(R.id.done_date_text);
             if (doneDateText != null) {
                 if (state.length >= 3 && state[2] != null && !state[2].equals("")) {
                     String[] dateParts = state[2].split("\\-");
-                
+    
                     Calendar c = Calendar.getInstance();
                     c.set(
                             Integer.parseInt(dateParts[0]),
@@ -83,13 +85,92 @@ public class NewDoneActivity extends AppCompatActivity {
                     );
                     mFormattedDoneDate = userDateFormat.format(c.getTime());
                 }
-            
+    
                 doneDateText.setText(mFormattedDoneDate);
             }
         }
     }
     
-    private void populateTeamPicker() {
+    public void openDatePicker(View view) {
+        String[] baseDatesString = new String[]{
+                "Today",
+                "Yesterday",
+                "Select a date ..."
+        };
+        
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setItems(baseDatesString,
+                new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int which) {
+                        // The 'which' argument contains the index position
+                        // of the selected item
+                        switch (which) {
+                            case 0: {
+                                mDoneDate = idtDateFormat.format(new Date());
+                                mFormattedDoneDate = userDateFormat.format(new Date());
+                                
+                                EditText dateEditText = (EditText) findViewById(R.id.done_date_text);
+                                if (dateEditText != null)
+                                    dateEditText.setText(mFormattedDoneDate);
+                                
+                                break;
+                            }
+                            
+                            case 1: {
+                                Calendar c = Calendar.getInstance();
+                                c.setTime(new Date());
+                                c.add(Calendar.DATE, -1);
+                                mDoneDate = idtDateFormat.format(c.getTime());
+                                mFormattedDoneDate = userDateFormat.format(c.getTime());
+                                
+                                EditText dateEditText = (EditText) findViewById(R.id.done_date_text);
+                                if (dateEditText != null)
+                                    dateEditText.setText(mFormattedDoneDate);
+                                
+                                break;
+                            }
+                            
+                            default: {
+                                String[] dates = mDoneDate.split("\\-");
+                                
+                                mDatePicker = new DatePickerDialog(
+                                        NewDoneActivity.this,
+                                        new DatePickerDialog.OnDateSetListener() {
+                                            @Override
+                                            public void onDateSet(DatePicker view, int year, int monthOfYear, int dayOfMonth) {
+                                                
+                                                Calendar c = Calendar.getInstance();
+                                                c.set(year, monthOfYear, dayOfMonth);
+                                                mFormattedDoneDate = userDateFormat.format(c.getTime());
+                                                
+                                                EditText dateEditText = (EditText) findViewById(R.id.done_date_text);
+                                                if (dateEditText != null)
+                                                    dateEditText.setText(mFormattedDoneDate);
+                                                
+                                                monthOfYear = monthOfYear + 1;
+                                                
+                                                mDoneDate = year + "-" +
+                                                        (monthOfYear < 10 ? "0" : "") + monthOfYear + "-" +
+                                                        (dayOfMonth < 10 ? "0" : "") + dayOfMonth;
+                                                
+                                                Log.v(LOG_TAG, "Changed date to " + mDoneDate);
+                                                
+                                                mDatePicker.hide();
+                                            }
+                                        },
+                                        Integer.parseInt(dates[0]),
+                                        Integer.parseInt(dates[1]) - 1,
+                                        Integer.parseInt(dates[2])
+                                );
+                                mDatePicker.show();
+                            }
+                        }
+                    }
+                });
+        builder.show();
+    }
+    
+    private void populateTeamSpinner() {
         Cursor teamsCursor = getContentResolver().query(
                 DoneListContract.TeamEntry.CONTENT_URI,
                 new String[]{
@@ -121,7 +202,7 @@ public class NewDoneActivity extends AppCompatActivity {
             ArrayAdapter adapter = new ArrayAdapter(this, R.layout.team_selector_spinner, android.R.id.text1, teamNames);
             adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
             teamPicker.setAdapter(adapter);
-        
+    
             // Set default team as initial selection
             teamPicker.setSelection(
                     teamURLs.indexOf(Utils.getDefaultTeam(this))
@@ -337,38 +418,4 @@ public class NewDoneActivity extends AppCompatActivity {
         }
     }
     
-    public void openDatePicker(View view) {
-        String[] dates = mDoneDate.split("\\-");
-        
-        mDatePicker = new DatePickerDialog(
-                NewDoneActivity.this,
-                new DatePickerDialog.OnDateSetListener() {
-                    @Override
-                    public void onDateSet(DatePicker view, int year, int monthOfYear, int dayOfMonth) {
-                        
-                        Calendar c = Calendar.getInstance();
-                        c.set(year, monthOfYear, dayOfMonth);
-                        mFormattedDoneDate = userDateFormat.format(c.getTime());
-                        
-                        EditText dateEditText = (EditText) findViewById(R.id.done_date_text);
-                        if (dateEditText != null)
-                            dateEditText.setText(mFormattedDoneDate);
-                        
-                        monthOfYear = monthOfYear + 1;
-                        
-                        mDoneDate = year + "-" +
-                                (monthOfYear < 10 ? "0" : "") + monthOfYear + "-" +
-                                (dayOfMonth < 10 ? "0" : "") + dayOfMonth;
-                        
-                        Log.v(LOG_TAG, "Changed date to " + mDoneDate);
-                        
-                        mDatePicker.hide();
-                    }
-                },
-                Integer.parseInt(dates[0]),
-                Integer.parseInt(dates[1]) - 1,
-                Integer.parseInt(dates[2])
-        );
-        mDatePicker.show();
-    }
 }
