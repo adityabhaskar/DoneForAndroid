@@ -14,8 +14,11 @@ import net.c306.done.Utils;
 import net.c306.done.db.DoneListContract;
 import net.c306.done.sync.IDTSyncAdapter;
 
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 
 /**
@@ -28,6 +31,7 @@ public class DoneActions {
     private final String LOG_TAG = Utils.LOG_TAG + DoneActions.class.getSimpleName();
     private Context mContext;
     private String mUsername;
+    private SimpleDateFormat idtDateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.UK);
     
     public DoneActions(Context mContext) {
         this.mContext = mContext;
@@ -57,6 +61,7 @@ public class DoneActions {
         newDoneValues.put(DoneListContract.DoneEntry.COLUMN_NAME_OWNER, Utils.getUsername(mContext));
         newDoneValues.put(DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE, doneDate);
         newDoneValues.put(DoneListContract.DoneEntry.COLUMN_NAME_IS_LOCAL, "TRUE");
+        newDoneValues.put(DoneListContract.DoneEntry.COLUMN_NAME_UPDATED, idtDateFormat.format(new Date()));
         mContext.getContentResolver().insert(DoneListContract.DoneEntry.CONTENT_URI, newDoneValues);
     
         IDTSyncAdapter.syncImmediately(mContext);
@@ -87,6 +92,7 @@ public class DoneActions {
         editedContentValues.put(DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT, doneText);
         editedContentValues.put(DoneListContract.DoneEntry.COLUMN_NAME_TEAM, teamUrl);
         editedContentValues.put(DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE, doneDate);
+        editedContentValues.put(DoneListContract.DoneEntry.COLUMN_NAME_UPDATED, idtDateFormat.format(new Date()));
         
         // This will cause issues later since hashtag links in edited, 
         // non-synced dones will disappear till synced again.

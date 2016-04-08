@@ -241,21 +241,11 @@ public class IDTSyncAdapter extends AbstractThreadedSyncAdapter {
             if (result.equals("")) {
                 
                 result = null;
-                
-            } else if (resultStatus == HttpURLConnection.HTTP_OK) {
-                        
-                /*
-                * Not to be used till we can get all updates from server, including deletes
-                * 
-                * */
-                // Update lastUpdate timestamp in SharedPrefs in case another fetchDone is triggered
-                //String lastUpdated = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.UK).format(new Date());
-                //Utils.setLastUpdated(context, lastUpdated);
-                //Log.v(LOG_TAG, "New LastUpdated Time: " + lastUpdated);
-                
+    
+            } else if (resultStatus == HttpURLConnection.HTTP_OK)
                 fetchedTaskCount = getDoneListFromJson(result);
-            }
-            
+    
+    
         } catch (Exception e) {
             result = null;
             e.printStackTrace();

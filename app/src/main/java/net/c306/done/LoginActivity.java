@@ -1,6 +1,7 @@
 package net.c306.done;
 
 import android.annotation.TargetApi;
+import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.net.Uri;
@@ -52,17 +53,13 @@ public class LoginActivity extends AccountAuthenticatorActivity {
     private static final String CLIENT_ID_PARAM = "client_id";
     private static final String STATE_PARAM = "state";
     private static final String REDIRECT_URI_PARAM = "redirect_uri";
-    
-    /******************************************/
     /*----------------------------------------*/
     private static final String QUESTION_MARK = "?";
     private static final String AMPERSAND = "&";
     private static final String EQUALS = "=";
+    private final String LOG_TAG = Utils.LOG_TAG + getClass().getSimpleName();
     
     /*******************************************/
-    /*********************/
-    
-    private final String LOG_TAG = Utils.LOG_TAG + getClass().getSimpleName();
     /****
      * UI elements
      ****/
@@ -71,6 +68,9 @@ public class LoginActivity extends AccountAuthenticatorActivity {
     private ProgressBar mProgressBar;
     private TextView mProgressStatus;
     private Bus bus = new Bus();
+    private ProgressDialog mWebViewLoadingProgress;
+    
+    /*********************/
     
     /**
      * Method that generates the url for get the access token from the Service
@@ -102,7 +102,6 @@ public class LoginActivity extends AccountAuthenticatorActivity {
     
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
         setupActionBar();
@@ -122,56 +121,8 @@ public class LoginActivity extends AccountAuthenticatorActivity {
         if (mProgressBar != null)
             mProgressBar.setIndeterminate(true);
         
-        // TODO: 06/04/16 Add progress bar for WebView loading 
         // Setup webview redirect handling to intercept and acquire authorisation token 
-        mWebView.setWebViewClient(new WebViewClient() {
-            @Override
-            public boolean shouldOverrideUrlLoading(WebView view, String url) {
-                
-                // Retrieve auth token from url here on redirect to REDIRECT_URL 
-                if (url.startsWith(Utils.REDIRECT_URI)) {
-                    
-                    // Hide webview, show progress bar
-                    mWebView.setVisibility(View.GONE);
-                    
-                    Uri uri = Uri.parse(url);
-                    
-                    // We take from the url the authorizationToken and the state token. 
-                    // We have to check that the state token returned by the Service is the same we sent.
-                    // If not, that means the request may be a result of CSRF and must be rejected.
-                    
-                    String stateToken = uri.getQueryParameter(STATE_PARAM);
-                    if (stateToken == null || !stateToken.equals(Utils.STATE)) {
-                        Log.e(LOG_TAG, "Authorize: " + "State token doesn't match");
-                        bus.post(new LoginUpdateEvent("User Cancelled.", View.GONE, Utils.LOGIN_CANCELLED_OR_ERROR));
-                        return true;
-                    }
-                    
-                    // If the user doesn't allow authorization to our application, 
-                    // the authorizationToken Will be null.
-                    
-                    String authorizationToken = uri.getQueryParameter(RESPONSE_TYPE_VALUE);
-                    if (authorizationToken == null) {
-                        Log.v(LOG_TAG, "Authorize: " + "The user doesn't allow authorization.");
-                        bus.post(new LoginUpdateEvent("User Cancelled.", View.GONE, Utils.LOGIN_CANCELLED_OR_ERROR));
-                        return true;
-                    }
-                    Log.v(LOG_TAG, "Authorize: " + "Auth token received: " + authorizationToken);
-                    
-                    // Generate URL for requesting Access Token
-                    String accessTokenUrl = getAccessTokenUrl(authorizationToken);
-                    
-                    // Request AccessToken in a AsyncTask
-                    new RequestAccessTokenAsyncTask(getApplicationContext(), bus).execute(accessTokenUrl);
-                    
-                } else {
-                    // Default behaviour
-                    Log.v(LOG_TAG, "Authorize: " + "Redirecting to: " + url);
-                    mWebView.loadUrl(url);
-                }
-                return true;
-            }
-        });
+        mWebView.setWebViewClient(new LoginWebViewClient());
         
         String authUrl = getAuthorizationUrl();
         Log.v(LOG_TAG, "Authorize: " + "Loading Auth Url: " + authUrl);
@@ -179,6 +130,7 @@ public class LoginActivity extends AccountAuthenticatorActivity {
         //Load the authorization URL into the webView
         mWebView.loadUrl(authUrl);
     }
+    
     
     /**
      * Set up the {@link android.app.ActionBar}, if the API is available.
@@ -374,7 +326,6 @@ public class LoginActivity extends AccountAuthenticatorActivity {
             if (new Date().after(
                     new Date(Utils.getExpiryTime(mContext))
             )) {
-                // TODO: 05/04/16 Replace with code to refresh token 
                 cancel(true);
                 Log.w(LOG_TAG, mContext.getString(R.string.ACCESS_TOKEN_EXPIRED));
                 updateBus.post(new LoginUpdateEvent(mContext.getString(R.string.ACCESS_TOKEN_EXPIRED), View.INVISIBLE, Utils.LOGIN_CANCELLED_OR_ERROR));
@@ -479,7 +430,82 @@ public class LoginActivity extends AccountAuthenticatorActivity {
             // Error handling - cancel activity, notify user.
             Log.v(LOG_TAG, "Error occurred, cancelling login attempt.");
             updateBus.post(new LoginUpdateEvent(mContext.getString(R.string.LOGIN_ERROR_OR_CANCELLED), View.INVISIBLE, Utils.LOGIN_CANCELLED_OR_ERROR));
+    
+        }
+    }
+    
+    
+    private class LoginWebViewClient extends WebViewClient {
+        @Override
+        public boolean shouldOverrideUrlLoading(WebView view, String url) {
             
+            // Retrieve auth token from url here on redirect to REDIRECT_URL 
+            if (url.startsWith(Utils.REDIRECT_URI)) {
+                
+                // Hide webview, show progress bar
+                mWebView.setVisibility(View.GONE);
+                LoginActivity.this.setProgressBarVisibility(false);
+                
+                Uri uri = Uri.parse(url);
+                
+                // We take from the url the authorizationToken and the state token. 
+                // We have to check that the state token returned by the Service is the same we sent.
+                // If not, that means the request may be a result of CSRF and must be rejected.
+                
+                String stateToken = uri.getQueryParameter(STATE_PARAM);
+                if (stateToken == null || !stateToken.equals(Utils.STATE)) {
+                    Log.e(LOG_TAG, "Authorize: " + "State token doesn't match");
+                    bus.post(new LoginUpdateEvent("User Cancelled.", View.GONE, Utils.LOGIN_CANCELLED_OR_ERROR));
+                    return true;
+                }
+                
+                // If the user doesn't allow authorization to our application, 
+                // the authorizationToken Will be null.
+                
+                String authorizationToken = uri.getQueryParameter(RESPONSE_TYPE_VALUE);
+                if (authorizationToken == null) {
+                    Log.v(LOG_TAG, "Authorize: " + "The user doesn't allow authorization.");
+                    bus.post(new LoginUpdateEvent("User Cancelled.", View.GONE, Utils.LOGIN_CANCELLED_OR_ERROR));
+                    return true;
+                }
+                Log.v(LOG_TAG, "Authorize: " + "Auth token received: " + authorizationToken);
+                
+                // Generate URL for requesting Access Token
+                String accessTokenUrl = getAccessTokenUrl(authorizationToken);
+                
+                // Request AccessToken in a AsyncTask
+                new RequestAccessTokenAsyncTask(getApplicationContext(), bus).execute(accessTokenUrl);
+                
+            } else {
+                // Default behaviour
+                Log.v(LOG_TAG, "Authorize: " + "Redirecting to: " + url);
+                mWebView.loadUrl(url);
+            }
+            return true;
+        }
+        
+        @Override
+        public void onLoadResource(WebView view, String url) {
+            super.onLoadResource(view, url);
+            
+            if (mWebViewLoadingProgress == null && url.equals(getAuthorizationUrl())) {
+                // in standard case YourActivity.this
+                mWebViewLoadingProgress = new ProgressDialog(LoginActivity.this);
+                mWebViewLoadingProgress.setMessage("Loading...");
+                mWebViewLoadingProgress.show();
+            }
+        }
+        
+        @Override
+        public void onPageFinished(WebView view, String url) {
+            try {
+                if (mWebViewLoadingProgress.isShowing()) {
+                    mWebViewLoadingProgress.dismiss();
+                    mWebViewLoadingProgress = null;
+                }
+            } catch (Exception exception) {
+                exception.printStackTrace();
+            }
         }
     }
 }

@@ -1,5 +1,6 @@
 package net.c306.done;
 
+import android.app.DatePickerDialog;
 import android.content.Intent;
 import android.database.Cursor;
 import android.os.Bundle;
@@ -8,7 +9,9 @@ import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.ArrayAdapter;
+import android.widget.DatePicker;
 import android.widget.EditText;
 import android.widget.Spinner;
 
@@ -20,19 +23,22 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.Locale;
 
 public class NewDoneActivity extends AppCompatActivity {
     
     private final String LOG_TAG = Utils.LOG_TAG + this.getClass().getSimpleName();
-    //Temporary, till I implement date & team selectors
     Bundle mPreEditBundle = new Bundle();
     List<String> teamNames = new ArrayList<>();
     List<String> teamURLs = new ArrayList<>();
+    private SimpleDateFormat userDateFormat = (SimpleDateFormat) SimpleDateFormat.getDateInstance();
+    private SimpleDateFormat idtDateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.UK);
     private long mId;
     private List<String> mEditedFields;
-    private String mDoneDate = null;
+    private String mDoneDate = idtDateFormat.format(new Date());
+    private String mFormattedDoneDate = userDateFormat.format(new Date());
+    
+    private DatePickerDialog mDatePicker;
     
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -53,13 +59,32 @@ public class NewDoneActivity extends AppCompatActivity {
     
             if (state.length > 0) {
                 EditText editText = (EditText) findViewById(R.id.done_edit_text);
-                editText.setText(state[0]);
-                editText.setSelection(editText.getText().length());
-        
+                if (editText != null) {
+                    editText.setText(state[0]);
+                    editText.setSelection(editText.getText().length());
+                }
+                
                 Spinner teamPicker = (Spinner) findViewById(R.id.team_picker);
-                teamPicker.setSelection(
-                        teamURLs.indexOf(state[1])
-                );
+                if (teamPicker != null)
+                    teamPicker.setSelection(teamURLs.indexOf(state[1]));
+                
+            }
+        
+            EditText doneDateText = (EditText) findViewById(R.id.done_date_text);
+            if (doneDateText != null) {
+                if (state.length >= 3 && state[2] != null && !state[2].equals("")) {
+                    String[] dateParts = state[2].split("\\-");
+                
+                    Calendar c = Calendar.getInstance();
+                    c.set(
+                            Integer.parseInt(dateParts[0]),
+                            Integer.parseInt(dateParts[1]) - 1,
+                            Integer.parseInt(dateParts[2])
+                    );
+                    mFormattedDoneDate = userDateFormat.format(c.getTime());
+                }
+            
+                doneDateText.setText(mFormattedDoneDate);
             }
         }
     }
@@ -92,17 +117,17 @@ public class NewDoneActivity extends AppCompatActivity {
             Log.w(LOG_TAG, "Team cursor returned empty");
         
         Spinner teamPicker = (Spinner) findViewById(R.id.team_picker);
+        if (teamPicker != null) {
+            ArrayAdapter adapter = new ArrayAdapter(this, R.layout.team_selector_spinner, android.R.id.text1, teamNames);
+            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+            teamPicker.setAdapter(adapter);
         
-        ArrayAdapter adapter = new ArrayAdapter(this, R.layout.team_selector_spinner, android.R.id.text1, teamNames);
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        teamPicker.setAdapter(adapter);
-        
-        // Set default team as initial selection
-        teamPicker.setSelection(
-                teamURLs.indexOf(Utils.getDefaultTeam(this))
-        );
+            // Set default team as initial selection
+            teamPicker.setSelection(
+                    teamURLs.indexOf(Utils.getDefaultTeam(this))
+            );
+        }
     }
-    
     
     private void populateForEdit(Intent sender) {
         // Edit activity title to edit task, instead of 'Done!'
@@ -110,35 +135,55 @@ public class NewDoneActivity extends AppCompatActivity {
         if (ab != null) {
             ab.setTitle("Edit Task");
         }
-        
-        // Populate activity view with details
-        EditText editText = (EditText) findViewById(R.id.done_edit_text);
-        editText.setText(sender.getStringExtra(DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT));
-        mPreEditBundle.putString(
-                DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT,
-                sender.getStringExtra(DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT)
-        );
-        
-        // Set cursor at end of text
-        editText.setSelection(editText.getText().length());
     
+        // Populate activity view with details
+    
+        // Set text
+        String rawText = sender.getStringExtra(DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT);
+        mPreEditBundle.putString(DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT, rawText);
+        EditText editText = (EditText) findViewById(R.id.done_edit_text);
+        if (editText != null) {
+            editText.setText(rawText);
+            // Set cursor at end of text
+            editText.setSelection(editText.getText().length());
+        }
+    
+    
+        // Set team
         String team = sender.getStringExtra(DoneListContract.DoneEntry.COLUMN_NAME_TEAM);
-        mDoneDate = sender.getStringExtra(DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE);
-        mEditedFields = sender.getStringArrayListExtra(DoneListContract.DoneEntry.COLUMN_NAME_EDITED_FIELDS);
         mPreEditBundle.putString(DoneListContract.DoneEntry.COLUMN_NAME_TEAM, team);
-        mPreEditBundle.putString(DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE, mDoneDate);
+        Spinner teamPicker = (Spinner) findViewById(R.id.team_picker);
+        if (teamPicker != null)
+            teamPicker.setSelection(teamURLs.indexOf(team));
+    
+        // Set date
+        String editDate = sender.getStringExtra(DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE);
+        if (!mDoneDate.equals(editDate)) {
+            mDoneDate = sender.getStringExtra(DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE);
+            mPreEditBundle.putString(DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE, mDoneDate);
+        
+            String[] dateParts = mDoneDate.split("\\-");
+            Calendar c = Calendar.getInstance();
+            c.set(
+                    Integer.parseInt(dateParts[0]),
+                    Integer.parseInt(dateParts[1]) - 1,
+                    Integer.parseInt(dateParts[2])
+            );
+            mFormattedDoneDate = userDateFormat.format(c.getTime());
+        }
+    
+        EditText doneDateText = (EditText) findViewById(R.id.done_date_text);
+        if (doneDateText != null)
+            doneDateText.setText(mFormattedDoneDate);
+    
+    
+        // Set edited fields
+        mEditedFields = sender.getStringArrayListExtra(DoneListContract.DoneEntry.COLUMN_NAME_EDITED_FIELDS);
         mPreEditBundle.putStringArrayList(
                 DoneListContract.DoneEntry.COLUMN_NAME_EDITED_FIELDS,
                 (ArrayList<String>) mEditedFields
         );
-    
-        Spinner teamPicker = (Spinner) findViewById(R.id.team_picker);
-        teamPicker.setSelection(
-                teamURLs.indexOf(team)
-        );
-        
     }
-    
     
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -175,23 +220,30 @@ public class NewDoneActivity extends AppCompatActivity {
     
     private void saveState() {
         EditText doneEditText = (EditText) findViewById(R.id.done_edit_text);
-        String taskText = doneEditText.getText().toString();
+        if (doneEditText != null) {
+            String taskText = doneEditText.getText().toString();
         
-        if (!taskText.equals("")) {
+            if (!taskText.equals("")) {
             
-            Spinner teamPicker = (Spinner) findViewById(R.id.team_picker);
-            String taskTeam = teamURLs.get(teamPicker.getSelectedItemPosition());
-    
-            String[] state = new String[]{
-                    taskText,
-                    taskTeam,
-                    "" /**for Date**/
-            };
-            Utils.setNewTaskActivityState(this, state);
+                // Get team
+                String taskTeam;
+                Spinner teamPicker = (Spinner) findViewById(R.id.team_picker);
+                if (teamPicker != null)
+                    taskTeam = teamURLs.get(teamPicker.getSelectedItemPosition());
+                else
+                    taskTeam = Utils.getDefaultTeam(this);
             
-            Log.v(LOG_TAG, "Saved: " + state[0] + ", " + state[1]);
-        } else
-            Utils.clearNewTaskActivityState(this);
+                String[] state = new String[]{
+                        taskText,
+                        taskTeam,
+                        mDoneDate
+                };
+                Utils.setNewTaskActivityState(this, state);
+            
+                Log.v(LOG_TAG, "Saved: " + state[0] + ", " + state[1]);
+            } else
+                Utils.clearNewTaskActivityState(this);
+        }
     }
     
     @Override
@@ -219,7 +271,8 @@ public class NewDoneActivity extends AppCompatActivity {
                 String taskTeam = teamURLs.get(teamPicker.getSelectedItemPosition());
     
                 if (taskText.equals(mPreEditBundle.getString(DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT)) &&
-                        taskTeam.equals(mPreEditBundle.getString(DoneListContract.DoneEntry.COLUMN_NAME_TEAM))
+                        taskTeam.equals(mPreEditBundle.getString(DoneListContract.DoneEntry.COLUMN_NAME_TEAM)) &&
+                        mDoneDate.equals(mPreEditBundle.getString(DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE))
                         ) {
                     // No change made
                     setResult(RESULT_OK);
@@ -251,45 +304,12 @@ public class NewDoneActivity extends AppCompatActivity {
             } else {
                 // Case: Add new done
     
-                String taskDate;
                 Bundle newDoneDetails = new Bundle();
                 
                 // Get counter from sharedPreferences for new local done's id
                 int localTaskIdCounter = Utils.getLocalDoneIdCounter(this) + 1;
                 Utils.setLocalDoneIdCounter(this, localTaskIdCounter);
-    
-                // If done text starts with yyyy-mm-dd, set date to that date instead of today
-                Pattern startsWithDatePattern = Pattern.compile("^(today|yesterday|((?:(\\d{4})(-?)(?:(?:(0[13578]|1[02]))(-?)(0[1-9]|[12]\\d|3[01])|(0[13456789]|1[012])(-?)(0[1-9]|[12]\\d|30)|(02)(-?)(0[1-9]|1\\d|2[0-8])))|([02468][048]|[13579][26])(-?)(0229))) +", Pattern.CASE_INSENSITIVE);
-                Matcher matcher = startsWithDatePattern.matcher(taskText);
                 
-                if (matcher.find()) {
-                    taskDate = matcher.group().trim().toLowerCase();
-    
-                    // Remove date string from done text, capitalize first character
-                    String rawText = taskText.replaceFirst(matcher.group(), "").trim();
-                    taskText = rawText.substring(0, 1).toUpperCase() + rawText.substring(1);
-    
-                    switch (taskDate) {
-                        case "yesterday": {
-                            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-                            Calendar c = Calendar.getInstance();
-                            c.setTime(new Date());
-                            c.add(Calendar.DATE, -1);  // get yesterday's date
-                            taskDate = sdf.format(c.getTime());
-                            
-                            break;
-                        }
-                        
-                        case "today": {
-                            taskDate = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
-                            break;
-                        }
-    
-                    }
-                } else {
-                    taskDate = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
-                }
-    
                 Spinner teamPicker = (Spinner) findViewById(R.id.team_picker);
                 String taskTeam = teamURLs.get(teamPicker.getSelectedItemPosition());
                 
@@ -298,7 +318,7 @@ public class NewDoneActivity extends AppCompatActivity {
                 // Add team to bundle. Later, to be got from selector
                 newDoneDetails.putString(DoneListContract.DoneEntry.COLUMN_NAME_TEAM, taskTeam);
                 // Add done_date to bundle
-                newDoneDetails.putString(DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE, taskDate);
+                newDoneDetails.putString(DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE, mDoneDate);
                 // Add cleaned (of date strings) taskText to bundle
                 newDoneDetails.putString(DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT, taskText);
     
@@ -315,5 +335,40 @@ public class NewDoneActivity extends AppCompatActivity {
             
             finish();
         }
+    }
+    
+    public void openDatePicker(View view) {
+        String[] dates = mDoneDate.split("\\-");
+        
+        mDatePicker = new DatePickerDialog(
+                NewDoneActivity.this,
+                new DatePickerDialog.OnDateSetListener() {
+                    @Override
+                    public void onDateSet(DatePicker view, int year, int monthOfYear, int dayOfMonth) {
+                        
+                        Calendar c = Calendar.getInstance();
+                        c.set(year, monthOfYear, dayOfMonth);
+                        mFormattedDoneDate = userDateFormat.format(c.getTime());
+                        
+                        EditText dateEditText = (EditText) findViewById(R.id.done_date_text);
+                        if (dateEditText != null)
+                            dateEditText.setText(mFormattedDoneDate);
+                        
+                        monthOfYear = monthOfYear + 1;
+                        
+                        mDoneDate = year + "-" +
+                                (monthOfYear < 10 ? "0" : "") + monthOfYear + "-" +
+                                (dayOfMonth < 10 ? "0" : "") + dayOfMonth;
+                        
+                        Log.v(LOG_TAG, "Changed date to " + mDoneDate);
+                        
+                        mDatePicker.hide();
+                    }
+                },
+                Integer.parseInt(dates[0]),
+                Integer.parseInt(dates[1]) - 1,
+                Integer.parseInt(dates[2])
+        );
+        mDatePicker.show();
     }
 }

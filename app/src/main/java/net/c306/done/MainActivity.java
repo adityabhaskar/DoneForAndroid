@@ -267,6 +267,9 @@ public class MainActivity
     
                         // Empty database
                         getContentResolver().delete(DoneListContract.DoneEntry.CONTENT_URI, null, null);
+                        getContentResolver().delete(DoneListContract.TeamEntry.CONTENT_URI, null, null);
+                        mDoneListAdapter.notifyDataSetChanged();
+                        //mListView.setAdapter(null);
                         Log.v(LOG_TAG, "Database deleted.");
     
                         // Empty sharedPreferences
@@ -604,7 +607,12 @@ public class MainActivity
     
         // Sort order:  Descending, by date.
         String sortOrder = DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE + " DESC, " +
-                DoneListContract.DoneEntry.COLUMN_NAME_UPDATED + " DESC";
+                DoneListContract.DoneEntry.COLUMN_NAME_IS_LOCAL + " DESC, " +
+                DoneListContract.DoneEntry.COLUMN_NAME_EDITED_FIELDS + " DESC, " +
+                DoneListContract.DoneEntry.COLUMN_NAME_UPDATED + " DESC, " +
+                "_id DESC";
+        //DoneListContract.DoneEntry.COLUMN_NAME_ID + " DESC";
+        //" CASE WHEN " + DoneListContract.DoneEntry.COLUMN_NAME_ID + " > " + Utils.LOCAL_DONE_ID_COUNTER + " THEN 1 ELSE 0 END DESC, "
         
         Uri donesUri = DoneListContract.DoneEntry.buildDoneListUri();
         
@@ -615,6 +623,7 @@ public class MainActivity
                 //DoneListContract.DoneEntry.COLUMN_NAME_TEAM_SHORT_NAME,
                 DoneListContract.DoneEntry.COLUMN_NAME_TEAM,
                 DoneListContract.DoneEntry.COLUMN_NAME_IS_LOCAL,
+                DoneListContract.DoneEntry.COLUMN_NAME_UPDATED,
                 DoneListContract.DoneEntry.COLUMN_NAME_EDITED_FIELDS
         };
         

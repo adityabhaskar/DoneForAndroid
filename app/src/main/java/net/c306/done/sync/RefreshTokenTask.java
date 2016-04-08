@@ -153,10 +153,9 @@ public class RefreshTokenTask extends AsyncTask<Void, Void, Boolean> {
         }
         // Error handling - cancel activity, notify user.
         Log.v(LOG_TAG, "Error occurred, cancelling login attempt.");
-        // TODO: 06/04/16 Notify user of refresh token error 
+        // TODO: 06/04/16 Notify user of refresh token error
+        // TODO: Remove local accessToken, ask user to login again
         
         super.onPostExecute(status);
     }
-    
-    
 }

@@ -27,6 +27,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 
 public class PostNewDoneTask extends AsyncTask<Void, Void, Integer> {
@@ -208,9 +209,9 @@ public class PostNewDoneTask extends AsyncTask<Void, Void, Integer> {
                 // Set is_local to false for ids in sentDonesList
                 ContentValues updateValues = new ContentValues();
                 updateValues.put(DoneListContract.DoneEntry.COLUMN_NAME_IS_LOCAL, "FALSE");
-        
+    
                 String sentDonesIdString = TextUtils.join(",", sentDonesList);
-        
+    
                 mContext.getContentResolver().update(
                         DoneListContract.DoneEntry.CONTENT_URI,
                         updateValues,
@@ -244,7 +245,6 @@ public class PostNewDoneTask extends AsyncTask<Void, Void, Integer> {
     }
     
     public class NewTaskClass {
-        private transient final String dateFormat = "yyyy-MM-dd";
         private String done_date;
         private String team;
         private String raw_text;
@@ -256,7 +256,7 @@ public class PostNewDoneTask extends AsyncTask<Void, Void, Integer> {
             if (doneDate != null && !doneDate.isEmpty())
                 this.done_date = doneDate;
             else {
-                SimpleDateFormat sdf = new SimpleDateFormat(dateFormat);
+                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.UK);
                 
                 this.done_date = sdf.format(new Date());
             }

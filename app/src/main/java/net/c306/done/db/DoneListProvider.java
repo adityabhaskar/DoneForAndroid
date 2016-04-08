@@ -63,10 +63,10 @@ public class DoneListProvider extends ContentProvider {
     private DoneListDbHelper mOpenHelper;
     
     /*
-    Students: Here is where you need to create the UriMatcher. This UriMatcher will
-    match each URI to the DONES, DONES_WITH_TEAM, DONES_WITH_DATE, DONES_WITH_TEAM_AND_DATE,
-    and TEAMS integer constants defined above.
-*/
+    *  Students: Here is where you need to create the UriMatcher. 
+    *  This UriMatcher will match each URI to the DONES, DONES_WITH_TEAM, DONES_WITH_DATE,
+    *  DONES_WITH_TEAM_AND_DATE, and TEAMS integer constants defined above. 
+    * */
     static UriMatcher buildUriMatcher() {
         // I know what you're thinking.  Why create a UriMatcher when you can use regular
         // expressions instead?  Because you're not crazy, that's why.
@@ -297,7 +297,6 @@ public class DoneListProvider extends ContentProvider {
     
     @Override
     public int delete(Uri uri, String selection, String[] selectionArgs) {
-        //// DONE: 18/02/16
         final SQLiteDatabase db = mOpenHelper.getWritableDatabase();
         
         int rowsDeleted;

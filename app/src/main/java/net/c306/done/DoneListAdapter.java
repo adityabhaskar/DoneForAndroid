@@ -20,14 +20,15 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class DoneListAdapter extends ResourceCursorAdapter{
     
     private final String LOG_TAG = Utils.LOG_TAG + this.getClass().getSimpleName();
-    private SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-    private SimpleDateFormat sdf2 = (SimpleDateFormat) DateFormat.getDateInstance(DateFormat.DEFAULT);
+    private SimpleDateFormat idtDateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.UK);
+    private SimpleDateFormat userDateFormat = (SimpleDateFormat) DateFormat.getDateInstance(DateFormat.DEFAULT);
     private Calendar calendar = Calendar.getInstance();
     private int colorArray[] = {
             R.color.team1,
@@ -89,8 +90,8 @@ public class DoneListAdapter extends ResourceCursorAdapter{
     
         calendar.setTime(new Date());
         calendar.add(Calendar.DATE, -1);
-        String yesterday = sdf.format(calendar.getTime());
-        String today = sdf.format(new Date());
+        String yesterday = idtDateFormat.format(calendar.getTime());
+        String today = idtDateFormat.format(new Date());
     
         if (doneDate.equals(yesterday))
             doneDate = "Yesterday";
@@ -100,7 +101,7 @@ public class DoneListAdapter extends ResourceCursorAdapter{
             calendar.set(Calendar.DATE, Integer.parseInt(doneDate.substring(8, 10)));
             calendar.set(Calendar.MONTH, Integer.parseInt(doneDate.substring(5, 7)) - 1);
             calendar.set(Calendar.YEAR, Integer.parseInt(doneDate.substring(0, 4)));
-            doneDate = sdf2.format(calendar.getTime());
+            doneDate = userDateFormat.format(calendar.getTime());
         }
     
         dateTextView.setText(doneDate);
@@ -138,6 +139,5 @@ public class DoneListAdapter extends ResourceCursorAdapter{
             ds.setColor(ContextCompat.getColor(mContext, R.color.link_colour));
         }
     }
-    
     
 }
