@@ -46,6 +46,7 @@ public class Utils {
      * CONSTANTS FOR THE AUTHORIZATION PROCESS
      ****/
     
+/*
     // This is the public api key of our application
     public static final String CLIENT_ID = "";
     
@@ -59,9 +60,8 @@ public class Utils {
     // We can put whatever we want that starts with https:// .
     // We use a made up url that we will intercept when redirecting. Avoid Uppercases. 
     public static final String REDIRECT_URI = "";
+*/
     
-    
-    /*************************************************/
     
     // SyncAdapter related
     public static final int SYNC_DEFAULT_INTERVAL = 60 * 60; // every 15 minutes
