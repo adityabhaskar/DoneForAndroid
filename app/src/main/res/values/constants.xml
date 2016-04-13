@@ -3,11 +3,26 @@
 
     <!-- SharedPreferences string names -->
 
-    <!-- Should always have the same value as Utils.DEFAULT_TEAM-->
+    <!-- Should always have the same value as Utils.PREF_DEFAULT_TEAM-->
     <string name="DEFAULT_TEAM">defaultTeam</string>
 
     <!-- Should always have the same value as Utils.PREFS_SYNC_FREQUENCY-->
     <string name="PREF_SYNC_FREQUENCY">sync_frequency</string>
+
+    <!-- Should always have the same value as Utils.PREFS_ALARM_TIME-->
+    <string name="PREF_SHOW_NOTIFICATION">show_notification</string>
+
+    <!-- Should always have the same value as Utils.PREFS_ALARM_TIME-->
+    <string name="PREF_NOTIFICATION_DAYS">notification_days_of_week</string>
+
+    <!-- Should always have the same value as Utils.PREFS_NOTIFICATION_TIME-->
+    <string name="PREF_NOTIFICATION_TIME">notification_time</string>
+    <string name="DEFAULT_ALARM_TIME">19:00</string>
+
+    <string name="PREF_NOTIFICATION_SOUND">notifications_new_message_ringtone</string>
+
+    <!-- Should always have the same value as Utils.PREFS_ALARM_TIME-->
+    <string name="PREF_SNOOZE_DURATION">snooze_duration</string>
 
     <!-- SyncAdapter related -->
     <string name="sync_account_type">done.c306.net</string>

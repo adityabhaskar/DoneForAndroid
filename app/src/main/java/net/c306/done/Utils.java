@@ -1,24 +1,44 @@
 package net.c306.done;
 
+import android.app.AlarmManager;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
+import android.database.Cursor;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.net.Uri;
+import android.os.SystemClock;
+import android.preference.PreferenceActivity;
 import android.preference.PreferenceManager;
 import android.support.annotation.Nullable;
+import android.support.v4.app.NotificationCompat;
+import android.support.v4.app.TaskStackBuilder;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
+import android.widget.Toast;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+
+import net.c306.done.db.DoneListContract;
+import net.c306.done.notificationalarm.BootAlarmReceiver;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Date;
+import java.util.HashSet;
+import java.util.Locale;
+import java.util.Set;
 
 public class Utils {
     
@@ -65,8 +85,14 @@ public class Utils {
     // Intent & extra identifiers
     public static final String INTENT_EXTRA_FROM_DONE_DELETE_EDIT_TASKS = "fromDoneDeleteOrEditTasks";
     public static final String INTENT_EXTRA_FETCH_TEAMS = "fetchTeams";
-    public static final String ACTION_SHOW_AUTH = "showAuthScreen";
     public static final String DONE_LOCAL_BROADCAST_LISTENER_INTENT = "net.c306.done.mainActivityListenerIntent";
+    public static final String NOTIFICAION_ALARM_INTENT = "net.c306.done.notificationAlarms";
+    public static final String NOTIFICAION_ALARM_SNOOZED_INTENT = "net.c306.done.notificationAlarms.Snoozed";
+    public static final String INTENT_ACTION = "intent_action";
+    public static final int ACTION_SNOOZE = 9001;
+    public static final int ACTION_LOG_DONE = 9002;
+    public static final int ACTION_OPEN_SETTINGS = 9003;
+    public static final int ACTION_SHOW_AUTH = 9004;
     
     // IDT URLs
     public static final String IDT_NOOP_URL = "https://idonethis.com/api/v0.1/noop/";
@@ -77,18 +103,34 @@ public class Utils {
     
     // OTHER CONSTANTS
     public static final String LOG_TAG = "AppMessage ";
+    public static final String AUTH_TOKEN = "authToken";
     public static final String USER_DETAILS_PREFS_FILENAME = "user_info";
     public static final int MIN_LOCAL_DONE_ID = 100000000;
     
     // SharedPreferences property names 
-    public static final String AUTH_TOKEN = "authToken";
-    public static final String PREF_SYNC_FREQUENCY = "sync_frequency"; // Must have same value as @R/constants/PREF_SYNC_FREQUENCY
-    public static final String DEFAULT_TEAM = "defaultTeam";
+    public static final String PREF_SYNC_FREQUENCY = "sync_frequency"; // Same value as @R/constants/PREF_SYNC_FREQUENCY
+    public static final String PREF_SNOOZE_DURATION = "snooze_duration"; // Same value as @R/constants/PREF_SNOOZE_DURATION
+    public static final String PREF_DEFAULT_TEAM = "defaultTeam";
+    public static final String PREF_SHOW_NOTIFICATION = "show_notification"; // Same value as @R/constants/PREF_SHOW_NOTIFICATION
+    public static final String PREF_NOTIFICATION_DAYS = "notification_days_of_week"; // Same value as @R/constants/PREF_NOTIFICATION_DAYS
+    public static final String PREF_NOTIFICATION_TIME = "notification_time"; // Same value as @R/constants/PREF_NOTIFICATION_DAYS
+    public static final String PREF_NOTIFICATION_SOUND = "notifications_new_message_ringtone";
+    
+    // User Preferences file property names
     public static final String TEAMS = "teams";
     public static final String VALID_TOKEN = "validToken";
     public static final String USERNAME = "username";
     public static final String LOCAL_DONE_ID_COUNTER = "localDoneIdCounter";
     public static final String NEW_TASK_ACTIVITY_STATE = "newTaskActivityState";
+    
+    // Default Notification Alarm Constants
+    public static final boolean DEFAULT_SHOW_NOTIFICATION = true;
+    public static final String DEFAULT_ALARM_TIME = "19:00";
+    public static final int DEFAULT_SNOOZE_IN_SECONDS = 15 * 60; // Same as android:defaultValue in pref_notification.xml > ListPreference
+    public static final int NOTIFICATION_ID = 1320015027;
+    public static final Set<String> DEFAULT_NOTIFICATION_DAYS = new HashSet(Arrays.asList("1", "2", "3", "4", "5", "6", "7"));
+    public static final Set<String> WEEKDAY_VALUES = new HashSet(Arrays.asList("1", "2", "3", "4", "5"));
+    public static final Set<String> WEEKEND_VALUES = new HashSet(Arrays.asList("6", "7"));
     
     //<!-- Local Broadcast identifier strings-->
     public static final int STATUS_TASK_STARTED = 19701;
@@ -125,6 +167,51 @@ public class Utils {
                 Utils.PREF_SYNC_FREQUENCY,
                 String.valueOf(Utils.SYNC_DEFAULT_INTERVAL)
         ));
+    }
+    
+    public static int getSnoozeDuration(Context c) {
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(c);
+        
+        return Integer.parseInt(prefs.getString(
+                Utils.PREF_SNOOZE_DURATION,
+                String.valueOf(Utils.DEFAULT_SNOOZE_IN_SECONDS)
+        ));
+    }
+    
+    public static String getAlarmTime(Context c) {
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(c);
+        
+        return prefs.getString(
+                Utils.PREF_NOTIFICATION_TIME,
+                String.valueOf(Utils.DEFAULT_ALARM_TIME)
+        );
+    }
+    
+    public static String getRingtone(Context c) {
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(c);
+        
+        return prefs.getString(
+                "notifications_new_message_ringtone",
+                "content://settings/system/notification_sound"
+        );
+    }
+    
+    public static boolean getShowNotification(Context c) {
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(c);
+        
+        return prefs.getBoolean(
+                Utils.PREF_SHOW_NOTIFICATION,
+                Utils.DEFAULT_SHOW_NOTIFICATION
+        );
+    }
+    
+    public static Set<String> getNotificationDays(Context c) {
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(c);
+        
+        return prefs.getStringSet(
+                Utils.PREF_NOTIFICATION_DAYS,
+                Utils.DEFAULT_NOTIFICATION_DAYS
+        );
     }
     
     // TODO: 06/04/16 Remove/Edit this function 
@@ -196,13 +283,13 @@ public class Utils {
     @Nullable
     public static String getDefaultTeam(Context c) {
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(c);
-        return prefs.getString(Utils.DEFAULT_TEAM, null);
+        return prefs.getString(Utils.PREF_DEFAULT_TEAM, null);
     }
     
     public static void setDefaultTeam(Context c, String team) {
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(c);
         SharedPreferences.Editor editor = prefs.edit();
-        editor.putString(Utils.DEFAULT_TEAM, team);
+        editor.putString(Utils.PREF_DEFAULT_TEAM, team);
         editor.apply();
     }
     
@@ -261,8 +348,227 @@ public class Utils {
         editor.apply();
     }
     
+    public static void setNotificationAlarm(Context context, String when) {
+        
+        AlarmManager alarmMgr = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+        
+        if (alarmMgr == null) {
+            // Something went wrong
+            return;
+        }
+        
+        Intent intent = new Intent(Utils.NOTIFICAION_ALARM_INTENT);
+        PendingIntent alarmIntent = PendingIntent.getBroadcast(context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+        
+        String[] alarmTimeParts;
+        
+        alarmTimeParts = (
+                when == null || when.isEmpty() ?
+                        Utils.getAlarmTime(context) :
+                        when
+        ).split("\\:");
+        
+        Log.v(LOG_TAG, "Setting alarm for: " + alarmTimeParts[0] + ":" + alarmTimeParts[1]);
+        
+        // Set the alarm to start at alarmTime
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTimeInMillis(System.currentTimeMillis());
+        calendar.set(Calendar.HOUR_OF_DAY, Integer.parseInt(alarmTimeParts[0]));
+        calendar.set(Calendar.MINUTE, Integer.parseInt(alarmTimeParts[1]));
+        
+        alarmMgr.setRepeating(
+                AlarmManager.RTC_WAKEUP,        // Type of alarm 
+                calendar.getTimeInMillis(),     // Wakeup time
+                AlarmManager.INTERVAL_DAY,      // Interval
+                alarmIntent                     // Intent to call
+        );
+        
+        // Enable boot notification receiver to re-set the alarm
+        ComponentName receiver = new ComponentName(context, BootAlarmReceiver.class);
+        PackageManager pm = context.getPackageManager();
+        pm.setComponentEnabledSetting(receiver,
+                PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
+                PackageManager.DONT_KILL_APP);
+        
+    }
     
+    public static void cancelNotificationAlarm(Context context) {
+        
+        clearNotification(context);
+        
+        AlarmManager alarmMgr = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+        
+        if (alarmMgr == null) {
+            // Something went wrong
+            return;
+        }
+        
+        Intent intent = new Intent(Utils.NOTIFICAION_ALARM_INTENT);
+        PendingIntent alarmIntent = PendingIntent.getBroadcast(context, 0, intent, PendingIntent.FLAG_CANCEL_CURRENT);
+        
+        Log.v(LOG_TAG, "Cancelling notification alarm");
+        
+        // Cancel any alarms
+        alarmMgr.cancel(alarmIntent);
+        
+        // Disable boot notification receiver
+        ComponentName receiver = new ComponentName(context, BootAlarmReceiver.class);
+        PackageManager pm = context.getPackageManager();
+        pm.setComponentEnabledSetting(receiver,
+                PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
+                PackageManager.DONT_KILL_APP);
+    }
     
+    public static void showNotification(Context context, Intent intent) {
+        
+        /*
+        * Create notification builder
+        * */
+        NotificationCompat.Builder mBuilder =
+                new NotificationCompat.Builder(context)
+                        .setSmallIcon(R.mipmap.ic_launcher)
+                        .setContentTitle(context.getString(R.string.new_done_hint))
+                        .setVisibility(NotificationCompat.VISIBILITY_PUBLIC);
+        
+        String ringtone = Utils.getRingtone(context);
+        if (ringtone != null && !ringtone.isEmpty())
+            mBuilder.setSound(Uri.parse(ringtone));
+        
+        
+        /*
+        * Get number of dones logged today
+        * */
+        String notificationText = context.getString(R.string.notification_text_zero);
+        String today = new SimpleDateFormat("yyyy-MM-dd", Locale.UK).format(new Date());
+        
+        Cursor cursor = context.getContentResolver().query(
+                DoneListContract.DoneEntry.CONTENT_URI,
+                new String[]{DoneListContract.DoneEntry.COLUMN_NAME_ID},
+                DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE + " IS '" + today + "'",
+                null,
+                null
+        );
+        
+        if (cursor != null && cursor.getCount() > 0) {
+            notificationText = cursor.getCount() + " " +
+                    context.getString(
+                            (cursor.getCount() > 1 ?
+                                    R.string.notification_text_non_one :
+                                    R.string.notification_text_one
+                            )
+                    );
+            cursor.close();
+        }
+        
+        //Log.v(LOG_TAG, "Setting notification text to " + notificationText);
+        mBuilder.setContentText(notificationText);
+        
+        /*
+        * Add main action for notification - add new done
+        * */
+        Intent newDoneIntent = new Intent(context, NewDoneActivity.class);
+        
+        TaskStackBuilder newDoneStackBuilder = TaskStackBuilder.create(context);
+        newDoneStackBuilder.addParentStack(NewDoneActivity.class);
+        newDoneStackBuilder.addNextIntent(newDoneIntent);
+        
+        PendingIntent resultPendingIntent = newDoneStackBuilder.getPendingIntent(
+                0,
+                PendingIntent.FLAG_UPDATE_CURRENT
+        );
+        mBuilder.setContentIntent(resultPendingIntent);
+        
+        
+        /*
+        * Add Snooze intent
+        * */
+        Intent snoozeIntent = new Intent(Utils.NOTIFICAION_ALARM_SNOOZED_INTENT);
+        snoozeIntent.putExtra(Utils.INTENT_ACTION, Utils.ACTION_SNOOZE);
+        PendingIntent snoozePendingIntent = PendingIntent.getBroadcast(
+                context, 0, snoozeIntent,
+                PendingIntent.FLAG_CANCEL_CURRENT
+        );
+        
+        mBuilder.addAction(new NotificationCompat.Action(
+                R.drawable.ic_access_time_white_24dp,
+                "Snooze",
+                snoozePendingIntent
+        ));
+        
+        
+        /*
+        * Add Settings intent
+        * */
+        Intent settingsIntent = new Intent(context, SettingsActivity.class);
+        settingsIntent.putExtra(
+                PreferenceActivity.EXTRA_SHOW_FRAGMENT,
+                SettingsActivity.NotificationPreferenceFragment.class.getName()
+        );
+        
+        // Create backstack
+        TaskStackBuilder settingsStackBuilder = TaskStackBuilder.create(context);
+        settingsStackBuilder.addParentStack(SettingsActivity.class);
+        settingsStackBuilder.addNextIntent(settingsIntent);
+        
+        PendingIntent settingsPendingIntent = settingsStackBuilder.getPendingIntent(
+                0,
+                PendingIntent.FLAG_UPDATE_CURRENT
+        );
+        
+        mBuilder.addAction(new NotificationCompat.Action(
+                R.drawable.ic_settings_white_24dp,
+                "Settings",
+                settingsPendingIntent
+        ));
+        
+        /*
+        * Show notification
+        * */
+        NotificationManager mNotificationManager =
+                (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+        
+        mNotificationManager.notify(Utils.NOTIFICATION_ID, mBuilder.build());
+    }
+    
+    public static void clearNotification(Context context) {
+        NotificationManager mNotificationManager =
+                (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+        mNotificationManager.cancel(Utils.NOTIFICATION_ID);
+    }
+    
+    public static void snoozeNotification(Context context) {
+        
+        // 1. Dismiss current notification
+        Utils.clearNotification(context);
+        
+        // 2. Add alarm for X minutes from now
+        AlarmManager alarmMgr = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+        
+        if (alarmMgr == null) {
+            // Something went wrong
+            Log.w(LOG_TAG, "AlarmManager returned null");
+            return;
+        }
+        
+        int secondsToSnooze = Utils.getSnoozeDuration(context);
+        
+        Intent intent = new Intent(Utils.NOTIFICAION_ALARM_SNOOZED_INTENT);
+        PendingIntent alarmIntent = PendingIntent.getBroadcast(context, 0, intent,
+                PendingIntent.FLAG_CANCEL_CURRENT);
+        
+        alarmMgr.cancel(alarmIntent);
+        alarmMgr.setExact(AlarmManager.ELAPSED_REALTIME_WAKEUP,
+                SystemClock.elapsedRealtime() + secondsToSnooze * 1000,
+                alarmIntent
+        );
+        
+        // 3. Show Toast confirming 'Snoozed for X minutes'
+        Toast.makeText(context,
+                "Snoozed for " + secondsToSnooze / 60 + " minute" + (secondsToSnooze / 60 > 1 ? "s" : ""),
+                Toast.LENGTH_SHORT)
+                .show();
+        Log.v(LOG_TAG, "Snoozing notification for " + secondsToSnooze / 60 + " minutes");
+    }
     
     public static void sendMessage(Context mContext, String sender, String message, int action, int fetchedTaskCount) {
         //Log.v(LOG_TAG, sender + " :: " + message + " :: " + action + " :: " + fetchedTaskCount);
@@ -321,7 +627,6 @@ public class Utils {
         
         return response;
     }
-    
     
     public static void resetSharedPreferences(Context c) {
         // Delete app settings shared prefs

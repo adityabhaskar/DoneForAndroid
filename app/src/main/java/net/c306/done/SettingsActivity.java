@@ -13,11 +13,13 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.preference.ListPreference;
+import android.preference.MultiSelectListPreference;
 import android.preference.Preference;
 import android.preference.PreferenceActivity;
 import android.preference.PreferenceFragment;
 import android.preference.PreferenceManager;
 import android.preference.RingtonePreference;
+import android.support.design.widget.Snackbar;
 import android.support.v7.app.ActionBar;
 import android.text.TextUtils;
 import android.util.Log;
@@ -27,7 +29,10 @@ import net.c306.done.db.DoneListContract;
 import net.c306.done.sync.IDTSyncAdapter;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * A {@link PreferenceActivity} that presents a set of application settings. On
@@ -49,44 +54,87 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
     private static Preference.OnPreferenceChangeListener sBindPreferenceSummaryToValueListener = new Preference.OnPreferenceChangeListener() {
         @Override
         public boolean onPreferenceChange(Preference preference, Object value) {
-            String stringValue = value.toString();
+            if (value instanceof String) {
+                String stringValue = value.toString();
+        
+                if (preference instanceof ListPreference) {
+                    // For list preferences, look up the correct display value in
+                    // the preference's 'entries' list.
+                    ListPreference listPreference = (ListPreference) preference;
+                    int index = listPreference.findIndexOfValue(stringValue);
             
-            if (preference instanceof ListPreference) {
-                // For list preferences, look up the correct display value in
-                // the preference's 'entries' list.
-                ListPreference listPreference = (ListPreference) preference;
-                int index = listPreference.findIndexOfValue(stringValue);
+                    // Set the summary to reflect the new value.
+                    if (index >= 0)
+                        preference.setSummary(listPreference.getEntries()[index]);
+            
+                } else if (preference instanceof RingtonePreference) {
+                    // For ringtone preferences, look up the correct display value
+                    // using RingtoneManager.
+                    if (TextUtils.isEmpty(stringValue)) {
+                        // Empty values correspond to 'silent' (no ringtone).
+                        preference.setSummary(R.string.pref_ringtone_silent);
                 
-                // Set the summary to reflect the new value.
-                if (index >= 0)
-                    preference.setSummary(listPreference.getEntries()[index]);
-    
-            } else if (preference instanceof RingtonePreference) {
-                // For ringtone preferences, look up the correct display value
-                // using RingtoneManager.
-                if (TextUtils.isEmpty(stringValue)) {
-                    // Empty values correspond to 'silent' (no ringtone).
-                    preference.setSummary(R.string.pref_ringtone_silent);
+                    } else {
+                        Ringtone ringtone = RingtoneManager.getRingtone(
+                                preference.getContext(), Uri.parse(stringValue));
+                
+                        if (ringtone == null) {
+                            // Clear the summary if there was a lookup error.
+                            preference.setSummary(null);
+                        } else {
+                            // Set the summary to reflect the new ringtone display
+                            // name.
+                            String name = ringtone.getTitle(preference.getContext());
+                            preference.setSummary(name);
+                        }
+                        Log.v(Utils.LOG_TAG, "Set ringtone to " + stringValue);
+                    }
+            
+                } else {
+                    // For all other preferences, set the summary to the value's
+                    // simple string representation.
+                    preference.setSummary(stringValue);
+                }
+            } else {
+        
+                Set<String> notificationDays = new HashSet<String>((Set<String>) value);
+                String summary = "";
+                Context context = preference.getContext();
+        
+                if (notificationDays.equals(Utils.DEFAULT_NOTIFICATION_DAYS)) {
+                    // All days selected
+                    summary = context.getString(R.string.everyday);
+                } else if (notificationDays.equals(Utils.WEEKDAY_VALUES)) {
+                    // Only Weekdays selected
+                    summary = context.getString(R.string.weekdays_only);
+                } else if (notificationDays.equals(Utils.WEEKEND_VALUES)) {
+                    // Only Weekends selected
+                    summary = context.getString(R.string.weekends_only);
                     
                 } else {
-                    Ringtone ringtone = RingtoneManager.getRingtone(
-                            preference.getContext(), Uri.parse(stringValue));
-                    
-                    if (ringtone == null) {
-                        // Clear the summary if there was a lookup error.
-                        preference.setSummary(null);
-                    } else {
-                        // Set the summary to reflect the new ringtone display
-                        // name.
-                        String name = ringtone.getTitle(preference.getContext());
-                        preference.setSummary(name);
-                    }
-                }
+            
+                    if (notificationDays.containsAll(Utils.WEEKDAY_VALUES)) {
+                        // Check if all week days selected
+                        notificationDays.removeAll(Utils.WEEKDAY_VALUES);
+                        summary = context.getString(R.string.weekdays) + " ";
                 
-            } else {
-                // For all other preferences, set the summary to the value's
-                // simple string representation.
-                preference.setSummary(stringValue);
+                    } else if (notificationDays.containsAll(Utils.WEEKEND_VALUES)) {
+                        // Check if all weekend days selected
+                        notificationDays.removeAll(Utils.WEEKEND_VALUES);
+                        summary = context.getString(R.string.weekends) + " ";
+                    }
+            
+                    MultiSelectListPreference daysPreference = (MultiSelectListPreference) preference;
+                    CharSequence[] entryValues = daysPreference.getEntries();
+                    String[] selectedDaysString = notificationDays.toArray(new String[notificationDays.size()]);
+                    Arrays.sort(selectedDaysString);
+            
+                    for (String index : selectedDaysString) {
+                        summary += entryValues[Integer.parseInt(index) - 1] + ", ";
+                    }
+                    summary = summary.substring(0, summary.length() - 2);
+                }
+                preference.setSummary(summary);
             }
             return true;
         }
@@ -114,19 +162,32 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
     private static void bindPreferenceSummaryToValue(Preference preference) {
         // Set the listener to watch for value changes.
         preference.setOnPreferenceChangeListener(sBindPreferenceSummaryToValueListener);
-        
+    
         // Trigger the listener immediately with the preference's
         // current value.
-        sBindPreferenceSummaryToValueListener.onPreferenceChange(preference,
-                PreferenceManager
-                        .getDefaultSharedPreferences(preference.getContext())
-                        .getString(preference.getKey(), ""));
+        switch (preference.getKey()) {
+            case Utils.PREF_NOTIFICATION_DAYS:
+                sBindPreferenceSummaryToValueListener.onPreferenceChange(preference,
+                        PreferenceManager
+                                .getDefaultSharedPreferences(preference.getContext())
+                                .getStringSet(preference.getKey(), Utils.DEFAULT_NOTIFICATION_DAYS));
+                break;
+        
+            default:
+                sBindPreferenceSummaryToValueListener.onPreferenceChange(preference,
+                        PreferenceManager
+                                .getDefaultSharedPreferences(preference.getContext())
+                                .getString(preference.getKey(), ""));
+        }
     }
     
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setupActionBar();
+    
+        // Clear any notifications that may have started the activity
+        Utils.clearNotification(this);
     }
     
     @Override
@@ -153,13 +214,14 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
     public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
     
         switch (key) {
-            
-            case Utils.DEFAULT_TEAM:
+        
+            case Utils.PREF_DEFAULT_TEAM: {
                 Log.v(LOG_TAG, key + " changed to: " + sharedPreferences.getString(key, ""));
                 // Nothing to do
                 break;
+            }
         
-            case Utils.PREF_SYNC_FREQUENCY:
+            case Utils.PREF_SYNC_FREQUENCY: {
                 int syncFrequency = Integer.parseInt(
                         sharedPreferences.getString(key, String.valueOf(Utils.SYNC_DEFAULT_INTERVAL))
                 );
@@ -172,9 +234,53 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
                     IDTSyncAdapter.stopPeriodicSync(getApplicationContext());
                 
                 break;
+            }
         
+            case Utils.PREF_SHOW_NOTIFICATION: {
+                if (sharedPreferences.getBoolean(key, Utils.DEFAULT_SHOW_NOTIFICATION)) {
+                    Utils.setNotificationAlarm(this, null);
+                } else {
+                    Utils.cancelNotificationAlarm(this);
+                }
+                break;
+            }
+        
+            case Utils.PREF_NOTIFICATION_DAYS: {
+                Set<String> notificationDays = sharedPreferences.getStringSet(key, null);
+            
+                // Get previous notification days
+                SharedPreferences userPreferences = this.getSharedPreferences(Utils.USER_DETAILS_PREFS_FILENAME, MODE_PRIVATE);
+                Set<String> prevNotificationDays = userPreferences.getStringSet(key, null);
+            
+                if (notificationDays == null || notificationDays.isEmpty()) {
+                
+                    SharedPreferences.Editor editor = sharedPreferences.edit();
+                
+                    // If previous notification days are available, set to that, else set to all
+                    if (prevNotificationDays != null && !prevNotificationDays.isEmpty())
+                        editor.putStringSet(key, prevNotificationDays);
+                    else
+                        editor.putStringSet(key, Utils.DEFAULT_NOTIFICATION_DAYS);
+                
+                    editor.apply();
+                
+                    Snackbar.make(getCurrentFocus(), "Please select at least one day.", Snackbar.LENGTH_SHORT).show();
+                } else {
+                    // Update previous notification days
+                    SharedPreferences.Editor editor = userPreferences.edit();
+                    editor.putStringSet(key, notificationDays);
+                    editor.apply();
+                }
+                break;
+            }
+        
+            case Utils.PREF_NOTIFICATION_TIME: {
+                Utils.setNotificationAlarm(SettingsActivity.this, null);
+                break;
+            }
+            
             default:
-                Log.wtf(LOG_TAG, "Unidentified pref change: " + key);
+                Log.w(LOG_TAG, "Unidentified pref change: " + key);
                 break;
         }
     }
@@ -246,13 +352,13 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
             // to their values. When their values change, their summaries are
             // updated to reflect the new value, per the Android Design
             // guidelines.
-            bindPreferenceSummaryToValue(findPreference(Utils.DEFAULT_TEAM));
+            bindPreferenceSummaryToValue(findPreference(Utils.PREF_DEFAULT_TEAM));
         }
     
         private void setupTeamsSelector() {
-        
-            ListPreference defaultTeamListPreference = (ListPreference) findPreference(Utils.DEFAULT_TEAM);
     
+            ListPreference defaultTeamListPreference = (ListPreference) findPreference(Utils.PREF_DEFAULT_TEAM);
+            
             if (Utils.getAccessToken(getActivity().getApplicationContext()) != null) {
                 
                 // Fill up team names in listPreference in General Preferences
@@ -323,6 +429,8 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
             // updated to reflect the new value, per the Android Design
             // guidelines.
             bindPreferenceSummaryToValue(findPreference("notifications_new_message_ringtone"));
+            bindPreferenceSummaryToValue(findPreference(Utils.PREF_SNOOZE_DURATION));
+            bindPreferenceSummaryToValue(findPreference(Utils.PREF_NOTIFICATION_DAYS));
         }
         
         @Override

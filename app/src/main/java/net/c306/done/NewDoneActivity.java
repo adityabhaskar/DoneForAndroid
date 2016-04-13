@@ -48,6 +48,9 @@ public class NewDoneActivity extends AppCompatActivity {
         
         setContentView(R.layout.activity_new_done);
     
+        // Clear any notifications that may have started the activity
+        Utils.clearNotification(this);
+        
         Intent sender = getIntent();
         mId = sender.getLongExtra(DoneListContract.DoneEntry.COLUMN_NAME_ID, -1);
     

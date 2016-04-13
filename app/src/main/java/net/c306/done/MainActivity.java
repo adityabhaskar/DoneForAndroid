@@ -260,6 +260,9 @@ public class MainActivity
                         // User confirmed Logout
                         Log.v(LOG_TAG, "Logging out...");
     
+                        // Remove alarm & any notifications
+                        Utils.cancelNotificationAlarm(MainActivity.this);
+                        
                         // Stop periodic sync
                         IDTSyncAdapter.stopPeriodicSync(getApplicationContext());
     
@@ -372,6 +375,9 @@ public class MainActivity
                     mSnackbar = Snackbar.make(findViewById(R.id.fab), R.string.LOGIN_SUCCESSFUL, Snackbar.LENGTH_SHORT);
                     mSnackbar.setAction("Dismiss", null).show();
     
+                    // Setup alarm
+                    Utils.setNotificationAlarm(MainActivity.this, null);
+                    
                     // Switch login & logout buttons
                     invalidateOptionsMenu();
                 }
