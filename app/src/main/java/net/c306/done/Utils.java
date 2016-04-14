@@ -26,7 +26,7 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
 import net.c306.done.db.DoneListContract;
-import net.c306.done.notificationalarm.BootAlarmReceiver;
+import net.c306.done.notifications.NotificationsBroadcastReceiver;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -46,7 +46,6 @@ public class Utils {
      * CONSTANTS FOR THE AUTHORIZATION PROCESS
      ****/
     
-/*
     // This is the public api key of our application
     public static final String CLIENT_ID = "";
     
@@ -60,8 +59,8 @@ public class Utils {
     // We can put whatever we want that starts with https:// .
     // We use a made up url that we will intercept when redirecting. Avoid Uppercases. 
     public static final String REDIRECT_URI = "";
-*/
     
+    /*************************************************/
     
     // SyncAdapter related
     public static final int SYNC_DEFAULT_INTERVAL = 60 * 60; // every 15 minutes
@@ -384,7 +383,7 @@ public class Utils {
         );
         
         // Enable boot notification receiver to re-set the alarm
-        ComponentName receiver = new ComponentName(context, BootAlarmReceiver.class);
+        ComponentName receiver = new ComponentName(context, NotificationsBroadcastReceiver.class);
         PackageManager pm = context.getPackageManager();
         pm.setComponentEnabledSetting(receiver,
                 PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
@@ -412,7 +411,7 @@ public class Utils {
         alarmMgr.cancel(alarmIntent);
         
         // Disable boot notification receiver
-        ComponentName receiver = new ComponentName(context, BootAlarmReceiver.class);
+        ComponentName receiver = new ComponentName(context, NotificationsBroadcastReceiver.class);
         PackageManager pm = context.getPackageManager();
         pm.setComponentEnabledSetting(receiver,
                 PackageManager.COMPONENT_ENABLED_STATE_DISABLED,

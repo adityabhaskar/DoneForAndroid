@@ -1,4 +1,4 @@
-package net.c306.done.notificationalarm;
+package net.c306.done.notifications;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -10,7 +10,7 @@ import net.c306.done.Utils;
 import java.util.Calendar;
 import java.util.Set;
 
-public class NotificationAlarmReceiver extends BroadcastReceiver {
+public class NotificationsBroadcastReceiver extends BroadcastReceiver {
     
     private final String LOG_TAG = Utils.LOG_TAG + this.getClass().getSimpleName();
     
@@ -19,16 +19,23 @@ public class NotificationAlarmReceiver extends BroadcastReceiver {
         Log.v(LOG_TAG, "Received Notification Alarm");
         Log.v(LOG_TAG, "Intent Extra: " + (intent.hasExtra(Utils.INTENT_ACTION) ? intent.getIntExtra(Utils.INTENT_ACTION, -1) : "none"));
         Log.v(LOG_TAG, "Action: " + intent.getAction());
+    
+        if (intent.getAction().equals("android.intent.action.BOOT_COMPLETED")) {
+            // 1. From Boot completed - re-set the alarm here
+            Utils.setNotificationAlarm(context, null);
+        
+        } else
+            // 2. From NotificationAlarm
         
         if (intent.hasExtra(Utils.INTENT_ACTION) &&
                 intent.getIntExtra(Utils.INTENT_ACTION, -1) == Utils.ACTION_SNOOZE) {
-            
+            // 2a. From snooze button
             Utils.snoozeNotification(context);
             
         } else {
+            // 2b. From alarm called - show notification if allowed
             
             // Check if today is allowed under notification_days
-            
             Set<String> notificationDays = Utils.getNotificationDays(context);
             
             Calendar calendar = Calendar.getInstance();

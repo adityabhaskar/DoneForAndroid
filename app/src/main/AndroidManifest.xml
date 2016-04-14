@@ -95,17 +95,10 @@
 
         <!-- Alarm receiver to re-set alarm on boot -->
         <receiver
-            android:name=".notificationalarm.BootAlarmReceiver"
+            android:name=".notifications.NotificationsBroadcastReceiver"
             android:enabled="false">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED"/>
-            </intent-filter>
-        </receiver>
-
-        <receiver
-            android:name=".notificationalarm.NotificationAlarmReceiver"
-            android:exported="false">
-            <intent-filter>
                 <action android:name="net.c306.done.notificationAlarms"/>
                 <action android:name="net.c306.done.notificationAlarms.Snoozed"/>
             </intent-filter>
