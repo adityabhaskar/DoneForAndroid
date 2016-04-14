@@ -15,10 +15,13 @@ import android.preference.PreferenceActivity;
 import android.support.design.widget.Snackbar;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.content.LocalBroadcastManager;
+import android.support.v4.view.MenuItemCompat;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.SearchView;
 import android.support.v7.widget.Toolbar;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.ActionMode;
 import android.view.Menu;
@@ -50,7 +53,7 @@ public class MainActivity
         SwipeRefreshLayout.OnRefreshListener,
         AbsListView.MultiChoiceModeListener,
         AdapterView.OnItemClickListener,
-        AbsListView.OnScrollListener {
+        AbsListView.OnScrollListener, SearchView.OnQueryTextListener {
     
     private static final int DONE_LIST_LOADER = 0;
     private static final String SELECTED_KEY = "selected_position";
@@ -59,6 +62,7 @@ public class MainActivity
     private ListView mListView;
     private DoneListAdapter mDoneListAdapter;
     private int mPosition = ListView.INVALID_POSITION;
+    private String mCurFilter = null;
     
     // Our handler for received Intents. This will be called whenever an Intent
     // with an action named "custom-event-name" is broadcasted.
@@ -308,10 +312,20 @@ public class MainActivity
         getMenuInflater().inflate(R.menu.menu_main, menu);
         
         // Check if logged in, and show Login/Logout buttons accordingly
-        if (Utils.getAccessToken(this) != null)
+        if (Utils.getAccessToken(this) != null) {
             menu.removeItem(R.id.action_login);
-        else
+        } else {
             menu.removeItem(R.id.action_logout);
+            menu.removeItem(R.id.action_search);
+        }
+    
+        MenuItem searchItem = menu.findItem(R.id.action_search);
+        if (searchItem != null) {
+            SearchView searchView =
+                    (SearchView) MenuItemCompat.getActionView(searchItem);
+            if (searchView != null)
+                searchView.setOnQueryTextListener(this);
+        }
         
         return true;
     }
@@ -341,10 +355,12 @@ public class MainActivity
             
             case R.id.action_logout: {
                 onLogout(item);
+                return true;
             }
+    
+            default:
+                return super.onOptionsItemSelected(item);
         }
-        
-        return super.onOptionsItemSelected(item);
     }
     
     @Override
@@ -634,11 +650,25 @@ public class MainActivity
                 DoneListContract.DoneEntry.COLUMN_NAME_UPDATED,
                 DoneListContract.DoneEntry.COLUMN_NAME_EDITED_FIELDS
         };
+    
+        String selection = DoneListContract.DoneEntry.COLUMN_NAME_IS_DELETED + " IS 'FALSE'";
+    
+        if (mCurFilter != null) {
+            String[] filterArr = mCurFilter.split(" +");
+        
+            for (String filterString : filterArr) {
+                selection += " AND " +
+                        DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT +
+                        " LIKE '%" +
+                        filterString +
+                        "%'";
+            }
+        }
         
         return new CursorLoader(this,
                 donesUri,
                 cursorProjectionString,
-                DoneListContract.DoneEntry.COLUMN_NAME_IS_DELETED + " IS 'FALSE'",
+                selection,
                 null,
                 sortOrder);
     }
@@ -669,4 +699,18 @@ public class MainActivity
         IDTSyncAdapter.syncImmediately(this);
     }
     
+    
+    @Override
+    public boolean onQueryTextSubmit(String query) {
+        // do nothing
+        return false;
+    }
+    
+    @Override
+    public boolean onQueryTextChange(String newText) {
+        // search in database and change loader cursor accordingly
+        mCurFilter = !TextUtils.isEmpty(newText) ? newText : null;
+        getLoaderManager().restartLoader(0, null, this);
+        return true;
+    }
 }

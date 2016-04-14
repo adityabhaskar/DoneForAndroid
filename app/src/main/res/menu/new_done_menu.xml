@@ -5,8 +5,8 @@
       tools:context=".NewDoneActivity">
     <item
         android:id="@+id/action_add_dones"
-        android:icon="@drawable/ic_done_white_48dp"
-        android:title="Add"
+        android:icon="@drawable/ic_done_white_24dp"
+        android:title="@string/action_add_new"
         app:showAsAction="ifRoom"/>
     
     <!--<item-->
