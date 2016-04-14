@@ -12,16 +12,15 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.ArrayAdapter;
 import android.widget.DatePicker;
 import android.widget.EditText;
-import android.widget.Spinner;
 
 import net.c306.done.db.DoneListContract;
 import net.c306.done.idonethis.DoneActions;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
@@ -35,10 +34,12 @@ public class NewDoneActivity extends AppCompatActivity {
     List<String> teamURLs = new ArrayList<>();
     private SimpleDateFormat userDateFormat = (SimpleDateFormat) SimpleDateFormat.getDateInstance();
     private SimpleDateFormat idtDateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.UK);
+    
     private long mId;
-    private List<String> mEditedFields;
     private String mDoneDate = idtDateFormat.format(new Date());
     private String mFormattedDoneDate = userDateFormat.format(new Date());
+    private String mTeam;
+    private List<String> mEditedFields;
     
     private DatePickerDialog mDatePicker;
     
@@ -53,8 +54,9 @@ public class NewDoneActivity extends AppCompatActivity {
         
         Intent sender = getIntent();
         mId = sender.getLongExtra(DoneListContract.DoneEntry.COLUMN_NAME_ID, -1);
+        mTeam = Utils.getDefaultTeam(NewDoneActivity.this);
     
-        populateTeamSpinner();
+        populateTeamPicker();
         
         if (mId > -1)
             populateForEdit(sender);
@@ -63,20 +65,17 @@ public class NewDoneActivity extends AppCompatActivity {
             String[] state = Utils.getNewTaskActivityState(this);
     
             if (state.length > 0) {
+                Log.v(LOG_TAG, "Founds saved items: " + Arrays.toString(state));
                 EditText editText = (EditText) findViewById(R.id.done_edit_text);
                 if (editText != null) {
                     editText.setText(state[0]);
                     editText.setSelection(editText.getText().length());
                 }
-                
-                Spinner teamPicker = (Spinner) findViewById(R.id.team_picker);
-                if (teamPicker != null)
-                    teamPicker.setSelection(teamURLs.indexOf(state[1]));
-                
-            }
-    
-            EditText doneDateText = (EditText) findViewById(R.id.done_date_text);
-            if (doneDateText != null) {
+        
+                // Get currentTeam from state
+                mTeam = state[1];
+        
+                // Get currentDate from state
                 if (state.length >= 3 && state[2] != null && !state[2].equals("")) {
                     String[] dateParts = state[2].split("\\-");
     
@@ -88,11 +87,22 @@ public class NewDoneActivity extends AppCompatActivity {
                     );
                     mFormattedDoneDate = userDateFormat.format(c.getTime());
                 }
+            } else
+                Log.v(LOG_TAG, "No state found.");
     
-                doneDateText.setText(mFormattedDoneDate);
+            EditText teamEditText = (EditText) findViewById(R.id.team_picker);
+            if (teamEditText != null) {
+                String teamName = teamNames.get(teamURLs.indexOf(mTeam));
+                teamEditText.setText(teamName);
             }
+    
+            EditText doneDateText = (EditText) findViewById(R.id.done_date_text);
+            if (doneDateText != null)
+                doneDateText.setText(mFormattedDoneDate);
+            
         }
     }
+    
     
     public void openDatePicker(View view) {
         String[] baseDatesString = new String[]{
@@ -169,11 +179,39 @@ public class NewDoneActivity extends AppCompatActivity {
                             }
                         }
                     }
-                });
-        builder.show();
+                })
+                .setTitle(R.string.date_label)
+                .show();
     }
     
-    private void populateTeamSpinner() {
+    
+    public void openTeamPicker(View view) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        
+        builder.setItems(teamNames.toArray(new CharSequence[teamNames.size()]),
+                new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int which) {
+                        // The 'which' argument contains the index position
+                        // of the selected item
+                        
+                        mTeam = teamURLs.get(which);
+                        
+                        EditText teamEditText = (EditText) findViewById(R.id.team_picker);
+                        if (teamEditText != null) {
+                            teamEditText.setText(teamNames.get(which));
+                        }
+                    }
+                })
+                .setTitle(R.string.team_label)
+                .show();
+    }
+    
+    
+    /**
+     * Fetch teams from database and populate into arrays.
+     * Arrays are used to populate picker dialog
+     */
+    private void populateTeamPicker() {
         Cursor teamsCursor = getContentResolver().query(
                 DoneListContract.TeamEntry.CONTENT_URI,
                 new String[]{
@@ -199,29 +237,17 @@ public class NewDoneActivity extends AppCompatActivity {
             teamsCursor.close();
         } else
             Log.w(LOG_TAG, "Team cursor returned empty");
-        
-        Spinner teamPicker = (Spinner) findViewById(R.id.team_picker);
-        if (teamPicker != null) {
-            ArrayAdapter adapter = new ArrayAdapter(this, R.layout.team_selector_spinner, android.R.id.text1, teamNames);
-            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-            teamPicker.setAdapter(adapter);
-    
-            // Set default team as initial selection
-            teamPicker.setSelection(
-                    teamURLs.indexOf(Utils.getDefaultTeam(this))
-            );
-        }
     }
+    
     
     private void populateForEdit(Intent sender) {
         // Edit activity title to edit task, instead of 'Done!'
         ActionBar ab = getSupportActionBar();
-        if (ab != null) {
+        if (ab != null)
             ab.setTitle("Edit Task");
-        }
-    
+        
         // Populate activity view with details
-    
+        
         // Set text
         String rawText = sender.getStringExtra(DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT);
         mPreEditBundle.putString(DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT, rawText);
@@ -234,12 +260,14 @@ public class NewDoneActivity extends AppCompatActivity {
     
     
         // Set team
-        String team = sender.getStringExtra(DoneListContract.DoneEntry.COLUMN_NAME_TEAM);
-        mPreEditBundle.putString(DoneListContract.DoneEntry.COLUMN_NAME_TEAM, team);
-        Spinner teamPicker = (Spinner) findViewById(R.id.team_picker);
-        if (teamPicker != null)
-            teamPicker.setSelection(teamURLs.indexOf(team));
-    
+        mTeam = sender.getStringExtra(DoneListContract.DoneEntry.COLUMN_NAME_TEAM);
+        mPreEditBundle.putString(DoneListContract.DoneEntry.COLUMN_NAME_TEAM, mTeam);
+        EditText teamEditText = (EditText) findViewById(R.id.team_picker);
+        if (teamEditText != null) {
+            String teamName = teamNames.get(teamURLs.indexOf(mTeam));
+            teamEditText.setText(teamName);
+        }
+        
         // Set date
         String editDate = sender.getStringExtra(DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE);
         if (!mDoneDate.equals(editDate)) {
@@ -255,12 +283,12 @@ public class NewDoneActivity extends AppCompatActivity {
             );
             mFormattedDoneDate = userDateFormat.format(c.getTime());
         }
-    
+        
         EditText doneDateText = (EditText) findViewById(R.id.done_date_text);
         if (doneDateText != null)
             doneDateText.setText(mFormattedDoneDate);
-    
-    
+        
+        
         // Set edited fields
         mEditedFields = sender.getStringArrayListExtra(DoneListContract.DoneEntry.COLUMN_NAME_EDITED_FIELDS);
         mPreEditBundle.putStringArrayList(
@@ -309,17 +337,9 @@ public class NewDoneActivity extends AppCompatActivity {
         
             if (!taskText.equals("")) {
             
-                // Get team
-                String taskTeam;
-                Spinner teamPicker = (Spinner) findViewById(R.id.team_picker);
-                if (teamPicker != null)
-                    taskTeam = teamURLs.get(teamPicker.getSelectedItemPosition());
-                else
-                    taskTeam = Utils.getDefaultTeam(this);
-            
                 String[] state = new String[]{
                         taskText,
-                        taskTeam,
+                        mTeam,
                         mDoneDate
                 };
                 Utils.setNewTaskActivityState(this, state);
@@ -340,22 +360,19 @@ public class NewDoneActivity extends AppCompatActivity {
     private void onSaveClicked() {
         EditText doneEditText = (EditText) findViewById(R.id.done_edit_text);
         String taskText = doneEditText.getText().toString();
-        
-        if (taskText.isEmpty()) {
+    
+        if (taskText.isEmpty() && doneEditText != null)
             
             doneEditText.setError(getString(R.string.done_edit_text_empty_error));
-            
-        } else {
+    
+        else {
             // Edit or Add done based on if mId > -1
             
             if (mId > -1) {
                 // Case: Edit this done
     
-                Spinner teamPicker = (Spinner) findViewById(R.id.team_picker);
-                String taskTeam = teamURLs.get(teamPicker.getSelectedItemPosition());
-    
                 if (taskText.equals(mPreEditBundle.getString(DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT)) &&
-                        taskTeam.equals(mPreEditBundle.getString(DoneListContract.DoneEntry.COLUMN_NAME_TEAM)) &&
+                        mTeam.equals(mPreEditBundle.getString(DoneListContract.DoneEntry.COLUMN_NAME_TEAM)) &&
                         mDoneDate.equals(mPreEditBundle.getString(DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE))
                         ) {
                     // No change made
@@ -373,7 +390,7 @@ public class NewDoneActivity extends AppCompatActivity {
                 Bundle editedDetails = new Bundle();
                 editedDetails.putString(DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT, taskText);
                 editedDetails.putString(DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE, mDoneDate);
-                editedDetails.putString(DoneListContract.DoneEntry.COLUMN_NAME_TEAM, taskTeam);
+                editedDetails.putString(DoneListContract.DoneEntry.COLUMN_NAME_TEAM, mTeam);
                 editedDetails.putLong(DoneListContract.DoneEntry.COLUMN_NAME_ID, mId);
                 editedDetails.putStringArrayList(DoneListContract.DoneEntry.COLUMN_NAME_EDITED_FIELDS, (ArrayList<String>) mEditedFields);
                 
@@ -394,13 +411,10 @@ public class NewDoneActivity extends AppCompatActivity {
                 int localTaskIdCounter = Utils.getLocalDoneIdCounter(this) + 1;
                 Utils.setLocalDoneIdCounter(this, localTaskIdCounter);
                 
-                Spinner teamPicker = (Spinner) findViewById(R.id.team_picker);
-                String taskTeam = teamURLs.get(teamPicker.getSelectedItemPosition());
-                
                 // Add temporary id to new done bundle
                 newDoneDetails.putLong(DoneListContract.DoneEntry.COLUMN_NAME_ID, localTaskIdCounter);
                 // Add team to bundle. Later, to be got from selector
-                newDoneDetails.putString(DoneListContract.DoneEntry.COLUMN_NAME_TEAM, taskTeam);
+                newDoneDetails.putString(DoneListContract.DoneEntry.COLUMN_NAME_TEAM, mTeam);
                 // Add done_date to bundle
                 newDoneDetails.putString(DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE, mDoneDate);
                 // Add cleaned (of date strings) taskText to bundle

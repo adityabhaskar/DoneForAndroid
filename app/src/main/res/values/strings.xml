@@ -95,7 +95,7 @@
 
     <string name="pref_title_system_sync_settings">System sync settings</string>
 
-    <!-- Example settings for Notifications -->
+    <!-- Strings for Notifications -->
     <string name="pref_header_notifications">Notifications</string>
 
     <string name="pref_title_daily_notifications">Reminder notifications</string>
