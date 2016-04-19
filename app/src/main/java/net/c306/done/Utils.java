@@ -60,6 +60,7 @@ public class Utils {
     // We use a made up url that we will intercept when redirecting. Avoid Uppercases. 
     public static final String REDIRECT_URI = "";
     
+    
     /*************************************************/
     
     // SyncAdapter related

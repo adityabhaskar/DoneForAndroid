@@ -31,7 +31,7 @@
         android:layout_gravity="bottom|end"
         android:layout_margin="@dimen/fab_margin"
         android:onClick="toNewDone"
-        android:src="@drawable/ic_done_white_24dp"
+        android:src="@drawable/ic_add_white_24dp"
         app:borderWidth="0dp"/>
 
 </android.support.design.widget.CoordinatorLayout>
