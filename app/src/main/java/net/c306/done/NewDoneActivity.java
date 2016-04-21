@@ -106,8 +106,8 @@ public class NewDoneActivity extends AppCompatActivity {
     
     public void openDatePicker(View view) {
         String[] baseDatesString = new String[]{
-                "Today",
                 "Yesterday",
+                "Today",
                 "Select a date ..."
         };
         
@@ -118,9 +118,14 @@ public class NewDoneActivity extends AppCompatActivity {
                         // The 'which' argument contains the index position
                         // of the selected item
                         switch (which) {
+    
                             case 0: {
-                                mDoneDate = idtDateFormat.format(new Date());
-                                mFormattedDoneDate = userDateFormat.format(new Date());
+                                // Yesterday
+                                Calendar c = Calendar.getInstance();
+                                c.setTime(new Date());
+                                c.add(Calendar.DATE, -1);
+                                mDoneDate = idtDateFormat.format(c.getTime());
+                                mFormattedDoneDate = userDateFormat.format(c.getTime());
                                 
                                 EditText dateEditText = (EditText) findViewById(R.id.done_date_text);
                                 if (dateEditText != null)
@@ -130,11 +135,9 @@ public class NewDoneActivity extends AppCompatActivity {
                             }
                             
                             case 1: {
-                                Calendar c = Calendar.getInstance();
-                                c.setTime(new Date());
-                                c.add(Calendar.DATE, -1);
-                                mDoneDate = idtDateFormat.format(c.getTime());
-                                mFormattedDoneDate = userDateFormat.format(c.getTime());
+                                // Today
+                                mDoneDate = idtDateFormat.format(new Date());
+                                mFormattedDoneDate = userDateFormat.format(new Date());
                                 
                                 EditText dateEditText = (EditText) findViewById(R.id.done_date_text);
                                 if (dateEditText != null)
@@ -319,7 +322,7 @@ public class NewDoneActivity extends AppCompatActivity {
             case android.R.id.home:
                 // User pressed up button, save state if in add mode
                 if (mId == -1) {
-                    saveState();
+                    saveActivityState();
                 }
             
             default:
@@ -330,7 +333,7 @@ public class NewDoneActivity extends AppCompatActivity {
         }
     }
     
-    private void saveState() {
+    private void saveActivityState() {
         EditText doneEditText = (EditText) findViewById(R.id.done_edit_text);
         if (doneEditText != null) {
             String taskText = doneEditText.getText().toString();
@@ -354,7 +357,7 @@ public class NewDoneActivity extends AppCompatActivity {
     public void onBackPressed() {
         super.onBackPressed();
         if (mId == -1)
-            saveState();
+            saveActivityState();
     }
     
     private void onSaveClicked() {

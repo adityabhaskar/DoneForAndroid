@@ -34,6 +34,12 @@
     <string name="ACCESS_TOKEN_EXPIRED">Access Token expired. Refresh before continuing.</string>
 
 
+    <!-- Strings related to Splash/Login screen -->
+    <string name="with">with</string>
+    <string name="sign_in">Sign In</string>
+    <string name="idonethis_logo">I Done This</string>
+
+
     <!-- Strings related to Contextual Action Bar -->
     <string name="edit_task">Edit</string>
     <string name="delete_task">Delete</string>

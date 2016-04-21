@@ -3,9 +3,9 @@ package net.c306.done;
 import android.accounts.Account;
 import android.content.Intent;
 import android.os.Bundle;
-import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
+import android.view.animation.AnimationUtils;
 
 import net.c306.done.sync.IDTAccountManager;
 
@@ -27,15 +27,16 @@ public class SplashScreenActivity extends AppCompatActivity {
             finish();
             
         } else {
+            //setContentView(R.layout.activity_splash_screen_blank);
+            getWindow().setBackgroundDrawableResource(R.drawable.login_screen);
+            
+            
             // Not logged in - inflate Layout to show Login Screen
-            final Handler handler = new Handler();
-            handler.postDelayed(new Runnable() {
-                @Override
-                public void run() {
-                    //Do something after 100ms
-                    setContentView(R.layout.activity_splash_screen);
-                }
-            }, 500);
+            View view = getLayoutInflater().inflate(R.layout.activity_splash_screen, null, false);
+            view.startAnimation(AnimationUtils.loadAnimation(SplashScreenActivity.this, android.R.anim.fade_in));
+    
+            setContentView(view);
+            //setContentView(R.layout.activity_splash_screen);
         }
     }
     

@@ -9,12 +9,4 @@
             android:gravity="fill"
             android:src="@drawable/splash1"/>
     </item>
-
-    <item>
-        <bitmap
-            android:gravity="center"
-            android:src="@drawable/ic_splash_icon_120"/>
-    </item>
-
-
 </layer-list>
