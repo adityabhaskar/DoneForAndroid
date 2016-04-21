@@ -207,9 +207,6 @@ public class MainActivity
                     R.color.primary
             );
     
-        // Initialize sync (if there's an existing account)
-        IDTSyncAdapter.initializeSyncAdapter(getApplicationContext());
-        
         Log.i(LOG_TAG, "Access token expires at: " + new Date(Utils.getExpiryTime(this)));
     }
     
@@ -287,6 +284,10 @@ public class MainActivity
     
                         // Replace Logout with Login in action bar
                         invalidateOptionsMenu();
+    
+                        Intent splashScreenActivity = new Intent(MainActivity.this, SplashScreenActivity.class);
+                        startActivity(splashScreenActivity);
+                        finish();
                     }
                 })
                 .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
@@ -393,6 +394,9 @@ public class MainActivity
     
                     // Setup alarm
                     Utils.setNotificationAlarm(MainActivity.this, null);
+    
+                    // Setup sync
+                    IDTSyncAdapter.initializeSyncAdapter(getApplicationContext());
                     
                     // Switch login & logout buttons
                     invalidateOptionsMenu();

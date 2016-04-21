@@ -59,8 +59,7 @@ public class Utils {
     // We can put whatever we want that starts with https:// .
     // We use a made up url that we will intercept when redirecting. Avoid Uppercases. 
     public static final String REDIRECT_URI = "";
-    
-    
+
     /*************************************************/
     
     // SyncAdapter related
@@ -426,7 +425,7 @@ public class Utils {
         * */
         NotificationCompat.Builder mBuilder =
                 new NotificationCompat.Builder(context)
-                        .setSmallIcon(R.mipmap.ic_launcher)
+                        .setSmallIcon(R.drawable.ic_notification_done)
                         .setContentTitle(context.getString(R.string.new_done_hint))
                         .setVisibility(NotificationCompat.VISIBILITY_PUBLIC);
         
