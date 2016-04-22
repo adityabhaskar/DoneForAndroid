@@ -6,6 +6,9 @@
     <!-- Should always have the same value as Utils.PREF_DEFAULT_TEAM-->
     <string name="DEFAULT_TEAM">defaultTeam</string>
 
+    <string name="PREF_SYNC_ON_STARTUP">sync_on_startup</string>
+    <bool name="DEFAULT_SYNC_ON_STARTUP">false</bool>
+
     <!-- Should always have the same value as Utils.PREFS_SYNC_FREQUENCY-->
     <string name="PREF_SYNC_FREQUENCY">sync_frequency</string>
 

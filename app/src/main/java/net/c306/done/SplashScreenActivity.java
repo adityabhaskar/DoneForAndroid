@@ -8,6 +8,7 @@ import android.view.View;
 import android.view.animation.AnimationUtils;
 
 import net.c306.done.sync.IDTAccountManager;
+import net.c306.done.sync.IDTSyncAdapter;
 
 public class SplashScreenActivity extends AppCompatActivity {
     
@@ -21,6 +22,10 @@ public class SplashScreenActivity extends AppCompatActivity {
         
         if (syncAccount != null) {
             // Logged in - go to Main Activity
+    
+            // Sync on launch if setting is set to true
+            if (Utils.getSyncOnStartup(this))
+                IDTSyncAdapter.syncImmediately(getApplicationContext());
             
             Intent nextActivity = new Intent(SplashScreenActivity.this, MainActivity.class);
             startActivity(nextActivity);

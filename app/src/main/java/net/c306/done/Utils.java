@@ -110,6 +110,7 @@ public class Utils {
     public static final String PREF_SYNC_FREQUENCY = "sync_frequency"; // Same value as @R/constants/PREF_SYNC_FREQUENCY
     public static final String PREF_SNOOZE_DURATION = "snooze_duration"; // Same value as @R/constants/PREF_SNOOZE_DURATION
     public static final String PREF_DEFAULT_TEAM = "defaultTeam";
+    public static final String PREF_SYNC_ON_STARTUP = "sync_on_startup"; // Same value as @R/constants/PREF_SHOW_NOTIFICATION
     public static final String PREF_SHOW_NOTIFICATION = "show_notification"; // Same value as @R/constants/PREF_SHOW_NOTIFICATION
     public static final String PREF_NOTIFICATION_DAYS = "notification_days_of_week"; // Same value as @R/constants/PREF_NOTIFICATION_DAYS
     public static final String PREF_NOTIFICATION_TIME = "notification_time"; // Same value as @R/constants/PREF_NOTIFICATION_DAYS
@@ -123,6 +124,7 @@ public class Utils {
     public static final String NEW_TASK_ACTIVITY_STATE = "newTaskActivityState";
     
     // Default Notification Alarm Constants
+    public static final boolean DEFAULT_SYNC_ON_STARTUP = false;
     public static final boolean DEFAULT_SHOW_NOTIFICATION = true;
     public static final String DEFAULT_ALARM_TIME = "19:00";
     public static final int DEFAULT_SNOOZE_IN_SECONDS = 15 * 60; // Same as android:defaultValue in pref_notification.xml > ListPreference
@@ -192,6 +194,15 @@ public class Utils {
         return prefs.getString(
                 "notifications_new_message_ringtone",
                 "content://settings/system/notification_sound"
+        );
+    }
+    
+    public static boolean getSyncOnStartup(Context c) {
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(c);
+        
+        return prefs.getBoolean(
+                Utils.PREF_SYNC_ON_STARTUP,
+                Utils.DEFAULT_SYNC_ON_STARTUP
         );
     }
     

@@ -8,8 +8,8 @@ android {
         applicationId "net.c306.done"
         minSdkVersion 19
         targetSdkVersion 23
-        versionCode 20
-        versionName "0.4.0.2"
+        versionCode 21
+        versionName "0.4.1.0"
         vectorDrawables.useSupportLibrary false
     }
     buildTypes {
@@ -22,7 +22,6 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
-
 }
 
 dependencies {
