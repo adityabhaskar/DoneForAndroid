@@ -11,16 +11,16 @@
         app:showAsAction="ifRoom|collapseActionView"/>
 
     <item
+        android:id="@+id/action_about"
+        android:orderInCategory="98"
+        android:title="@string/action_about"
+        app:showAsAction="never"/>
+
+    <item
         android:id="@+id/action_settings"
         android:orderInCategory="99"
         android:title="@string/action_settings"
         app:showAsAction="never"/>
-
-    <item
-        android:id="@+id/action_login"
-        android:orderInCategory="98"
-        android:title="@string/action_login"
-        app:showAsAction="ifRoom"/>
 
     <item
         android:id="@+id/action_logout"

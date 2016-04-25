@@ -5,7 +5,6 @@ import android.annotation.TargetApi;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.content.res.Configuration;
 import android.database.Cursor;
 import android.media.Ringtone;
 import android.media.RingtoneManager;
@@ -56,7 +55,7 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
         public boolean onPreferenceChange(Preference preference, Object value) {
             if (value instanceof String) {
                 String stringValue = value.toString();
-        
+    
                 if (preference instanceof ListPreference) {
                     // For list preferences, look up the correct display value in
                     // the preference's 'entries' list.
@@ -87,7 +86,7 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
                             String name = ringtone.getTitle(preference.getContext());
                             preference.setSummary(name);
                         }
-                        Log.v(Utils.LOG_TAG, "Set ringtone to " + stringValue);
+                        //Log.v(Utils.LOG_TAG, "Set ringtone to " + stringValue);
                     }
             
                 } else {
@@ -142,15 +141,6 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
     private final String LOG_TAG = Utils.LOG_TAG + this.getClass().getSimpleName();
     
     /**
-     * Helper method to determine if the device has an extra-large screen. For
-     * example, 10" tablets are extra-large.
-     */
-    private static boolean isXLargeTablet(Context context) {
-        return (context.getResources().getConfiguration().screenLayout
-                & Configuration.SCREENLAYOUT_SIZE_MASK) >= Configuration.SCREENLAYOUT_SIZE_XLARGE;
-    }
-    
-    /**
      * Binds a preference's summary to its value. More specifically, when the
      * preference's value is changed, its summary (line of text below the
      * preference title) is updated to reflect the value. The summary is also
@@ -188,6 +178,11 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
     
         // Clear any notifications that may have started the activity
         Utils.clearNotification(this);
+    
+        // Display the fragment as the main content.
+        getFragmentManager().beginTransaction()
+                .replace(android.R.id.content, new MainPreferenceFragment())
+                .commit();
     }
     
     @Override
@@ -207,7 +202,7 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
                 .unregisterOnSharedPreferenceChangeListener(this);
     }
     
-    /*
+    /**
     * Implementing method to handle change in preferences, and test for valid authToken
     * */
     @Override
@@ -297,31 +292,12 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
     }
     
     /**
-     * {@inheritDoc}
-     */
-    @Override
-    public boolean onIsMultiPane() {
-        return isXLargeTablet(this);
-    }
-    
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    @TargetApi(Build.VERSION_CODES.HONEYCOMB)
-    public void onBuildHeaders(List<Header> target) {
-        loadHeadersFromResource(R.xml.pref_headers, target);
-    }
-    
-    /**
      * This method stops fragment injection in malicious applications.
      * Make sure to deny any unknown fragments here.
      */
     protected boolean isValidFragment(String fragmentName) {
         return PreferenceFragment.class.getName().equals(fragmentName)
-                || GeneralPreferenceFragment.class.getName().equals(fragmentName)
-                || DataSyncPreferenceFragment.class.getName().equals(fragmentName)
-                || NotificationPreferenceFragment.class.getName().equals(fragmentName);
+                || MainPreferenceFragment.class.getName().equals(fragmentName);
     }
     
     @Override
@@ -335,15 +311,15 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
     }
     
     /**
-     * This fragment shows general preferences only. It is used when the
-     * activity is showing a two-pane settings UI.
+     * This fragment shows all preferences. 
      */
     @TargetApi(Build.VERSION_CODES.HONEYCOMB)
-    public static class GeneralPreferenceFragment extends PreferenceFragment {
+    public static class MainPreferenceFragment extends PreferenceFragment {
         @Override
         public void onCreate(Bundle savedInstanceState) {
             super.onCreate(savedInstanceState);
-            addPreferencesFromResource(R.xml.pref_general);
+            addPreferencesFromResource(R.xml.preferences);
+            
             setHasOptionsMenu(true);
     
             setupTeamsSelector();
@@ -353,17 +329,22 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
             // updated to reflect the new value, per the Android Design
             // guidelines.
             bindPreferenceSummaryToValue(findPreference(Utils.PREF_DEFAULT_TEAM));
+            bindPreferenceSummaryToValue(findPreference(Utils.PREF_NOTIFICATION_SOUND));
+            bindPreferenceSummaryToValue(findPreference(Utils.PREF_SNOOZE_DURATION));
+            bindPreferenceSummaryToValue(findPreference(Utils.PREF_NOTIFICATION_DAYS));
+            bindPreferenceSummaryToValue(findPreference(Utils.PREF_SYNC_FREQUENCY));
         }
     
         private void setupTeamsSelector() {
     
             ListPreference defaultTeamListPreference = (ListPreference) findPreference(Utils.PREF_DEFAULT_TEAM);
-            
-            if (Utils.getAccessToken(getActivity().getApplicationContext()) != null) {
+    
+            if (Utils.getAccessToken(getActivity().getApplicationContext()) != null &&
+                    defaultTeamListPreference != null) {
                 
                 // Fill up team names in listPreference in General Preferences
                 defaultTeamListPreference.setEnabled(true);
-    
+        
                 Cursor cursor = getActivity().getContentResolver().query(
                         DoneListContract.TeamEntry.CONTENT_URI,
                         new String[]{
@@ -380,7 +361,7 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
                     
                     List<String> teamNames = new ArrayList<>();
                     List<String> teamURLs = new ArrayList<>();
-    
+            
                     int columnTeamName = cursor.getColumnIndex(DoneListContract.TeamEntry.COLUMN_NAME_NAME);
                     int columnTeamURL = cursor.getColumnIndex(DoneListContract.TeamEntry.COLUMN_NAME_URL);
             
@@ -398,7 +379,7 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
                     defaultTeamListPreference.setEntryValues(new String[]{});
                 }
             } else
-                defaultTeamListPreference.setEnabled(false);
+                Log.w(Utils.LOG_TAG + getClass().getSimpleName(), "defaultTeamListPreference is null");
         }
         
         @Override
@@ -412,65 +393,4 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
         }
     }
     
-    /**
-     * This fragment shows notification preferences only. It is used when the
-     * activity is showing a two-pane settings UI.
-     */
-    @TargetApi(Build.VERSION_CODES.HONEYCOMB)
-    public static class NotificationPreferenceFragment extends PreferenceFragment {
-        @Override
-        public void onCreate(Bundle savedInstanceState) {
-            super.onCreate(savedInstanceState);
-            addPreferencesFromResource(R.xml.pref_notification);
-            setHasOptionsMenu(true);
-    
-            // Bind the summaries of EditText/List/Dialog/Ringtone preferences
-            // to their values. When their values change, their summaries are
-            // updated to reflect the new value, per the Android Design
-            // guidelines.
-            bindPreferenceSummaryToValue(findPreference("notifications_new_message_ringtone"));
-            bindPreferenceSummaryToValue(findPreference(Utils.PREF_SNOOZE_DURATION));
-            bindPreferenceSummaryToValue(findPreference(Utils.PREF_NOTIFICATION_DAYS));
-        }
-        
-        @Override
-        public boolean onOptionsItemSelected(MenuItem item) {
-            int id = item.getItemId();
-            if (id == android.R.id.home) {
-                startActivity(new Intent(getActivity(), SettingsActivity.class));
-                return true;
-            }
-            return super.onOptionsItemSelected(item);
-        }
-    }
-    
-    /**
-     * This fragment shows data and sync preferences only. It is used when the
-     * activity is showing a two-pane settings UI.
-     */
-    @TargetApi(Build.VERSION_CODES.HONEYCOMB)
-    public static class DataSyncPreferenceFragment extends PreferenceFragment {
-        @Override
-        public void onCreate(Bundle savedInstanceState) {
-            super.onCreate(savedInstanceState);
-            addPreferencesFromResource(R.xml.pref_data_sync);
-            setHasOptionsMenu(true);
-    
-            // Bind the summaries of EditText/List/Dialog/Ringtone preferences
-            // to their values. When their values change, their summaries are
-            // updated to reflect the new value, per the Android Design
-            // guidelines.
-            bindPreferenceSummaryToValue(findPreference("sync_frequency"));
-        }
-        
-        @Override
-        public boolean onOptionsItemSelected(MenuItem item) {
-            int id = item.getItemId();
-            if (id == android.R.id.home) {
-                startActivity(new Intent(getActivity(), SettingsActivity.class));
-                return true;
-            }
-            return super.onOptionsItemSelected(item);
-        }
-    }
 }

@@ -166,6 +166,10 @@ public class LoginActivity extends AccountAuthenticatorActivity {
             // If successfully logged in, start MainActivity
             if (event.finished == Utils.LOGIN_FINISHED) {
                 Intent mainActivity = new Intent(LoginActivity.this, MainActivity.class);
+                mainActivity.putExtra(
+                        Utils.INTENT_FROM_ACTIVITY_IDENTIFIER,
+                        Utils.LOGIN_ACTIVITY_IDENTIFIER
+                );
                 startActivity(mainActivity);
             }
             
@@ -271,9 +275,10 @@ public class LoginActivity extends AccountAuthenticatorActivity {
                                 //Store both expires in and access token in shared preferences
                                 SharedPreferences preferences = LoginActivity.this.getSharedPreferences(Utils.USER_DETAILS_PREFS_FILENAME, 0);
                                 SharedPreferences.Editor editor = preferences.edit();
-                                editor.putLong("expires", expireDate);
-                                editor.putString("accessToken", accessToken);
-                                editor.putString("refreshToken", refreshToken);
+                                // TODO: 25/04/16 Replace strings with Utils constants 
+                                editor.putLong(Utils.EXPIRES_TOKEN, expireDate);
+                                editor.putString(Utils.ACCESS_TOKEN, accessToken);
+                                editor.putString(Utils.REFRESH_TOKEN, refreshToken);
                                 editor.apply();
                                 
                                 httpcon.disconnect();

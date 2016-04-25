@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              android:layout_width="wrap_content"
+              android:layout_height="wrap_content"
+              android:background="@android:color/background_light"
+              android:gravity="center"
+              android:minWidth="300dp"
+              android:orientation="vertical">
+
+    <ImageView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="@dimen/activity_vertical_margin"
+        android:contentDescription="@string/app_name"
+        android:src="@drawable/ic_splash_icon_120"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="@dimen/activity_vertical_margin"
+        android:layout_marginTop="@dimen/half_margin"
+        android:fontFamily="sans-serif"
+        android:text="@string/app_name"
+        android:textColor="@color/primary_text"
+        android:textSize="44sp"
+        android:textStyle="normal"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="@dimen/half_margin"
+        android:text="@string/_for"
+        android:textAlignment="center"
+        android:textColor="@color/secondary_text"
+        android:textSize="18sp"
+        />
+
+    <ImageView
+        android:layout_width="wrap_content"
+        android:layout_height="@dimen/double_margin"
+        android:contentDescription="@string/idonethis_logo"
+        android:src="@drawable/idt_logo"/>
+
+    <View
+        android:layout_width="200dp"
+        android:layout_height="1dp"
+        android:layout_marginBottom="@dimen/double_margin"
+        android:layout_marginTop="@dimen/double_margin"
+        android:background="@color/divider"
+        />
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="@dimen/activity_vertical_margin"
+        android:layout_marginTop="0dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/_by"
+            android:textColor="@color/secondary_text"
+            android:textSize="18sp"
+            />
+
+        <TextView
+            android:id="@+id/about_dialog_developer_name"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:linksClickable="true"
+            android:paddingStart="@dimen/half_margin"
+            android:textColor="@color/primary_text"
+            android:textColorLink="@color/link_colour"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            />
+    </LinearLayout>
+
+
+    <TextView
+        android:id="@+id/about_dialog_version"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="@dimen/activity_vertical_margin"
+        android:textColor="@color/secondary_text"
+        android:textSize="16sp"
+        />
+
+
+</LinearLayout>
+    

@@ -34,17 +34,28 @@ public class NotificationsBroadcastReceiver extends BroadcastReceiver {
             
         } else {
             // 2b. From alarm called - show notification if allowed
-            
-            // Check if today is allowed under notification_days
-            Set<String> notificationDays = Utils.getNotificationDays(context);
-            
-            Calendar calendar = Calendar.getInstance();
-            int day = calendar.get(Calendar.DAY_OF_WEEK) - 1; // Subtract 1 to go from Sunday starting to Monday starting
-            
-            if (notificationDays.contains(String.valueOf(day)))
+    
+            if (showNotificationToday(context))
                 Utils.showNotification(context, intent);
             else
                 Log.v(LOG_TAG, "User doesn't want any notifications today.");
+    
         }
+    }
+    
+    private boolean showNotificationToday(Context context) {
+        // Check if today is allowed under notification_days
+        Set<String> notificationDays = Utils.getNotificationDays(context);
+        
+        // Get today's day of week
+        Calendar calendar = Calendar.getInstance();
+        int today = calendar.get(Calendar.DAY_OF_WEEK) - 1; // Subtract 1 to go from Sunday starting to Monday starting
+        
+        // If day is 0, i.e. Sunday, set it to 7
+        today = today == 0 ? 7 : today;
+        
+        Log.v(Utils.LOG_TAG, "day: " + today);
+        
+        return notificationDays.contains(String.valueOf(today));
     }
 }

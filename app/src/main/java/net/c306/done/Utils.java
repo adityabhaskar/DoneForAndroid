@@ -13,7 +13,6 @@ import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.SystemClock;
-import android.preference.PreferenceActivity;
 import android.preference.PreferenceManager;
 import android.support.annotation.Nullable;
 import android.support.v4.app.NotificationCompat;
@@ -82,6 +81,7 @@ public class Utils {
     public static final int RESULT_ERROR = -1;
     
     // Intent & extra identifiers
+    public static final String INTENT_FROM_ACTIVITY_IDENTIFIER = "fromActivity";
     public static final String INTENT_EXTRA_FROM_DONE_DELETE_EDIT_TASKS = "fromDoneDeleteOrEditTasks";
     public static final String INTENT_EXTRA_FETCH_TEAMS = "fetchTeams";
     public static final String DONE_LOCAL_BROADCAST_LISTENER_INTENT = "net.c306.done.mainActivityListenerIntent";
@@ -103,6 +103,9 @@ public class Utils {
     // OTHER CONSTANTS
     public static final String LOG_TAG = "AppMessage ";
     public static final String AUTH_TOKEN = "authToken";
+    public static final String ACCESS_TOKEN = "accessToken";
+    public static final String REFRESH_TOKEN = "refreshToken";
+    public static final String EXPIRES_TOKEN = "expires";
     public static final String USER_DETAILS_PREFS_FILENAME = "user_info";
     public static final int MIN_LOCAL_DONE_ID = 100000000;
     
@@ -235,13 +238,13 @@ public class Utils {
     @Nullable
     public static String getAccessToken(Context c) {
         SharedPreferences prefs = c.getSharedPreferences(Utils.USER_DETAILS_PREFS_FILENAME, 0);
-        return prefs.getString("accessToken", null);
+        return prefs.getString(Utils.ACCESS_TOKEN, null);
     }
     
     public static void setAccessToken(Context c, String token) {
         SharedPreferences prefs = c.getSharedPreferences(Utils.USER_DETAILS_PREFS_FILENAME, 0);
         SharedPreferences.Editor editor = prefs.edit();
-        editor.putString("accessToken", token);
+        editor.putString(Utils.ACCESS_TOKEN, token);
         editor.apply();
     }
     
@@ -430,7 +433,6 @@ public class Utils {
     }
     
     public static void showNotification(Context context, Intent intent) {
-        
         /*
         * Create notification builder
         * */
@@ -510,10 +512,10 @@ public class Utils {
         * Add Settings intent
         * */
         Intent settingsIntent = new Intent(context, SettingsActivity.class);
-        settingsIntent.putExtra(
-                PreferenceActivity.EXTRA_SHOW_FRAGMENT,
-                SettingsActivity.NotificationPreferenceFragment.class.getName()
-        );
+        //settingsIntent.putExtra(
+        //        PreferenceActivity.EXTRA_SHOW_FRAGMENT,
+        //        SettingsActivity.NotificationPreferenceFragment.class.getName()
+        //);
         
         // Create backstack
         TaskStackBuilder settingsStackBuilder = TaskStackBuilder.create(context);
@@ -639,13 +641,14 @@ public class Utils {
     }
     
     public static void resetSharedPreferences(Context c) {
-        // Delete app settings shared prefs
+        // Clear app settings
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(c);
         SharedPreferences.Editor editor = prefs.edit();
         editor.clear()
-                .putString(Utils.PREF_SYNC_FREQUENCY, String.valueOf(Utils.SYNC_DEFAULT_INTERVAL))
                 .apply();
-        
+    
+        // Set default values
+        PreferenceManager.setDefaultValues(c, R.xml.preferences, true);
         
         // Delete user details shared prefs
         prefs = c.getSharedPreferences(Utils.USER_DETAILS_PREFS_FILENAME, Context.MODE_PRIVATE);

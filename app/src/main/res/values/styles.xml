@@ -33,4 +33,8 @@
         <item name="android:windowBackground">@drawable/splash_screen</item>
     </style>
 
+    <style name="AboutDialogTheme" parent="Theme.AppCompat.Dialog">
+        <item name="android:background">@android:color/background_light</item>
+    </style>
+
 </resources>

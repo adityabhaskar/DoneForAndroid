@@ -11,7 +11,7 @@ import android.content.Loader;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
-import android.preference.PreferenceActivity;
+import android.preference.PreferenceManager;
 import android.support.design.widget.Snackbar;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.content.LocalBroadcastManager;
@@ -41,7 +41,6 @@ import net.c306.done.sync.IDTAccountManager;
 import net.c306.done.sync.IDTSyncAdapter;
 
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 // TODO: 20/02/16 Group dones under date headers in listView
@@ -123,8 +122,8 @@ public class MainActivity
                         @Override
                         public void onClick(View v) {
                             Intent settingsIntent = new Intent(MainActivity.this, SettingsActivity.class);
-                            settingsIntent.putExtra(PreferenceActivity.EXTRA_SHOW_FRAGMENT, SettingsActivity.GeneralPreferenceFragment.class.getName());
-                            settingsIntent.putExtra(PreferenceActivity.EXTRA_NO_HEADERS, true);
+                            //settingsIntent.putExtra(PreferenceActivity.EXTRA_SHOW_FRAGMENT, SettingsActivity.GeneralPreferenceFragment.class.getName());
+                            //settingsIntent.putExtra(PreferenceActivity.EXTRA_NO_HEADERS, true);
                             startActivity(settingsIntent);
                         }
                     })
@@ -207,7 +206,35 @@ public class MainActivity
                     R.color.primary
             );
     
-        Log.i(LOG_TAG, "Access token expires at: " + new Date(Utils.getExpiryTime(this)));
+        Intent fromIntent = getIntent();
+    
+        if (fromIntent.hasExtra(Utils.INTENT_FROM_ACTIVITY_IDENTIFIER)) {
+        
+            // If coming from a successful login
+            if (fromIntent.getIntExtra(Utils.INTENT_FROM_ACTIVITY_IDENTIFIER, -1) == Utils.LOGIN_ACTIVITY_IDENTIFIER) {
+            
+                // Successfully logged in
+            
+                // Show snackbar
+                mSnackbar = Snackbar.make(findViewById(R.id.fab), R.string.LOGIN_SUCCESSFUL, Snackbar.LENGTH_SHORT);
+                mSnackbar.setAction("Dismiss", null).show();
+            
+                // Setup alarm
+                Utils.setNotificationAlarm(MainActivity.this, null);
+            
+                // Setup sync
+                IDTSyncAdapter.initializeSyncAdapter(getApplicationContext());
+            
+                // Switch login & logout buttons
+                invalidateOptionsMenu();
+            
+            }
+        }
+    
+        // Setup default preferences, if not already set/changed
+        PreferenceManager.setDefaultValues(MainActivity.this, R.xml.preferences, false);
+    
+        //Log.v(LOG_TAG, "Notifications today? " + NotificationsBroadcastReceiver.showNotificationToday(MainActivity.this));
     }
     
     
@@ -278,7 +305,7 @@ public class MainActivity
                         //mListView.setAdapter(null);
                         Log.v(LOG_TAG, "Database deleted.");
     
-                        // Empty sharedPreferences
+                        // Empty sharedPreferences & set to default
                         Utils.resetSharedPreferences(context);
                         Log.v(LOG_TAG, "SharedPreferences emptied.");
     
@@ -300,6 +327,15 @@ public class MainActivity
                 .show();
     }
     
+    /**
+     * showAbout - shows the about page as a dialog activity
+     */
+    private void showAbout() {
+        Log.v(LOG_TAG, "Opening about dialog");
+        Intent aboutIntent = new Intent(MainActivity.this, AboutActivity.class);
+        startActivity(aboutIntent);
+    }
+    
     
     /*
     * 
@@ -312,14 +348,6 @@ public class MainActivity
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.menu_main, menu);
         
-        // Check if logged in, and show Login/Logout buttons accordingly
-        if (Utils.getAccessToken(this) != null) {
-            menu.removeItem(R.id.action_login);
-        } else {
-            menu.removeItem(R.id.action_logout);
-            menu.removeItem(R.id.action_search);
-        }
-    
         MenuItem searchItem = menu.findItem(R.id.action_search);
         if (searchItem != null) {
             SearchView searchView =
@@ -337,9 +365,8 @@ public class MainActivity
         // Handle action bar item clicks here. The action bar will
         // automatically handle clicks on the Home/Up button, so long
         // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
-        
-        switch (id) {
+    
+        switch (item.getItemId()) {
             case R.id.action_settings:
                 Intent settingsIntent = new Intent(MainActivity.this, SettingsActivity.class);
                 //settingsIntent.putExtra(PreferenceActivity.EXTRA_SHOW_FRAGMENT, SettingsActivity.GeneralPreferenceFragment.class.getName());
@@ -347,10 +374,9 @@ public class MainActivity
                 //settingsIntent.putExtra(PreferenceActivity.EXTRA_SHOW_FRAGMENT_ARGUMENTS, Utils.ACTION_SHOW_AUTH);
                 startActivity(settingsIntent);
                 return true;
-    
-            case R.id.action_login: {
-                Intent loginActivityIntent = new Intent(this, LoginActivity.class);
-                startActivityForResult(loginActivityIntent, Utils.LOGIN_ACTIVITY_IDENTIFIER);
+        
+            case R.id.action_about: {
+                showAbout();
                 return true;
             }
             
@@ -358,7 +384,7 @@ public class MainActivity
                 onLogout(item);
                 return true;
             }
-    
+        
             default:
                 return super.onOptionsItemSelected(item);
         }
@@ -386,22 +412,9 @@ public class MainActivity
                     })
                             .setActionTextColor(ContextCompat.getColor(this, R.color.link_colour))
                             .show();
-                    
-                } else if (resultCode == RESULT_OK) {
-                    // If success, do nothing
-                    mSnackbar = Snackbar.make(findViewById(R.id.fab), R.string.LOGIN_SUCCESSFUL, Snackbar.LENGTH_SHORT);
-                    mSnackbar.setAction("Dismiss", null).show();
     
-                    // Setup alarm
-                    Utils.setNotificationAlarm(MainActivity.this, null);
-    
-                    // Setup sync
-                    IDTSyncAdapter.initializeSyncAdapter(getApplicationContext());
-                    
-                    // Switch login & logout buttons
-                    invalidateOptionsMenu();
-                }
-                
+                } else if (resultCode == RESULT_OK)
+                    Log.w(LOG_TAG, "Shouldn't be here!");
             }
         }
     }
@@ -416,7 +429,6 @@ public class MainActivity
         
         super.onSaveInstanceState(outState);
     }
-    
     
     /*
     * 
@@ -433,7 +445,6 @@ public class MainActivity
         // Save position
         mPosition = firstVisibleItem;
     }
-    
     
     /*
     * 
