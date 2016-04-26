@@ -24,6 +24,8 @@ import android.text.TextUtils;
 import android.util.Log;
 import android.view.MenuItem;
 
+import com.google.android.gms.analytics.Tracker;
+
 import net.c306.done.db.DoneListContract;
 import net.c306.done.sync.IDTSyncAdapter;
 
@@ -139,6 +141,7 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
         }
     };
     private final String LOG_TAG = Utils.LOG_TAG + this.getClass().getSimpleName();
+    private Tracker mTracker;
     
     /**
      * Binds a preference's summary to its value. More specifically, when the
@@ -176,9 +179,10 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
         super.onCreate(savedInstanceState);
         setupActionBar();
     
-        // Clear any notifications that may have started the activity
-        Utils.clearNotification(this);
-    
+        // Analytics Obtain the shared Tracker instance.
+        AnalyticsApplication application = (AnalyticsApplication) getApplication();
+        mTracker = application.getDefaultTracker();
+        
         // Display the fragment as the main content.
         getFragmentManager().beginTransaction()
                 .replace(android.R.id.content, new MainPreferenceFragment())
@@ -191,7 +195,8 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
         
         PreferenceManager.getDefaultSharedPreferences(this)
                 .registerOnSharedPreferenceChangeListener(this);
-        
+    
+        Utils.sendScreen(mTracker, getClass().getSimpleName());
     }
     
     @Override

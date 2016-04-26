@@ -32,6 +32,7 @@ import android.widget.AdapterView;
 import android.widget.ListView;
 import android.widget.Toast;
 
+import com.google.android.gms.analytics.Tracker;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
@@ -52,7 +53,7 @@ public class MainActivity
         SwipeRefreshLayout.OnRefreshListener,
         AbsListView.MultiChoiceModeListener,
         AdapterView.OnItemClickListener,
-        AbsListView.OnScrollListener, SearchView.OnQueryTextListener {
+        AbsListView.OnScrollListener, SearchView.OnQueryTextListener, MenuItemCompat.OnActionExpandListener {
     
     private static final int DONE_LIST_LOADER = 0;
     private static final String SELECTED_KEY = "selected_position";
@@ -62,6 +63,7 @@ public class MainActivity
     private DoneListAdapter mDoneListAdapter;
     private int mPosition = ListView.INVALID_POSITION;
     private String mCurFilter = null;
+    private Tracker mTracker;
     
     // Our handler for received Intents. This will be called whenever an Intent
     // with an action named "custom-event-name" is broadcasted.
@@ -234,7 +236,9 @@ public class MainActivity
         // Setup default preferences, if not already set/changed
         PreferenceManager.setDefaultValues(MainActivity.this, R.xml.preferences, false);
     
-        //Log.v(LOG_TAG, "Notifications today? " + NotificationsBroadcastReceiver.showNotificationToday(MainActivity.this));
+        // Analytics Obtain the shared Tracker instance.
+        AnalyticsApplication application = (AnalyticsApplication) getApplication();
+        mTracker = application.getDefaultTracker();
     }
     
     
@@ -258,6 +262,9 @@ public class MainActivity
             swp.setOnRefreshListener(this);
             swp.setRefreshing(false);
         }
+    
+        // Log screen open in Analytics
+        Utils.sendScreen(mTracker, getClass().getSimpleName());
     }
     
     
@@ -287,6 +294,9 @@ public class MainActivity
                         Context context = getApplicationContext();
                         // User confirmed Logout
                         Log.v(LOG_TAG, "Logging out...");
+    
+                        // Track event in analytics
+                        Utils.sendEvent(mTracker, "Action", "Logout");
     
                         // Remove alarm & any notifications
                         Utils.cancelNotificationAlarm(MainActivity.this);
@@ -354,6 +364,8 @@ public class MainActivity
                     (SearchView) MenuItemCompat.getActionView(searchItem);
             if (searchView != null)
                 searchView.setOnQueryTextListener(this);
+    
+            MenuItemCompat.setOnActionExpandListener(searchItem, MainActivity.this);
         }
         
         return true;
@@ -430,7 +442,7 @@ public class MainActivity
         super.onSaveInstanceState(outState);
     }
     
-    /*
+    /**
     * 
     * Implementing methods for onScrollListener - to save scroll state for activity restarts
     * 
@@ -446,7 +458,7 @@ public class MainActivity
         mPosition = firstVisibleItem;
     }
     
-    /*
+    /**
     * 
     * AdapterView.OnItemClickListener - to save scroll state for activity restarts
     * 
@@ -463,7 +475,7 @@ public class MainActivity
     }
     
     
-    /*
+    /**
     * 
     * AbsListView.MultiChoiceModeListener methods - for edit & delete selections
     * 
@@ -522,14 +534,21 @@ public class MainActivity
                         .setNegativeButton("Cancel", null)
                         .create()
                         .show();
-        
-                mode.finish(); // Close the CAB
+    
+                // Close the CAB
+                mode.finish(); 
                 return true;
     
             case R.id.menu_edit_done:
-                editSelectedItems(selectedTasks[0]);
                 Log.v(LOG_TAG, "Edit selected item");
-                mode.finish(); // Action picked, so close the CAB
+        
+                // Log event in analytics
+                Utils.sendEvent(mTracker, "Action", "EditDone");
+        
+                // Action picked, so close the CAB
+                mode.finish();
+        
+                editSelectedItems(selectedTasks[0]);
                 return true;
     
             default:
@@ -613,6 +632,9 @@ public class MainActivity
     
     private void deleteSelectedItems(long[] ids) {
         Log.v(LOG_TAG, "Delete selected items: " + ids.length);
+    
+        // Log event in analytics
+        Utils.sendEvent(mTracker, "Action", "DeleteDones", String.valueOf(ids.length));
         
         // Delete selected ids from database, then from server, finishing with updating tasks from server on success
         int deletedCount = new DoneActions(this).delete(ids);
@@ -632,7 +654,7 @@ public class MainActivity
     }
     
     
-    /*
+    /**
     *  
     *  LoaderManager.LoaderCallbacks<Cursor> methods - to setup cursor and adapter 
     *  for populating listview
@@ -704,13 +726,16 @@ public class MainActivity
     }
     
     
-    /*
+    /**
     * SwipeRefreshLayout.OnRefreshListener method - to start a sync when swiped-to-refresh
     * */
     @Override
     public void onRefresh() {
         Log.v(LOG_TAG, "Calling syncImmediately from swipe to refresh");
     
+        // Track event in analytics
+        Utils.sendEvent(mTracker, "Action", "PullToRefresh");
+        
         IDTSyncAdapter.syncImmediately(this);
     }
     
@@ -726,6 +751,20 @@ public class MainActivity
         // search in database and change loader cursor accordingly
         mCurFilter = !TextUtils.isEmpty(newText) ? newText : null;
         getLoaderManager().restartLoader(0, null, this);
+        return true;
+    }
+    
+    @Override
+    public boolean onMenuItemActionExpand(MenuItem item) {
+        if (item.getItemId() == R.id.action_search) {
+            Log.i(LOG_TAG, "Search expanded");
+            Utils.sendEvent(mTracker, "Action", "Search");
+        }
+        return true;
+    }
+    
+    @Override
+    public boolean onMenuItemActionCollapse(MenuItem item) {
         return true;
     }
 }

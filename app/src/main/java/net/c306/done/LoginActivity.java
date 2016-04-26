@@ -16,6 +16,7 @@ import android.webkit.WebViewClient;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
+import com.google.android.gms.analytics.Tracker;
 import com.squareup.otto.Bus;
 import com.squareup.otto.Subscribe;
 
@@ -70,6 +71,7 @@ public class LoginActivity extends AccountAuthenticatorActivity {
     private TextView mProgressStatus;
     private Bus bus = new Bus();
     private ProgressDialog mWebViewLoadingProgress;
+    private Tracker mTracker;
     
     /*********************/
     
@@ -130,8 +132,19 @@ public class LoginActivity extends AccountAuthenticatorActivity {
         
         //Load the authorization URL into the webView
         mWebView.loadUrl(authUrl);
+    
+        // Analytics Obtain the shared Tracker instance.
+        AnalyticsApplication application = (AnalyticsApplication) getApplication();
+        mTracker = application.getDefaultTracker();
     }
     
+    
+    @Override
+    protected void onResume() {
+        super.onResume();
+        
+        Utils.sendScreen(mTracker, getClass().getSimpleName());
+    }
     
     /**
      * Set up the {@link android.app.ActionBar}, if the API is available.
@@ -165,6 +178,9 @@ public class LoginActivity extends AccountAuthenticatorActivity {
     
             // If successfully logged in, start MainActivity
             if (event.finished == Utils.LOGIN_FINISHED) {
+    
+                Utils.sendEvent(mTracker, "action", "loginSuccessful");
+                
                 Intent mainActivity = new Intent(LoginActivity.this, MainActivity.class);
                 mainActivity.putExtra(
                         Utils.INTENT_FROM_ACTIVITY_IDENTIFIER,

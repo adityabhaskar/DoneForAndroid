@@ -9,6 +9,8 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.Uri;
@@ -21,6 +23,8 @@ import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 import android.widget.Toast;
 
+import com.google.android.gms.analytics.HitBuilders;
+import com.google.android.gms.analytics.Tracker;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
@@ -38,7 +42,6 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.Locale;
 import java.util.Set;
-
 public class Utils {
     
     /****
@@ -58,7 +61,7 @@ public class Utils {
     // We can put whatever we want that starts with https:// .
     // We use a made up url that we will intercept when redirecting. Avoid Uppercases. 
     public static final String REDIRECT_URI = "";
-
+    
     /*************************************************/
     
     // SyncAdapter related
@@ -440,7 +443,12 @@ public class Utils {
                 new NotificationCompat.Builder(context)
                         .setSmallIcon(R.drawable.ic_notification_done)
                         .setContentTitle(context.getString(R.string.new_done_hint))
+                        .setTicker(context.getString(R.string.new_done_hint))
+                        .setAutoCancel(true)
                         .setVisibility(NotificationCompat.VISIBILITY_PUBLIC);
+    
+        Bitmap bm = BitmapFactory.decodeResource(context.getResources(), R.drawable.ic_splash_icon_120);
+        mBuilder.setLargeIcon(bm);
         
         String ringtone = Utils.getRingtone(context);
         if (ringtone != null && !ringtone.isEmpty())
@@ -512,10 +520,6 @@ public class Utils {
         * Add Settings intent
         * */
         Intent settingsIntent = new Intent(context, SettingsActivity.class);
-        //settingsIntent.putExtra(
-        //        PreferenceActivity.EXTRA_SHOW_FRAGMENT,
-        //        SettingsActivity.NotificationPreferenceFragment.class.getName()
-        //);
         
         // Create backstack
         TaskStackBuilder settingsStackBuilder = TaskStackBuilder.create(context);
@@ -658,4 +662,29 @@ public class Utils {
         
     }
     
+    public static void sendEvent(Tracker tracker, String category, String action) {
+        sendEvent(tracker, category, action, null);
+    }
+    
+    public static void sendEvent(Tracker tracker, String category, String action, String label) {
+        if (category == null || category.isEmpty())
+            category = "Action";
+        
+        HitBuilders.EventBuilder analyticsEvent = new HitBuilders.EventBuilder()
+                .setCategory(category)
+                .setAction(action);
+        
+        if (label != null && !label.isEmpty())
+            analyticsEvent.setLabel(label);
+        
+        tracker.send(analyticsEvent.build());
+    }
+    
+    public static void sendScreen(Tracker tracker, String screenName) {
+        // Log screen open in Analytics
+        Log.i(LOG_TAG, "Setting screen name: " + screenName);
+        
+        tracker.setScreenName("Image~" + screenName);
+        tracker.send(new HitBuilders.ScreenViewBuilder().build());
+    }
 }

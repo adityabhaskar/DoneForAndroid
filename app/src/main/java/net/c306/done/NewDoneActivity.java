@@ -15,6 +15,8 @@ import android.view.View;
 import android.widget.DatePicker;
 import android.widget.EditText;
 
+import com.google.android.gms.analytics.Tracker;
+
 import net.c306.done.db.DoneListContract;
 import net.c306.done.idonethis.DoneActions;
 
@@ -32,6 +34,7 @@ public class NewDoneActivity extends AppCompatActivity {
     Bundle mPreEditBundle = new Bundle();
     List<String> teamNames = new ArrayList<>();
     List<String> teamURLs = new ArrayList<>();
+    private Tracker mTracker;
     private SimpleDateFormat userDateFormat = (SimpleDateFormat) SimpleDateFormat.getDateInstance();
     private SimpleDateFormat idtDateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.UK);
     
@@ -49,9 +52,6 @@ public class NewDoneActivity extends AppCompatActivity {
         
         setContentView(R.layout.activity_new_done);
     
-        // Clear any notifications that may have started the activity
-        Utils.clearNotification(this);
-        
         Intent sender = getIntent();
         mId = sender.getLongExtra(DoneListContract.DoneEntry.COLUMN_NAME_ID, -1);
         mTeam = Utils.getDefaultTeam(NewDoneActivity.this);
@@ -101,8 +101,19 @@ public class NewDoneActivity extends AppCompatActivity {
                 doneDateText.setText(mFormattedDoneDate);
             
         }
+    
+        // Analytics Obtain the shared Tracker instance.
+        AnalyticsApplication application = (AnalyticsApplication) getApplication();
+        mTracker = application.getDefaultTracker();
     }
     
+    
+    @Override
+    protected void onResume() {
+        super.onResume();
+        
+        Utils.sendScreen(mTracker, getClass().getSimpleName());
+    }
     
     public void openDatePicker(View view) {
         String[] baseDatesString = new String[]{
