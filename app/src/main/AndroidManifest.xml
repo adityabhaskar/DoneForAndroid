@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+          xmlns:tools="http://schemas.android.com/tools"
           package="net.c306.done">
 
     <uses-permission android:name="android.permission.INTERNET"/>
@@ -13,6 +14,11 @@
 
     <!-- Permissions for notification alarms -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+
+    <!-- Remove WAKE_LOCK permission added by gradle for Google Analytics Service -->
+    <uses-permission
+        android:name="android.permission.WAKE_LOCK"
+        tools:node="remove"/>
 
     <application
         android:name=".AnalyticsApplication"
@@ -58,7 +64,6 @@
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="net.c306.done.SplashScreenActivity"/>
         </activity>
-
         <activity
             android:name=".AboutActivity"
             android:theme="@style/AboutDialogTheme">
@@ -104,6 +109,7 @@
                 <action android:name="net.c306.done.notificationAlarms.Snoozed"/>
             </intent-filter>
         </receiver>
+
     </application>
 
 </manifest>

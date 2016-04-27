@@ -286,7 +286,6 @@ public class NewDoneActivity extends AppCompatActivity {
         String editDate = sender.getStringExtra(DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE);
         if (!mDoneDate.equals(editDate)) {
             mDoneDate = sender.getStringExtra(DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE);
-            mPreEditBundle.putString(DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE, mDoneDate);
         
             String[] dateParts = mDoneDate.split("\\-");
             Calendar c = Calendar.getInstance();
@@ -297,6 +296,7 @@ public class NewDoneActivity extends AppCompatActivity {
             );
             mFormattedDoneDate = userDateFormat.format(c.getTime());
         }
+        mPreEditBundle.putString(DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE, mDoneDate);
         
         EditText doneDateText = (EditText) findViewById(R.id.done_date_text);
         if (doneDateText != null)
@@ -395,7 +395,7 @@ public class NewDoneActivity extends AppCompatActivity {
                     finish();
                     return;
                 }
-                
+    
                 if (!mEditedFields.contains(DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT)) {
                     mEditedFields.add(DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT);
                 }

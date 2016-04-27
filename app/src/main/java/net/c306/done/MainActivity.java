@@ -12,11 +12,16 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
+import android.support.annotation.Nullable;
+import android.support.design.widget.NavigationView;
 import android.support.design.widget.Snackbar;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.content.LocalBroadcastManager;
+import android.support.v4.view.GravityCompat;
 import android.support.v4.view.MenuItemCompat;
+import android.support.v4.widget.DrawerLayout;
 import android.support.v4.widget.SwipeRefreshLayout;
+import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.SearchView;
@@ -44,25 +49,32 @@ import net.c306.done.sync.IDTSyncAdapter;
 import java.util.ArrayList;
 import java.util.List;
 
+// TODO: 27/04/16 Add items to nav drawer from teams db 
 // TODO: 20/02/16 Group dones under date headers in listView
+
 public class MainActivity
-        extends
+        extends 
         AppCompatActivity
         implements
+        NavigationView.OnNavigationItemSelectedListener,
         LoaderManager.LoaderCallbacks<Cursor>,
+        SearchView.OnQueryTextListener,
+        MenuItemCompat.OnActionExpandListener,
         SwipeRefreshLayout.OnRefreshListener,
-        AbsListView.MultiChoiceModeListener,
+        AbsListView.OnScrollListener,
         AdapterView.OnItemClickListener,
-        AbsListView.OnScrollListener, SearchView.OnQueryTextListener, MenuItemCompat.OnActionExpandListener {
+        AbsListView.MultiChoiceModeListener {
     
-    private static final int DONE_LIST_LOADER = 0;
     private static final String SELECTED_KEY = "selected_position";
+    private static final int DONE_LIST_LOADER = 0;
     private final String LOG_TAG = Utils.LOG_TAG + this.getClass().getSimpleName();
-    private Snackbar mSnackbar;
+    
+    private ActionBarDrawerToggle mToggle;
     private ListView mListView;
     private DoneListAdapter mDoneListAdapter;
     private int mPosition = ListView.INVALID_POSITION;
     private String mCurFilter = null;
+    private Snackbar mSnackbar;
     private Tracker mTracker;
     
     // Our handler for received Intents. This will be called whenever an Intent
@@ -93,7 +105,7 @@ public class MainActivity
                     ) {
                 
                 SwipeRefreshLayout swp = (SwipeRefreshLayout) findViewById(R.id.swipe_refresh_layout);
-    
+        
                 if (swp != null)
                     swp.setRefreshing(false);
         
@@ -108,18 +120,18 @@ public class MainActivity
                 case Utils.STATUS_TASK_UNAUTH:
                 case Utils.CHECK_TOKEN_FAILED:
                     // Unauthorised, i.e. token issues, show snackbar
-        
+    
                     Log.w(LOG_TAG, "Broadcast Receiver - Unauthorised! " + message);
-        
+    
                     // Reset token status
                     Utils.setTokenValidity(getApplicationContext(), false);
-        
+    
                     // Show warning snack bar on to show offline/unauthorised status 
                     if (mSnackbar != null && mSnackbar.isShown())
                         mSnackbar.dismiss();
-        
+    
                     mSnackbar = Snackbar.make(findViewById(R.id.fab), "Authorisation failed! Please check token.", Snackbar.LENGTH_LONG);
-        
+    
                     mSnackbar.setAction("Settings", new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
@@ -137,11 +149,11 @@ public class MainActivity
                     if (sender.equals(Utils.SENDER_CREATE_TASK)) {
                         // PostDone successful, show snackbar
                         int count = intent.getIntExtra("count", -1);
-            
+    
                         if (count > 0) {
                             if (mSnackbar != null && mSnackbar.isShown())
                                 mSnackbar.dismiss();
-                
+        
                             mSnackbar = Snackbar.make(findViewById(R.id.fab), (count > 1 ? count + " tasks " : "Task ") + getString(R.string.done_sent_toast_message), Snackbar.LENGTH_LONG);
                             mSnackbar.setAction("Action", null).show();
                         }
@@ -171,13 +183,25 @@ public class MainActivity
         }
     };
     
-    
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        setContentView(R.layout.activity_main_nav_drawer);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
+    
+        // Add hamburger icon toggle to action bar for the drawer
+        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
+        mToggle = new ActionBarDrawerToggle(
+                this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
+        if (drawer != null)
+            drawer.addDrawerListener(mToggle);
+    
+        // Add navigation listener to the drawer -- to flip main view between selections in drawer
+        NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
+        if (navigationView != null)
+            navigationView.setNavigationItemSelectedListener(this);
+        
         
         // Setup List View
         mDoneListAdapter = new DoneListAdapter(this, R.layout.list_row_layout, null, 0);
@@ -186,8 +210,9 @@ public class MainActivity
     
         if (mListView != null)
             mListView.setAdapter(mDoneListAdapter);
-        
-        // If there's instance state, mine it for useful information.
+    
+    
+        // If there's instance state, mine it for listView location
         if (savedInstanceState != null && savedInstanceState.containsKey(SELECTED_KEY)) {
             // The listview probably hasn't even been populated yet.  Actually perform the
             // swapout in onLoadFinished.
@@ -196,9 +221,9 @@ public class MainActivity
         
         // Initialize the Loader with id DONE_LIST_LOADER and callbacks 'this'.
         getLoaderManager().initLoader(DONE_LIST_LOADER, null, this);
-        
-        
-        // Set colours for refresher
+    
+    
+        // Set colours for swipe-to-refresh rotator
         SwipeRefreshLayout swp = (SwipeRefreshLayout) findViewById(R.id.swipe_refresh_layout);
         if (swp != null)
             swp.setColorSchemeResources(
@@ -208,28 +233,17 @@ public class MainActivity
                     R.color.primary
             );
     
+    
+        // Get caller intent to check extras 
         Intent fromIntent = getIntent();
     
         if (fromIntent.hasExtra(Utils.INTENT_FROM_ACTIVITY_IDENTIFIER)) {
-        
-            // If coming from a successful login
+    
+            // Check if coming from a successful login
             if (fromIntent.getIntExtra(Utils.INTENT_FROM_ACTIVITY_IDENTIFIER, -1) == Utils.LOGIN_ACTIVITY_IDENTIFIER) {
-            
-                // Successfully logged in
-            
                 // Show snackbar
                 mSnackbar = Snackbar.make(findViewById(R.id.fab), R.string.LOGIN_SUCCESSFUL, Snackbar.LENGTH_SHORT);
                 mSnackbar.setAction("Dismiss", null).show();
-            
-                // Setup alarm
-                Utils.setNotificationAlarm(MainActivity.this, null);
-            
-                // Setup sync
-                IDTSyncAdapter.initializeSyncAdapter(getApplicationContext());
-            
-                // Switch login & logout buttons
-                invalidateOptionsMenu();
-            
             }
         }
     
@@ -241,6 +255,12 @@ public class MainActivity
         mTracker = application.getDefaultTracker();
     }
     
+    @Override
+    protected void onPostCreate(@Nullable Bundle savedInstanceState) {
+        super.onPostCreate(savedInstanceState);
+        
+        mToggle.syncState();
+    }
     
     @Override
     protected void onResume() {
@@ -259,7 +279,7 @@ public class MainActivity
         // Register to get on swiped events
         SwipeRefreshLayout swp = (SwipeRefreshLayout) findViewById(R.id.swipe_refresh_layout);
         if (swp != null) {
-            swp.setOnRefreshListener(this);
+            swp.setOnRefreshListener(MainActivity.this);
             swp.setRefreshing(false);
         }
     
@@ -267,97 +287,29 @@ public class MainActivity
         Utils.sendScreen(mTracker, getClass().getSimpleName());
     }
     
-    
     @Override
     protected void onPause() {
         super.onPause();
-        
+    
         // Unregister since the activity is about to be closed.
         LocalBroadcastManager.getInstance(this).unregisterReceiver(mMessageReceiver);
     }
     
-    
-    public void toNewDone(View view) {
-        Intent newDoneIntent = new Intent(MainActivity.this, NewDoneActivity.class);
-        startActivityForResult(newDoneIntent, RESULT_CANCELED);
+    @Override
+    public void onBackPressed() {
+        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
+        if (drawer != null && drawer.isDrawerOpen(GravityCompat.START)) {
+            drawer.closeDrawer(GravityCompat.START);
+        } else {
+            super.onBackPressed();
+        }
     }
-    
-    
-    public void onLogout(MenuItem item) {
-        
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        
-        builder.setTitle("Are you sure?")
-                .setMessage("All local data will be deleted.")
-                .setPositiveButton("Logout", new DialogInterface.OnClickListener() {
-                    public void onClick(DialogInterface dialog, int id) {
-                        Context context = getApplicationContext();
-                        // User confirmed Logout
-                        Log.v(LOG_TAG, "Logging out...");
-    
-                        // Track event in analytics
-                        Utils.sendEvent(mTracker, "Action", "Logout");
-    
-                        // Remove alarm & any notifications
-                        Utils.cancelNotificationAlarm(MainActivity.this);
-                        
-                        // Stop periodic sync
-                        IDTSyncAdapter.stopPeriodicSync(getApplicationContext());
-    
-                        // Remove Account from system account manager
-                        IDTAccountManager.removeSyncAccount(context);
-                        Log.v(LOG_TAG, "Account removed...");
-    
-                        // Empty database
-                        getContentResolver().delete(DoneListContract.DoneEntry.CONTENT_URI, null, null);
-                        getContentResolver().delete(DoneListContract.TeamEntry.CONTENT_URI, null, null);
-                        mDoneListAdapter.notifyDataSetChanged();
-                        //mListView.setAdapter(null);
-                        Log.v(LOG_TAG, "Database deleted.");
-    
-                        // Empty sharedPreferences & set to default
-                        Utils.resetSharedPreferences(context);
-                        Log.v(LOG_TAG, "SharedPreferences emptied.");
-    
-                        // Replace Logout with Login in action bar
-                        invalidateOptionsMenu();
-    
-                        Intent splashScreenActivity = new Intent(MainActivity.this, SplashScreenActivity.class);
-                        startActivity(splashScreenActivity);
-                        finish();
-                    }
-                })
-                .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
-                    public void onClick(DialogInterface dialog, int id) {
-                        // User clicked Cancel button
-                        // Do nothing :)
-                    }
-                })
-                .create()
-                .show();
-    }
-    
-    /**
-     * showAbout - shows the about page as a dialog activity
-     */
-    private void showAbout() {
-        Log.v(LOG_TAG, "Opening about dialog");
-        Intent aboutIntent = new Intent(MainActivity.this, AboutActivity.class);
-        startActivity(aboutIntent);
-    }
-    
-    
-    /*
-    * 
-    * Inflate action bar and Act on clicks from action bar / menu
-    * 
-    * */
     
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.menu_main, menu);
-        
+    
         MenuItem searchItem = menu.findItem(R.id.action_search);
         if (searchItem != null) {
             SearchView searchView =
@@ -367,10 +319,9 @@ public class MainActivity
     
             MenuItemCompat.setOnActionExpandListener(searchItem, MainActivity.this);
         }
-        
+    
         return true;
     }
-    
     
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
@@ -402,160 +353,100 @@ public class MainActivity
         }
     }
     
+    // TODO: 27/04/16 Navigation clicks 
+    @SuppressWarnings("StatementWithEmptyBody")
     @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
+    public boolean onNavigationItemSelected(MenuItem item) {
+        // Handle navigation view item clicks here.
+        int id = item.getItemId();
         
-        switch (requestCode) {
-            case Utils.LOGIN_ACTIVITY_IDENTIFIER: {
-                
-                if (mSnackbar != null && mSnackbar.isShown())
-                    mSnackbar.dismiss();
-                
-                if (resultCode == RESULT_CANCELED) {
-                    // If error, show toast/snackbar.
-                    mSnackbar = Snackbar.make(findViewById(R.id.fab), R.string.LOGIN_ERROR_OR_CANCELLED, Snackbar.LENGTH_LONG);
-                    mSnackbar.setAction("Dismiss", new View.OnClickListener() {
-                        @Override
-                        public void onClick(View v) {
-                            if (mSnackbar != null && mSnackbar.isShown())
-                                mSnackbar.dismiss();
-                        }
-                    })
-                            .setActionTextColor(ContextCompat.getColor(this, R.color.link_colour))
-                            .show();
-    
-                } else if (resultCode == RESULT_OK)
-                    Log.w(LOG_TAG, "Shouldn't be here!");
-            }
+        if (id == R.id.nav_camera) {
+            // Handle the camera action
+        } else if (id == R.id.nav_gallery) {
+            
+        } else if (id == R.id.nav_slideshow) {
+            
+        } else if (id == R.id.nav_manage) {
+            
+        } else if (id == R.id.nav_share) {
+            
+        } else if (id == R.id.nav_send) {
+            
         }
-    }
-    
-    /* Save scroll state */
-    @Override
-    public void onSaveInstanceState(Bundle outState) {
-        // When no item is selected, mPosition will be set to Listview.INVALID_POSITION,
-        // so check for that before storing.
-        if (mPosition != ListView.INVALID_POSITION)
-            outState.putInt(SELECTED_KEY, mPosition);
         
-        super.onSaveInstanceState(outState);
-    }
-    
-    /**
-    * 
-    * Implementing methods for onScrollListener - to save scroll state for activity restarts
-    * 
-    * */
-    
-    public void onScrollStateChanged(AbsListView view, int scrollState) {
-        // Do Nothing
-    }
-    
-    @Override
-    public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
-        // Save position
-        mPosition = firstVisibleItem;
-    }
-    
-    /**
-    * 
-    * AdapterView.OnItemClickListener - to save scroll state for activity restarts
-    * 
-    * */
-    
-    @Override
-    public void onItemClick(AdapterView<?> adapterView, View view, int position, long l) {
-        // CursorAdapter returns a cursor at the correct position for getItem(), or null
-        // if it cannot seek to that position.
-        //Cursor cursor = (Cursor) adapterView.getItemAtPosition(position);
-        mPosition = position;
-        
-        mListView.setItemChecked(position, !mListView.isItemChecked(position));
-    }
-    
-    
-    /**
-    * 
-    * AbsListView.MultiChoiceModeListener methods - for edit & delete selections
-    * 
-    * */
-    
-    @Override
-    public void onItemCheckedStateChanged(ActionMode mode, int position, long id, boolean checked) {
-        // Here you can do something when items are selected/de-selected,
-        // such as update the title in the CAB
-        int checkedCount = mListView.getCheckedItemCount();
-        mode.setTitle(checkedCount + " tasks selected");
-        
-        if (checkedCount == 2 && checked) {
-            // add edit
-            mode.invalidate();
-        } else if (checkedCount == 1 && !checked) {
-            // remove edit
-            mode.invalidate();
-        }
-    }
-    
-    
-    @Override
-    public boolean onCreateActionMode(ActionMode mode, Menu menu) {
-        // Inflate the menu for the CAB
-        getMenuInflater().inflate(R.menu.listview_context, menu);
+        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
+        drawer.closeDrawer(GravityCompat.START);
         return true;
     }
     
-    
-    @Override
-    public boolean onPrepareActionMode(ActionMode mode, Menu menu) {
-        // Hide or show edit button, based on whether more than one items is selected
-        menu.findItem(R.id.menu_edit_done).setVisible(mListView.getCheckedItemCount() <= 1);
-        return true;
+    /**
+     * My methods
+     */
+
+    public void toNewDone(View view) {
+        Intent newDoneIntent = new Intent(MainActivity.this, NewDoneActivity.class);
+        startActivityForResult(newDoneIntent, RESULT_CANCELED);
     }
     
-    
-    @Override
-    public boolean onActionItemClicked(ActionMode mode, MenuItem item) {
-        // Respond to clicks on the actions in the CAB
-        final long[] selectedTasks = mListView.getCheckedItemIds();
+    public void onLogout(MenuItem item) {
         
-        switch (item.getItemId()) {
-    
-            case R.id.menu_delete_done:
-                // Show alert message to confirm delete
-                new AlertDialog.Builder(this)
-                        .setMessage("Are you sure you want to delete these tasks?")
-                        .setPositiveButton("Delete", new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialog, int which) {
-                                deleteSelectedItems(selectedTasks);
-                            }
-                        })
-                        .setNegativeButton("Cancel", null)
-                        .create()
-                        .show();
-    
-                // Close the CAB
-                mode.finish(); 
-                return true;
-    
-            case R.id.menu_edit_done:
-                Log.v(LOG_TAG, "Edit selected item");
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
         
-                // Log event in analytics
-                Utils.sendEvent(mTracker, "Action", "EditDone");
-        
-                // Action picked, so close the CAB
-                mode.finish();
-        
-                editSelectedItems(selectedTasks[0]);
-                return true;
-    
-            default:
-                return false;
-        }
+        builder.setTitle("Are you sure?")
+                .setMessage("All local data will be deleted.")
+                .setPositiveButton("Logout", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+                        Context context = getApplicationContext();
+                        // User confirmed Logout
+                        Log.v(LOG_TAG, "Logging out...");
+                        
+                        // Track event in analytics
+                        Utils.sendEvent(mTracker, "Action", "Logout");
+                        
+                        // Remove alarm & any notifications
+                        Utils.cancelNotificationAlarm(MainActivity.this);
+                        
+                        // Stop periodic sync
+                        IDTSyncAdapter.stopPeriodicSync(getApplicationContext());
+                        
+                        // Remove Account from system account manager
+                        IDTAccountManager.removeSyncAccount(context);
+                        Log.v(LOG_TAG, "Account removed...");
+                        
+                        // Empty database
+                        getContentResolver().delete(DoneListContract.DoneEntry.CONTENT_URI, null, null);
+                        getContentResolver().delete(DoneListContract.TeamEntry.CONTENT_URI, null, null);
+                        mDoneListAdapter.notifyDataSetChanged();
+                        //mListView.setAdapter(null);
+                        Log.v(LOG_TAG, "Database deleted.");
+                        
+                        // Empty sharedPreferences & set to default
+                        Utils.resetSharedPreferences(context);
+                        Log.v(LOG_TAG, "SharedPreferences emptied.");
+                        
+                        // Replace Logout with Login in action bar
+                        invalidateOptionsMenu();
+                        
+                        Intent splashScreenActivity = new Intent(MainActivity.this, SplashScreenActivity.class);
+                        startActivity(splashScreenActivity);
+                        finish();
+                    }
+                })
+                .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+                        // User clicked Cancel button
+                        // Do nothing :)
+                    }
+                })
+                .create()
+                .show();
     }
     
+    private void showAbout() {
+        Log.v(LOG_TAG, "Opening about dialog");
+        Intent aboutIntent = new Intent(MainActivity.this, AboutActivity.class);
+        startActivity(aboutIntent);
+    }
     
     /**
      * If owner is same as current user, fetch details from database and send to NewDoneActivity
@@ -623,12 +514,11 @@ public class MainActivity
                 );
                 
                 // Start edit activity
-                startActivityForResult(editDoneIntent, RESULT_CANCELED);
+                startActivityForResult(editDoneIntent, Utils.NEW_DONE_ACTIVITY_IDENTIFIER);
             }
             cursor.close();
         }
     }
-    
     
     private void deleteSelectedItems(long[] ids) {
         Log.v(LOG_TAG, "Delete selected items: " + ids.length);
@@ -637,7 +527,7 @@ public class MainActivity
         Utils.sendEvent(mTracker, "Action", "DeleteDones", String.valueOf(ids.length));
         
         // Delete selected ids from database, then from server, finishing with updating tasks from server on success
-        int deletedCount = new DoneActions(this).delete(ids);
+        int deletedCount = new DoneActions(getApplicationContext()).delete(ids);
         
         if (mSnackbar != null && mSnackbar.isShown())
             mSnackbar.dismiss();
@@ -647,19 +537,12 @@ public class MainActivity
         
     }
     
-    
-    public void onDestroyActionMode(ActionMode mode) {
-        // Here you can make any necessary updates to the activity when
-        // the CAB is removed. By default, selected items are deselected/unchecked.
-    }
-    
-    
     /**
-    *  
-    *  LoaderManager.LoaderCallbacks<Cursor> methods - to setup cursor and adapter 
-    *  for populating listview
-    *  
-    * */
+     *
+     *  LoaderManager.LoaderCallbacks<Cursor> methods - to setup cursor and adapter 
+     *  for populating listview
+     *
+     * */
     
     @Override
     public Loader<Cursor> onCreateLoader(int id, Bundle args) {
@@ -710,7 +593,6 @@ public class MainActivity
                 sortOrder);
     }
     
-    
     @Override
     public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
         mDoneListAdapter.swapCursor(data);
@@ -719,26 +601,14 @@ public class MainActivity
             mListView.smoothScrollToPosition(mPosition);
     }
     
-    
     @Override
     public void onLoaderReset(Loader<Cursor> loader) {
         mDoneListAdapter.swapCursor(null);
     }
     
-    
     /**
-    * SwipeRefreshLayout.OnRefreshListener method - to start a sync when swiped-to-refresh
-    * */
-    @Override
-    public void onRefresh() {
-        Log.v(LOG_TAG, "Calling syncImmediately from swipe to refresh");
-    
-        // Track event in analytics
-        Utils.sendEvent(mTracker, "Action", "PullToRefresh");
-        
-        IDTSyncAdapter.syncImmediately(this);
-    }
-    
+     * Methods implementing search & tracking for AppBar SearchView 
+     */
     
     @Override
     public boolean onQueryTextSubmit(String query) {
@@ -767,4 +637,136 @@ public class MainActivity
     public boolean onMenuItemActionCollapse(MenuItem item) {
         return true;
     }
+    
+    /**
+     * SwipeRefreshLayout.OnRefreshListener method - to start a sync when swiped-to-refresh
+     */
+    @Override
+    public void onRefresh() {
+        Log.v(LOG_TAG, "Calling syncImmediately from swipe to refresh");
+        
+        // Track event in analytics
+        Utils.sendEvent(mTracker, "Action", "PullToRefresh");
+        
+        IDTSyncAdapter.syncImmediately(this);
+    }
+    
+    /**
+     * Save & restore scroll state
+     */
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+        // When no item is selected, mPosition will be set to Listview.INVALID_POSITION,
+        // so check for that before storing.
+        if (mPosition != ListView.INVALID_POSITION)
+            outState.putInt(SELECTED_KEY, mPosition);
+        
+        super.onSaveInstanceState(outState);
+    }
+    
+    /**
+     * Implementing methods for onScrollListener - to save scroll state for activity restarts
+     */
+    @Override
+    public void onScrollStateChanged(AbsListView view, int scrollState) {
+        // Do Nothing
+    }
+    
+    @Override
+    public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
+        // Save position
+        mPosition = firstVisibleItem;
+    }
+    
+    /**
+     * AbsListView.MultiChoiceModeListener methods - for edit & delete selections
+     */
+    @Override
+    public void onItemClick(AdapterView<?> adapterView, View view, int position, long l) {
+        // CursorAdapter returns a cursor at the correct position for getItem(), or null
+        // if it cannot seek to that position.
+        //Cursor cursor = (Cursor) adapterView.getItemAtPosition(position);
+        mPosition = position;
+        
+        mListView.setItemChecked(position, !mListView.isItemChecked(position));
+    }
+    
+    @Override
+    public void onItemCheckedStateChanged(ActionMode mode, int position, long id, boolean checked) {
+        // Here you can do something when items are selected/de-selected,
+        // such as update the title in the CAB
+        int checkedCount = mListView.getCheckedItemCount();
+        mode.setTitle(checkedCount + " tasks selected");
+        
+        if (checkedCount == 2 && checked) {
+            // add edit
+            mode.invalidate();
+        } else if (checkedCount == 1 && !checked) {
+            // remove edit
+            mode.invalidate();
+        }
+    }
+    
+    @Override
+    public boolean onCreateActionMode(ActionMode mode, Menu menu) {
+        // Inflate the menu for the CAB
+        getMenuInflater().inflate(R.menu.listview_context, menu);
+        return true;
+    }
+    
+    @Override
+    public boolean onPrepareActionMode(ActionMode mode, Menu menu) {
+        // Hide or show edit button, based on whether more than one items is selected
+        menu.findItem(R.id.menu_edit_done).setVisible(mListView.getCheckedItemCount() <= 1);
+        return true;
+    }
+    
+    @Override
+    public boolean onActionItemClicked(ActionMode mode, MenuItem item) {
+        // Respond to clicks on the actions in the CAB
+        final long[] selectedTasks = mListView.getCheckedItemIds();
+        
+        switch (item.getItemId()) {
+            
+            case R.id.menu_delete_done:
+                // Show alert message to confirm delete
+                new AlertDialog.Builder(this)
+                        .setMessage("Are you sure you want to delete these tasks?")
+                        .setPositiveButton("Delete", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                deleteSelectedItems(selectedTasks);
+                            }
+                        })
+                        .setNegativeButton("Cancel", null)
+                        .create()
+                        .show();
+                
+                // Close the CAB
+                mode.finish();
+                return true;
+            
+            case R.id.menu_edit_done:
+                Log.v(LOG_TAG, "Edit selected item");
+                
+                // Log event in analytics
+                Utils.sendEvent(mTracker, "Action", "EditDone");
+                
+                // Action picked, so close the CAB
+                mode.finish();
+                
+                editSelectedItems(selectedTasks[0]);
+                return true;
+            
+            default:
+                return false;
+        }
+    }
+    
+    @Override
+    public void onDestroyActionMode(ActionMode mode) {
+        // Here you can make any necessary updates to the activity when
+        // the CAB is removed. By default, selected items are deselected/unchecked.
+    }
+    
 }

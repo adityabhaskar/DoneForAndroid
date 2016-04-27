@@ -3,7 +3,6 @@ package net.c306.done;
 import android.annotation.TargetApi;
 import android.app.ProgressDialog;
 import android.content.Context;
-import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.AsyncTask;
@@ -142,7 +141,7 @@ public class LoginActivity extends AccountAuthenticatorActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        
+    
         Utils.sendScreen(mTracker, getClass().getSimpleName());
     }
     
@@ -176,19 +175,6 @@ public class LoginActivity extends AccountAuthenticatorActivity {
             Log.v(LOG_TAG, "Login activity finished. " + event.finished);
             setResult(event.finished == Utils.LOGIN_FINISHED ? RESULT_OK : RESULT_CANCELED);
     
-            // If successfully logged in, start MainActivity
-            if (event.finished == Utils.LOGIN_FINISHED) {
-    
-                Utils.sendEvent(mTracker, "action", "loginSuccessful");
-                
-                Intent mainActivity = new Intent(LoginActivity.this, MainActivity.class);
-                mainActivity.putExtra(
-                        Utils.INTENT_FROM_ACTIVITY_IDENTIFIER,
-                        Utils.LOGIN_ACTIVITY_IDENTIFIER
-                );
-                startActivity(mainActivity);
-            }
-            
             finish();
         }
     }

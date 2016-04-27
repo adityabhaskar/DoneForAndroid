@@ -445,6 +445,7 @@ public class Utils {
                         .setContentTitle(context.getString(R.string.new_done_hint))
                         .setTicker(context.getString(R.string.new_done_hint))
                         .setAutoCancel(true)
+                        //.setPriority(Notification.PRIORITY_HIGH)
                         .setVisibility(NotificationCompat.VISIBILITY_PUBLIC);
     
         Bitmap bm = BitmapFactory.decodeResource(context.getResources(), R.drawable.ic_splash_icon_120);
@@ -667,6 +668,9 @@ public class Utils {
     }
     
     public static void sendEvent(Tracker tracker, String category, String action, String label) {
+        if (tracker == null)
+            return;
+        
         if (category == null || category.isEmpty())
             category = "Action";
         
@@ -681,8 +685,8 @@ public class Utils {
     }
     
     public static void sendScreen(Tracker tracker, String screenName) {
-        // Log screen open in Analytics
-        Log.i(LOG_TAG, "Setting screen name: " + screenName);
+        if (tracker == null)
+            return;
         
         tracker.setScreenName("Image~" + screenName);
         tracker.send(new HitBuilders.ScreenViewBuilder().build());
