@@ -20,6 +20,7 @@
 
     <TextView
         android:id="@+id/team_name_text_view"
+        style="@style/nav_menu_text_default"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_gravity="center_vertical"
@@ -29,7 +30,6 @@
         android:paddingStart="@dimen/double_margin"
         android:scrollHorizontally="true"
         android:text="Task Description"
-        android:textColor="@drawable/nav_list_item_textcolor"
-        android:textSize="16sp"/>
+        android:textColor="@drawable/nav_list_item_textcolor"/>
 
 </LinearLayout>

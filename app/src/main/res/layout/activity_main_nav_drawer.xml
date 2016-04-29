@@ -43,10 +43,10 @@
             <!-- Divider -->
             <View style="@style/navbar_divider"/>
 
-            <!-- Teams header -->
-            <TextView
-                style="@style/nav_subtitle"
-                android:text="@string/teams_header"/>
+            <!-- Teams sub header -->
+            <!--<TextView-->
+            <!--style="@style/nav_subtitle"-->
+            <!--android:text="@string/teams_header"/>-->
 
             <!-- ListView with other teams -->
             <ListView

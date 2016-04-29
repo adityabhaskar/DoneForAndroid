@@ -12,7 +12,8 @@
     <color name="list_primary_bg">#FAFAFA</color>
     <color name="link_colour">#388E3C</color> <!-- GREEN 700 -->
 
-    <color name="nav_list_selected_background">#0A000000</color>
+    <color name="nav_list_selected_background">#0A000000</color> <!-- 4% black -->
+    <color name="nav_list_default_textcolor">#DE000000</color> <!-- 86% black -->
     <!-- end theme-->
 
     <!-- Other colours -->

@@ -14,5 +14,5 @@
     <item android:color="@color/primary"
           android:state_activated="true"/>
 
-    <item android:color="@android:color/secondary_text_light"/>
+    <item android:color="@color/nav_list_default_textcolor"/>
 </selector>
