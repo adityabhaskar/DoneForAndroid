@@ -8,12 +8,13 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.Loader;
+import android.content.res.Configuration;
 import android.database.Cursor;
+import android.graphics.drawable.BitmapDrawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.annotation.Nullable;
-import android.support.design.widget.NavigationView;
 import android.support.design.widget.Snackbar;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.content.LocalBroadcastManager;
@@ -34,7 +35,9 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.AbsListView;
 import android.widget.AdapterView;
+import android.widget.ImageView;
 import android.widget.ListView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.analytics.Tracker;
@@ -49,33 +52,43 @@ import net.c306.done.sync.IDTSyncAdapter;
 import java.util.ArrayList;
 import java.util.List;
 
-// TODO: 27/04/16 Add items to nav drawer from teams db 
 // TODO: 20/02/16 Group dones under date headers in listView
-
 public class MainActivity
         extends 
         AppCompatActivity
         implements
-        NavigationView.OnNavigationItemSelectedListener,
         LoaderManager.LoaderCallbacks<Cursor>,
         SearchView.OnQueryTextListener,
         MenuItemCompat.OnActionExpandListener,
         SwipeRefreshLayout.OnRefreshListener,
         AbsListView.OnScrollListener,
         AdapterView.OnItemClickListener,
-        AbsListView.MultiChoiceModeListener {
+        AbsListView.MultiChoiceModeListener,
+        View.OnClickListener {
     
     private static final String SELECTED_KEY = "selected_position";
+    private static final String NAV_SELECTED_KEY = "selected_nav_position";
+    private static final String NAV_SELECTED_TEAM = "selected_nav_team";
+    
     private static final int DONE_LIST_LOADER = 0;
+    private static final int NAV_LIST_LOADER = 1;
+    
     private final String LOG_TAG = Utils.LOG_TAG + this.getClass().getSimpleName();
     
     private ActionBarDrawerToggle mToggle;
-    private ListView mListView;
-    private DoneListAdapter mDoneListAdapter;
-    private int mPosition = ListView.INVALID_POSITION;
     private String mCurFilter = null;
     private Snackbar mSnackbar;
     private Tracker mTracker;
+    private String mSelectedTeamName;
+    
+    private String mTeamFilter = null;
+    private ListView mListView;
+    private DoneListAdapter mDoneListAdapter;
+    
+    private int mPosition = ListView.INVALID_POSITION;
+    private ListView mNavListView;
+    private NavListAdapter mNavListAdapter;
+    private int mNavPosition = ListView.INVALID_POSITION;
     
     // Our handler for received Intents. This will be called whenever an Intent
     // with an action named "custom-event-name" is broadcasted.
@@ -189,62 +202,35 @@ public class MainActivity
         setContentView(R.layout.activity_main_nav_drawer);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-    
-        // Add hamburger icon toggle to action bar for the drawer
-        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
-        mToggle = new ActionBarDrawerToggle(
-                this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
-        if (drawer != null)
-            drawer.addDrawerListener(mToggle);
-    
-        // Add navigation listener to the drawer -- to flip main view between selections in drawer
-        NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
-        if (navigationView != null)
-            navigationView.setNavigationItemSelectedListener(this);
         
-        
-        // Setup List View
-        mDoneListAdapter = new DoneListAdapter(this, R.layout.list_row_layout, null, 0);
-        
-        mListView = (ListView) findViewById(R.id.dones_list_view);
-    
-        if (mListView != null)
-            mListView.setAdapter(mDoneListAdapter);
-    
-    
         // If there's instance state, mine it for listView location
-        if (savedInstanceState != null && savedInstanceState.containsKey(SELECTED_KEY)) {
+        if (savedInstanceState != null) {
             // The listview probably hasn't even been populated yet.  Actually perform the
             // swapout in onLoadFinished.
-            mPosition = savedInstanceState.getInt(SELECTED_KEY);
-        }
+            if (savedInstanceState.containsKey(SELECTED_KEY))
+                mPosition = savedInstanceState.getInt(SELECTED_KEY);
         
-        // Initialize the Loader with id DONE_LIST_LOADER and callbacks 'this'.
-        getLoaderManager().initLoader(DONE_LIST_LOADER, null, this);
+            if (savedInstanceState.containsKey(NAV_SELECTED_KEY))
+                mNavPosition = savedInstanceState.getInt(NAV_SELECTED_KEY);
+        
+            if (savedInstanceState.containsKey(NAV_SELECTED_TEAM))
+                mTeamFilter = savedInstanceState.getString(NAV_SELECTED_TEAM);
+        }
     
+        // Setup Nav Bar
+        setupNavBar();
     
-        // Set colours for swipe-to-refresh rotator
-        SwipeRefreshLayout swp = (SwipeRefreshLayout) findViewById(R.id.swipe_refresh_layout);
-        if (swp != null)
-            swp.setColorSchemeResources(
-                    R.color.accent,
-                    R.color.link_colour,
-                    R.color.team1,
-                    R.color.primary
-            );
+        // Setup tasks listview
+        setupTasksListView();
     
-    
-        // Get caller intent to check extras 
+        // Show snackbar if coming from successful login activity 
         Intent fromIntent = getIntent();
     
-        if (fromIntent.hasExtra(Utils.INTENT_FROM_ACTIVITY_IDENTIFIER)) {
-    
-            // Check if coming from a successful login
-            if (fromIntent.getIntExtra(Utils.INTENT_FROM_ACTIVITY_IDENTIFIER, -1) == Utils.LOGIN_ACTIVITY_IDENTIFIER) {
-                // Show snackbar
-                mSnackbar = Snackbar.make(findViewById(R.id.fab), R.string.LOGIN_SUCCESSFUL, Snackbar.LENGTH_SHORT);
-                mSnackbar.setAction("Dismiss", null).show();
-            }
+        // Check if coming from a successful login
+        if (fromIntent.hasExtra(Utils.INTENT_FROM_ACTIVITY_IDENTIFIER) &&
+                fromIntent.getIntExtra(Utils.INTENT_FROM_ACTIVITY_IDENTIFIER, -1) == Utils.LOGIN_ACTIVITY_IDENTIFIER) {
+            mSnackbar = Snackbar.make(findViewById(R.id.fab), R.string.LOGIN_SUCCESSFUL, Snackbar.LENGTH_SHORT);
+            mSnackbar.setAction("Dismiss", null).show();
         }
     
         // Setup default preferences, if not already set/changed
@@ -263,18 +249,27 @@ public class MainActivity
     }
     
     @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        mToggle.onConfigurationChanged(newConfig);
+    }
+    
+    @Override
     protected void onResume() {
         super.onResume();
-    
+        
         // Register to receive messages.
         LocalBroadcastManager.getInstance(this).registerReceiver(mMessageReceiver,
                 new IntentFilter(Utils.DONE_LOCAL_BROADCAST_LISTENER_INTENT));
-    
-        // Register to save click location (for now), and edit/delete buttons later
+        
+        // Register to save click location, and edit/delete buttons
         mListView.setOnItemClickListener(this);
         mListView.setMultiChoiceModeListener(this);
         
         mListView.setOnScrollListener(this);
+        
+        // Add click listener to nav list
+        mNavListView.setOnItemClickListener(this);
         
         // Register to get on swiped events
         SwipeRefreshLayout swp = (SwipeRefreshLayout) findViewById(R.id.swipe_refresh_layout);
@@ -282,7 +277,7 @@ public class MainActivity
             swp.setOnRefreshListener(MainActivity.this);
             swp.setRefreshing(false);
         }
-    
+        
         // Log screen open in Analytics
         Utils.sendScreen(mTracker, getClass().getSimpleName());
     }
@@ -332,9 +327,6 @@ public class MainActivity
         switch (item.getItemId()) {
             case R.id.action_settings:
                 Intent settingsIntent = new Intent(MainActivity.this, SettingsActivity.class);
-                //settingsIntent.putExtra(PreferenceActivity.EXTRA_SHOW_FRAGMENT, SettingsActivity.GeneralPreferenceFragment.class.getName());
-                //settingsIntent.putExtra(PreferenceActivity.EXTRA_NO_HEADERS, true);
-                //settingsIntent.putExtra(PreferenceActivity.EXTRA_SHOW_FRAGMENT_ARGUMENTS, Utils.ACTION_SHOW_AUTH);
                 startActivity(settingsIntent);
                 return true;
         
@@ -353,35 +345,129 @@ public class MainActivity
         }
     }
     
-    // TODO: 27/04/16 Navigation clicks 
-    @SuppressWarnings("StatementWithEmptyBody")
-    @Override
-    public boolean onNavigationItemSelected(MenuItem item) {
-        // Handle navigation view item clicks here.
-        int id = item.getItemId();
-        
-        if (id == R.id.nav_camera) {
-            // Handle the camera action
-        } else if (id == R.id.nav_gallery) {
-            
-        } else if (id == R.id.nav_slideshow) {
-            
-        } else if (id == R.id.nav_manage) {
-            
-        } else if (id == R.id.nav_share) {
-            
-        } else if (id == R.id.nav_send) {
-            
-        }
-        
-        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
-        drawer.closeDrawer(GravityCompat.START);
-        return true;
-    }
     
     /**
      * My methods
      */
+    
+    private void setupNavBar() {
+        
+        // Add hamburger icon toggle to action bar for the drawer
+        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
+        mToggle = new ActionBarDrawerToggle(
+                this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
+        if (drawer != null)
+            drawer.addDrawerListener(mToggle);
+        
+        // Add name and email address to nav header
+        TextView navHeaderName = (TextView) findViewById(R.id.username_textview);
+        if (navHeaderName != null)
+            navHeaderName.setText(Utils.getUsername(MainActivity.this));
+        
+        View allTasksView = findViewById(R.id.nav_all_tasks);
+        if (allTasksView != null) {
+            
+            // Set text for All Tasks TextView
+            TextView allTasksTextView = (TextView) allTasksView.findViewById(R.id.team_name_text_view);
+            allTasksTextView.setText(R.string.all_tasks);
+            
+            // Set image resource for All Tasks icon
+            ImageView allTasksImageView = (ImageView) allTasksView.findViewById(R.id.nav_team_color_patch);
+            allTasksImageView.setImageDrawable(ContextCompat.getDrawable(MainActivity.this, R.drawable.nav_list_alltasks_icon));
+            
+            // Add click listener
+            allTasksView.setOnClickListener(this);
+        }
+        
+        // Set text for Settings TextView
+        View settingsView = findViewById(R.id.nav_settings);
+        if (settingsView != null) {
+            TextView settingsTextView = (TextView) settingsView.findViewById(R.id.team_name_text_view);
+            settingsTextView.setText(R.string.action_settings);
+            
+            ImageView settingsImageView = (ImageView) settingsView.findViewById(R.id.nav_team_color_patch);
+            BitmapDrawable settingsIcon = (BitmapDrawable) ContextCompat.getDrawable(MainActivity.this, R.drawable.ic_settings_black_24dp).mutate();
+            settingsIcon.setAlpha(0x8A);
+            if (settingsImageView != null)
+                settingsImageView.setImageDrawable(settingsIcon);
+            
+            settingsView.setOnClickListener(this);
+        }
+        
+        // Setup Nav TeamListView
+        mNavListAdapter = new NavListAdapter(this, R.layout.nav_list_row_layout, null, 0);
+        
+        mNavListView = (ListView) findViewById(R.id.nav_drawer_listview);
+        if (mNavListView != null)
+            mNavListView.setAdapter(mNavListAdapter);
+        
+        getLoaderManager().initLoader(NAV_LIST_LOADER, null, this);
+    }
+    
+    private void setupTasksListView() {
+        
+        // Add listview adapter
+        mDoneListAdapter = new DoneListAdapter(this, R.layout.tasks_list_row_layout, null, 0);
+        
+        mListView = (ListView) findViewById(R.id.dones_list_view);
+        if (mListView != null)
+            mListView.setAdapter(mDoneListAdapter);
+        
+        // Initialize the Loader with id DONE_LIST_LOADER and callbacks 'this'.
+        getLoaderManager().initLoader(DONE_LIST_LOADER, null, this);
+        
+        // Set colours for swipe-to-refresh rotator
+        SwipeRefreshLayout swp = (SwipeRefreshLayout) findViewById(R.id.swipe_refresh_layout);
+        if (swp != null)
+            swp.setColorSchemeResources(
+                    R.color.accent,
+                    R.color.link_colour,
+                    R.color.team1,
+                    R.color.primary
+            );
+    }
+    
+    private void showTeam(String teamURL, boolean isInit) {
+        if (teamURL != mTeamFilter || isInit) {
+            
+            if (teamURL == null) {
+                
+                // Show all teams
+                mTeamFilter = null;
+                
+                // Clear listview selection
+                mNavListView.clearChoices();
+                mNavListView.requestLayout();
+                
+                // Set app bar title
+                setTitle(R.string.app_name);
+                
+            } else {
+                
+                // Show selected teams
+                mTeamFilter = teamURL;
+                
+                // Highlight item in listview
+                if (mNavPosition != ListView.INVALID_POSITION)
+                    mNavListView.setItemChecked(mNavPosition, true);
+                
+                // Set app bar title
+                setTitle(mSelectedTeamName);
+                
+            }
+            
+            // Mark all tasks selected/unselected
+            View alltasksItem = findViewById(R.id.nav_all_tasks);
+            if (alltasksItem != null)
+                alltasksItem.setSelected(teamURL == null);
+            
+            
+            // Restart loader if not equals "init"
+            if (!isInit)
+                getLoaderManager().restartLoader(0, null, this);
+        }
+    }
 
     public void toNewDone(View view) {
         Intent newDoneIntent = new Intent(MainActivity.this, NewDoneActivity.class);
@@ -549,61 +635,134 @@ public class MainActivity
         // This is called when a new Loader needs to be created.  This
         // fragment only uses one loader, so we don't care about checking the id.
     
-        // Sort order:  Descending, by date.
-        String sortOrder = DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE + " DESC, " +
-                DoneListContract.DoneEntry.COLUMN_NAME_IS_LOCAL + " DESC, " +
-                DoneListContract.DoneEntry.COLUMN_NAME_EDITED_FIELDS + " DESC, " +
-                DoneListContract.DoneEntry.COLUMN_NAME_UPDATED + " DESC, " +
-                "_id DESC";
-        //DoneListContract.DoneEntry.COLUMN_NAME_ID + " DESC";
-        //" CASE WHEN " + DoneListContract.DoneEntry.COLUMN_NAME_ID + " > " + Utils.LOCAL_DONE_ID_COUNTER + " THEN 1 ELSE 0 END DESC, "
+        switch (id) {
         
-        Uri donesUri = DoneListContract.DoneEntry.buildDoneListUri();
-        
-        String[] cursorProjectionString = new String[]{
-                DoneListContract.DoneEntry.COLUMN_NAME_ID + " AS _id",
-                DoneListContract.DoneEntry.COLUMN_NAME_MARKEDUP_TEXT,
-                DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE,
-                //DoneListContract.DoneEntry.COLUMN_NAME_TEAM_SHORT_NAME,
-                DoneListContract.DoneEntry.COLUMN_NAME_TEAM,
-                DoneListContract.DoneEntry.COLUMN_NAME_IS_LOCAL,
-                DoneListContract.DoneEntry.COLUMN_NAME_UPDATED,
-                DoneListContract.DoneEntry.COLUMN_NAME_EDITED_FIELDS
-        };
-    
-        String selection = DoneListContract.DoneEntry.COLUMN_NAME_IS_DELETED + " IS 'FALSE'";
-    
-        if (mCurFilter != null) {
-            String[] filterArr = mCurFilter.split(" +");
-        
-            for (String filterString : filterArr) {
-                selection += " AND " +
-                        DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT +
-                        " LIKE '%" +
-                        filterString +
-                        "%'";
+            case DONE_LIST_LOADER: {
+            
+                // Sort order:  Descending, by date.
+                String sortOrder = DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE + " DESC, " +
+                        DoneListContract.DoneEntry.COLUMN_NAME_IS_LOCAL + " DESC, " +
+                        DoneListContract.DoneEntry.COLUMN_NAME_EDITED_FIELDS + " DESC, " +
+                        DoneListContract.DoneEntry.COLUMN_NAME_UPDATED + " DESC, " +
+                        "_id DESC";
+                //DoneListContract.DoneEntry.COLUMN_NAME_ID + " DESC";
+                //" CASE WHEN " + DoneListContract.DoneEntry.COLUMN_NAME_ID + " > " + Utils.LOCAL_DONE_ID_COUNTER + " THEN 1 ELSE 0 END DESC, "
+            
+                Uri donesUri = DoneListContract.DoneEntry.buildDoneListUri();
+            
+                String[] cursorProjectionString = new String[]{
+                        DoneListContract.DoneEntry.COLUMN_NAME_ID + " AS _id",
+                        DoneListContract.DoneEntry.COLUMN_NAME_MARKEDUP_TEXT,
+                        DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE,
+                        //DoneListContract.DoneEntry.COLUMN_NAME_TEAM_SHORT_NAME,
+                        DoneListContract.DoneEntry.COLUMN_NAME_TEAM,
+                        DoneListContract.DoneEntry.COLUMN_NAME_IS_LOCAL,
+                        DoneListContract.DoneEntry.COLUMN_NAME_UPDATED,
+                        DoneListContract.DoneEntry.COLUMN_NAME_EDITED_FIELDS
+                };
+            
+                String selection = DoneListContract.DoneEntry.COLUMN_NAME_IS_DELETED + " IS 'FALSE'";
+            
+                if (mCurFilter != null) {
+                    String[] filterArr = mCurFilter.split(" +");
+                
+                    for (String filterString : filterArr) {
+                        selection += " AND " +
+                                DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT +
+                                " LIKE '%" +
+                                filterString +
+                                "%'";
+                    }
+                }
+            
+                if (mTeamFilter != null) {
+                    selection += " AND " +
+                            DoneListContract.DoneEntry.COLUMN_NAME_TEAM +
+                            " IS '" +
+                            mTeamFilter +
+                            "'";
+                }
+            
+                return new CursorLoader(this,
+                        donesUri,
+                        cursorProjectionString,
+                        selection,
+                        null,
+                        sortOrder);
             }
-        }
         
-        return new CursorLoader(this,
-                donesUri,
-                cursorProjectionString,
-                selection,
-                null,
-                sortOrder);
+            case NAV_LIST_LOADER: {
+            
+                Uri teamUri = DoneListContract.TeamEntry.CONTENT_URI;
+            
+                String[] cursorProjectionString = new String[]{
+                        DoneListContract.TeamEntry.COLUMN_NAME_ID + " AS _id",
+                        DoneListContract.TeamEntry.COLUMN_NAME_NAME,
+                        DoneListContract.TeamEntry.COLUMN_NAME_URL,
+                        DoneListContract.TeamEntry.COLUMN_NAME_DONE_COUNT,
+                        DoneListContract.TeamEntry.COLUMN_NAME_IS_PERSONAL
+                };
+            
+                return new CursorLoader(this,
+                        teamUri,
+                        cursorProjectionString,
+                        null,
+                        null,
+                        null);
+            }
+        
+            default:
+                Log.e(LOG_TAG, "No such loader. id: " + id);
+                return null;
+        }
     }
     
     @Override
     public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
-        mDoneListAdapter.swapCursor(data);
+        switch (loader.getId()) {
         
-        if (mPosition != ListView.INVALID_POSITION)
-            mListView.smoothScrollToPosition(mPosition);
+            case DONE_LIST_LOADER: {
+                mDoneListAdapter.swapCursor(data);
+            
+                if (mPosition != ListView.INVALID_POSITION)
+                    mListView.smoothScrollToPosition(mPosition);
+            
+                break;
+            }
+        
+            case NAV_LIST_LOADER: {
+                mNavListAdapter.swapCursor(data);
+            
+                if (mNavPosition != ListView.INVALID_POSITION)
+                    mNavListView.smoothScrollToPosition(mNavPosition);
+            
+                showTeam(mTeamFilter, true);
+            
+                break;
+            }
+        
+            default:
+                Log.e(LOG_TAG, "No such loader.");
+        }
     }
     
     @Override
     public void onLoaderReset(Loader<Cursor> loader) {
-        mDoneListAdapter.swapCursor(null);
+        switch (loader.getId()) {
+        
+            case DONE_LIST_LOADER: {
+                mDoneListAdapter.swapCursor(null);
+                break;
+            }
+        
+            case NAV_LIST_LOADER: {
+                mNavListAdapter.swapCursor(null);
+                break;
+            }
+        
+            default:
+                Log.e(LOG_TAG, "No such loader.");
+        }
     }
     
     /**
@@ -660,6 +819,14 @@ public class MainActivity
         // so check for that before storing.
         if (mPosition != ListView.INVALID_POSITION)
             outState.putInt(SELECTED_KEY, mPosition);
+    
+        if (mNavPosition != ListView.INVALID_POSITION)
+            outState.putInt(NAV_SELECTED_KEY, mNavPosition);
+    
+        if (mTeamFilter != null)
+            outState.putString(NAV_SELECTED_TEAM, mTeamFilter);
+        else
+            outState.remove(NAV_SELECTED_TEAM);
         
         super.onSaveInstanceState(outState);
     }
@@ -683,12 +850,40 @@ public class MainActivity
      */
     @Override
     public void onItemClick(AdapterView<?> adapterView, View view, int position, long l) {
-        // CursorAdapter returns a cursor at the correct position for getItem(), or null
-        // if it cannot seek to that position.
-        //Cursor cursor = (Cursor) adapterView.getItemAtPosition(position);
-        mPosition = position;
+    
+        switch (adapterView.getId()) {
+            case R.id.dones_list_view: {
+                // CursorAdapter returns a cursor at the correct position for getItem(), or null
+                // if it cannot seek to that position.
+                //Cursor cursor = (Cursor) adapterView.getItemAtPosition(position);
+            
+                mPosition = position;
+            
+                mListView.setItemChecked(position, !mListView.isItemChecked(position));
+                break;
+            }
         
-        mListView.setItemChecked(position, !mListView.isItemChecked(position));
+            case R.id.nav_drawer_listview: {
+                // Set selected option position for next drawer open
+                mNavPosition = position;
+            
+                // Set item as selected
+                //mNavListView.setItemChecked(position, true);
+            
+                TextView teamNameTextView = (TextView) view.findViewById(R.id.team_name_text_view);
+                if (teamNameTextView != null)
+                    mSelectedTeamName = (String) teamNameTextView.getText();
+            
+                showTeam(Utils.getTeams(MainActivity.this)[position], false);
+            
+                // Close drawer
+                DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
+                if (drawer != null)
+                    drawer.closeDrawer(GravityCompat.START);
+            
+                break;
+            }
+        }
     }
     
     @Override
@@ -769,4 +964,28 @@ public class MainActivity
         // the CAB is removed. By default, selected items are deselected/unchecked.
     }
     
+    @Override
+    public void onClick(View v) {
+        switch (v.getId()) {
+            case R.id.nav_all_tasks: {
+                showTeam(null, false);
+                
+                // Close drawer
+                DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
+                if (drawer != null)
+                    drawer.closeDrawer(GravityCompat.START);
+                
+                break;
+            }
+            
+            case R.id.nav_settings: {
+                Intent settingsIntent = new Intent(MainActivity.this, SettingsActivity.class);
+                startActivity(settingsIntent);
+                break;
+            }
+            
+            default:
+                Log.w(LOG_TAG, "Unhandled view click: " + v);
+        }
+    }
 }

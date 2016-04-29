@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="@dimen/nav_list_item_height"
+    android:layout_marginBottom="0dp"
+    android:layout_marginTop="0dp"
+    android:background="@drawable/nav_list_item_background"
+    android:paddingEnd="@dimen/single_margin"
+    android:paddingStart="@dimen/single_margin"
+    >
+
+    <ImageView
+        android:id="@+id/nav_team_color_patch"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:layout_gravity="center_vertical"
+        android:contentDescription="@string/team_color_description"
+        android:src="@drawable/nav_list_item_circle"/>
+
+    <TextView
+        android:id="@+id/team_name_text_view"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_vertical"
+        android:layout_weight="1"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:paddingStart="@dimen/double_margin"
+        android:scrollHorizontally="true"
+        android:text="Task Description"
+        android:textColor="@drawable/nav_list_item_textcolor"
+        android:textSize="16sp"/>
+
+</LinearLayout>

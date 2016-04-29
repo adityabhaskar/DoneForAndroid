@@ -5,9 +5,6 @@ import android.content.ContentUris;
 import android.net.Uri;
 import android.provider.BaseColumns;
 
-/**
- * Created by raven on 13/02/16.
- */
 public class DoneListContract {
     
     // The "Content authority" is a name for the entire content provider, similar to the

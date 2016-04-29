@@ -140,8 +140,13 @@
     <string name="pref_title_ringtone">Notification sound</string>
     <string name="pref_ringtone_silent">Silent</string>
 
+
+    <!-- Strings for Navigation drawer -->
     <string name="navigation_drawer_open">Open navigation drawer</string>
     <string name="navigation_drawer_close">Close navigation drawer</string>
+    <string name="all_tasks">All tasks</string>
+    <string name="teams_header">Teams</string>
+    <string name="team_color_description">Team color</string>
 
 
 </resources>

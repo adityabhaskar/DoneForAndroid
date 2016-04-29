@@ -47,16 +47,15 @@ public class DoneListAdapter extends ResourceCursorAdapter{
         super(context, layout, c, flags);
     }
     
-    /*
+    /**
     *    Remember that these views are reused as needed.
     * */
     @Override
     public View newView(Context context, Cursor cursor, ViewGroup parent) {
-    
-        return LayoutInflater.from(context).inflate(R.layout.list_row_layout, parent, false);
+        return LayoutInflater.from(context).inflate(R.layout.tasks_list_row_layout, parent, false);
     }
     
-    /*
+    /**
     *    This is where we fill-in the views with the contents of the cursor.
     * */
     @Override

@@ -32,6 +32,10 @@ public class SplashScreenActivity extends AppCompatActivity {
             // Sync on launch if setting is set to true
             if (Utils.getSyncOnStartup(this))
                 IDTSyncAdapter.syncImmediately(getApplicationContext());
+    
+            // Re-set notification alarm in case it disappeared
+            // Disabled because may trigger alarm on every app open if alarm time already passed!
+            //Utils.setNotificationAlarm(SplashScreenActivity.this, null);
             
             Intent nextActivity = new Intent(SplashScreenActivity.this, MainActivity.class);
             startActivity(nextActivity);

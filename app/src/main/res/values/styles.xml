@@ -11,7 +11,7 @@
         <item name="android:divider">@color/divider</item>
 
         <!-- Set the theme to be applied for list item backgrounds (selected/unselected) -->
-        <item name="android:activatedBackgroundIndicator">@drawable/list_item_background</item>
+        <item name="android:activatedBackgroundIndicator">@drawable/task_list_item_background</item>
 
         <!-- Set the colours for contextual action bar -->
         <item name="actionModeBackground">@color/primary</item>
@@ -35,6 +35,23 @@
 
     <style name="AboutDialogTheme" parent="Theme.AppCompat.Dialog">
         <item name="android:background">@android:color/background_light</item>
+    </style>
+
+    <style name="nav_subtitle">
+        <item name="android:layout_height">48dp</item>
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:gravity">center_vertical</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:textColor">#8A000000</item>
+        <item name="android:paddingLeft">16dp</item>
+    </style>
+
+    <style name="navbar_divider">
+        <item name="android:layout_height">1dp</item>
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:background">@color/divider</item>
+        <item name="android:layout_marginTop">8dp</item>
+        <item name="android:layout_marginBottom">8dp</item>
     </style>
 
 </resources>

@@ -88,7 +88,7 @@ public class NewDoneActivity extends AppCompatActivity {
                     mFormattedDoneDate = userDateFormat.format(c.getTime());
                 }
             } else
-                Log.v(LOG_TAG, "No state found.");
+                Log.i(LOG_TAG, "No saved state found.");
     
             EditText teamEditText = (EditText) findViewById(R.id.team_picker);
             if (teamEditText != null) {
@@ -328,6 +328,11 @@ public class NewDoneActivity extends AppCompatActivity {
             case R.id.action_add_dones:
                 // User chose the "Add" item, save
                 onSaveClicked();
+                return true;
+    
+            case R.id.action_settings:
+                Intent settingsIntent = new Intent(NewDoneActivity.this, SettingsActivity.class);
+                startActivity(settingsIntent);
                 return true;
     
             case android.R.id.home:
