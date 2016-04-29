@@ -11,15 +11,13 @@
         android:id="@+id/team_color_patch"
         android:layout_width="8dp"
         android:layout_height="match_parent"
-        android:background="@color/team9"
-        />
+        android:background="@color/team9"/>
 
     <LinearLayout
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="fill"
-        android:orientation="vertical"
-        >
+        android:orientation="vertical">
 
         <TextView
             android:id="@+id/text_view_task_text"
@@ -44,8 +42,7 @@
             android:paddingStart="16dp"
             android:text="date"
             android:textAppearance="?android:attr/textAppearanceSmall"
-            android:textColor="@android:color/tertiary_text_light"
-            />
+            android:textColor="@android:color/tertiary_text_light"/>
 
 
     </LinearLayout>

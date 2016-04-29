@@ -50,7 +50,33 @@
 
             <!-- ListView with other teams -->
             <ListView
-                android:id="@+id/nav_drawer_listview"
+                android:id="@+id/nav_drawer_teams_listview"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:choiceMode="singleChoice"
+                android:divider="@android:color/transparent"
+                android:dividerHeight="0dp"
+                android:paddingBottom="@dimen/half_margin"/>
+
+            <!-- Divider -->
+            <View style="@style/navbar_divider"/>
+
+            <!-- Teams sub header -->
+            <TextView
+                style="@style/nav_subtitle"
+                android:text="@string/tags_header"/>
+
+            <!-- Placeholder: remove when tags are implemented -->
+            <include
+                android:id="@+id/nav_tags_placeholder"
+                layout="@layout/nav_list_row_layout"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/nav_list_item_height"
+                android:layout_marginBottom="@dimen/half_margin"/>
+
+            <!-- Actual listview - add adapter and click listener when implementing -->
+            <ListView
+                android:id="@+id/nav_drawer_tags_listview"
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
                 android:layout_weight="1"

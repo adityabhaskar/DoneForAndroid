@@ -146,6 +146,8 @@
     <string name="navigation_drawer_close">Close navigation drawer</string>
     <string name="all_tasks">All tasks</string>
     <string name="teams_header">Teams</string>
+    <string name="tags_header">Tags</string>
+    <string name="tags_placeholder">Coming Soon</string>
     <string name="team_color_description">Team color</string>
 
 

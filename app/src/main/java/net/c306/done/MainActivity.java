@@ -364,7 +364,8 @@ public class MainActivity
         TextView navHeaderName = (TextView) findViewById(R.id.username_textview);
         if (navHeaderName != null)
             navHeaderName.setText(Utils.getUsername(MainActivity.this));
-        
+    
+        // Set up all tasks item
         View allTasksView = findViewById(R.id.nav_all_tasks);
         if (allTasksView != null) {
             
@@ -379,26 +380,47 @@ public class MainActivity
             // Add click listener
             allTasksView.setOnClickListener(this);
         }
-        
-        // Set text for Settings TextView
+    
+        // Set up settings item
         View settingsView = findViewById(R.id.nav_settings);
         if (settingsView != null) {
+            // Set text for Settings TextView
             TextView settingsTextView = (TextView) settingsView.findViewById(R.id.team_name_text_view);
             settingsTextView.setText(R.string.action_settings);
-            
+    
+            // Set image resource for settings icon
             ImageView settingsImageView = (ImageView) settingsView.findViewById(R.id.nav_team_color_patch);
             BitmapDrawable settingsIcon = (BitmapDrawable) ContextCompat.getDrawable(MainActivity.this, R.drawable.ic_settings_black_24dp).mutate();
             settingsIcon.setAlpha(0x8A);
             if (settingsImageView != null)
                 settingsImageView.setImageDrawable(settingsIcon);
-            
+    
+            // Add click listener
             settingsView.setOnClickListener(this);
+        }
+    
+        // Set up tags_placeholder item
+        View tagsPlaceholderView = findViewById(R.id.nav_tags_placeholder);
+        if (tagsPlaceholderView != null) {
+            // Set text for Settings TextView
+            TextView tagsPlaceholderTextView = (TextView) tagsPlaceholderView.findViewById(R.id.team_name_text_view);
+            tagsPlaceholderTextView.setText(R.string.tags_placeholder);
+        
+            // Set image resource for settings icon
+            ImageView tagsPlaceholderImageView = (ImageView) tagsPlaceholderView.findViewById(R.id.nav_team_color_patch);
+            BitmapDrawable settingsIcon = (BitmapDrawable) ContextCompat.getDrawable(MainActivity.this, R.drawable.ic_label_black_24dp).mutate();
+            settingsIcon.setAlpha(0x8A);
+            if (tagsPlaceholderImageView != null)
+                tagsPlaceholderImageView.setImageDrawable(settingsIcon);
+        
+            // Add click listener
+            tagsPlaceholderView.setOnClickListener(this);
         }
         
         // Setup Nav TeamListView
         mNavListAdapter = new NavListAdapter(this, R.layout.nav_list_row_layout, null, 0);
-        
-        mNavListView = (ListView) findViewById(R.id.nav_drawer_listview);
+    
+        mNavListView = (ListView) findViewById(R.id.nav_drawer_teams_listview);
         if (mNavListView != null)
             mNavListView.setAdapter(mNavListAdapter);
         
@@ -862,14 +884,14 @@ public class MainActivity
                 mListView.setItemChecked(position, !mListView.isItemChecked(position));
                 break;
             }
-        
-            case R.id.nav_drawer_listview: {
+    
+            case R.id.nav_drawer_teams_listview: {
                 // Set selected option position for next drawer open
                 mNavPosition = position;
-            
-                // Set item as selected
+        
+                // Set item as selected - done in method showTeam
                 //mNavListView.setItemChecked(position, true);
-            
+        
                 TextView teamNameTextView = (TextView) view.findViewById(R.id.team_name_text_view);
                 if (teamNameTextView != null)
                     mSelectedTeamName = (String) teamNameTextView.getText();
@@ -981,6 +1003,12 @@ public class MainActivity
             case R.id.nav_settings: {
                 Intent settingsIntent = new Intent(MainActivity.this, SettingsActivity.class);
                 startActivity(settingsIntent);
+                break;
+            }
+    
+            case R.id.nav_tags_placeholder: {
+                Utils.sendEvent(mTracker, "action", "tagsPlaceholder");
+                Log.i(LOG_TAG, "Tags placeholder clicked");
                 break;
             }
             
