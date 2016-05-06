@@ -37,6 +37,15 @@
         <item name="android:background">@android:color/background_light</item>
     </style>
 
+    <style name="touchable_items">
+        <item name="android:paddingTop">@dimen/half_margin</item>
+        <item name="android:paddingBottom">@dimen/half_margin</item>
+        <item name="android:minHeight">24dp</item>
+        <item name="android:minWidth">24dp</item>
+        <!--<item name="android:background">@drawable/touchable_item_background</item>-->
+        <item name="android:background">?attr/selectableItemBackground</item>
+    </style>
+
     <style name="nav_menu_text_default">
         <item name="android:fontFamily">sans-serif-medium</item>
         <item name="android:textSize">14sp</item>
@@ -50,7 +59,7 @@
         <item name="android:paddingLeft">16dp</item>
     </style>
 
-    <style name="navbar_divider">
+    <style name="divider">
         <item name="android:layout_height">1dp</item>
         <item name="android:layout_width">match_parent</item>
         <item name="android:background">@color/divider</item>

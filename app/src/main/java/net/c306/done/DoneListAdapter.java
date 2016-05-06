@@ -30,18 +30,6 @@ public class DoneListAdapter extends ResourceCursorAdapter{
     private SimpleDateFormat idtDateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.UK);
     private SimpleDateFormat userDateFormat = (SimpleDateFormat) DateFormat.getDateInstance(DateFormat.DEFAULT);
     private Calendar calendar = Calendar.getInstance();
-    private int colorArray[] = {
-            R.color.team1,
-            R.color.team2,
-            R.color.team3,
-            R.color.team4,
-            R.color.team5,
-            R.color.team6,
-            R.color.team7,
-            R.color.team8,
-            R.color.team9,
-            R.color.team10
-    };
     
     public DoneListAdapter(Context context, int layout, Cursor c, int flags) {
         super(context, layout, c, flags);
@@ -68,7 +56,7 @@ public class DoneListAdapter extends ResourceCursorAdapter{
         ));
     
         // Set colour based on team of the task
-        teamSpace.setBackgroundResource(colorArray[teamColor == -1 ? 0 : teamColor]);
+        teamSpace.setBackgroundResource(Utils.colorArray[teamColor == -1 ? 0 : teamColor]);
         
         // Set text
         TextView rawTextTextView = (TextView) view.findViewById(R.id.text_view_task_text);

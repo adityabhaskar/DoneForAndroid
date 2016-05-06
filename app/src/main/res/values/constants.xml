@@ -27,6 +27,10 @@
     <string name="PREF_NOTIFICATION_SOUND">notifications_new_message_ringtone</string>
     <string name="DEFAULT_NOTIFICATION_SOUND">content://settings/system/notification_sound</string>
 
+    <!-- Placeholder strings for task details fragment -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="digit_zero">0</string>
+
     <!-- Should always have the same value as Utils.PREFS_ALARM_TIME-->
     <string name="PREF_SNOOZE_DURATION">snooze_duration</string>
     <integer name="DEFAULT_NOTIFICATION_SNOOZE">900</integer>

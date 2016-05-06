@@ -41,7 +41,7 @@
                 android:layout_marginTop="@dimen/half_margin"/>
 
             <!-- Divider -->
-            <View style="@style/navbar_divider"/>
+            <View style="@style/divider"/>
 
             <!-- Teams sub header -->
             <!--<TextView-->
@@ -59,7 +59,7 @@
                 android:paddingBottom="@dimen/half_margin"/>
 
             <!-- Divider -->
-            <View style="@style/navbar_divider"/>
+            <View style="@style/divider"/>
 
             <!-- Teams sub header -->
             <TextView
@@ -86,7 +86,7 @@
                 android:paddingBottom="@dimen/half_margin"/>
 
             <!-- Divider -->
-            <View style="@style/navbar_divider"/>
+            <View style="@style/divider"/>
 
             <!-- All teams list item -->
             <include

@@ -3,19 +3,23 @@ package net.c306.done.db;
 import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.util.Log;
 
 import net.c306.done.Utils;
+import net.c306.done.sync.IDTSyncAdapter;
 
 public class DoneListDbHelper extends SQLiteOpenHelper {
     
     // If you change the database schema, you must increment the database version.
-    public static final int DATABASE_VERSION = 11;
+    public static final int DATABASE_VERSION = 13;
     public static final String DATABASE_NAME = "DoneList.db";
     private static DoneListDbHelper sInstance;
     private final String LOG_TAG = Utils.LOG_TAG + this.getClass().getSimpleName();
+    private Context mContext = null;
     
     private DoneListDbHelper(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
+        mContext = context;
     }
     
     public static synchronized DoneListDbHelper getInstance(Context context) {
@@ -108,6 +112,12 @@ public class DoneListDbHelper extends SQLiteOpenHelper {
         db.execSQL("DROP TABLE IF EXISTS " + DoneListContract.TeamEntry.TABLE_NAME);
         db.execSQL("DROP TABLE IF EXISTS " + DoneListContract.DoneEntry.TABLE_NAME);
         onCreate(db);
+    
+        // Re-fetch data on table upgrade - old data just got cleared :(  
+        if (mContext != null)
+            IDTSyncAdapter.syncImmediately(mContext.getApplicationContext(), true);
+        else
+            Log.e(LOG_TAG, "onUpgrade: No Context available");
     }
     
     public void onDowngrade(SQLiteDatabase db, int oldVersion, int newVersion) {

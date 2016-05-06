@@ -7,7 +7,7 @@
     <item>
         <bitmap
             android:gravity="fill"
-            android:src="@drawable/splash1"/>
+            android:src="@drawable/splash"/>
     </item>
 
     <item>

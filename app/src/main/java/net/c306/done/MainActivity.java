@@ -76,7 +76,7 @@ public class MainActivity
     private final String LOG_TAG = Utils.LOG_TAG + this.getClass().getSimpleName();
     
     private ActionBarDrawerToggle mToggle;
-    private String mCurFilter = null;
+    private String mSearchFilter = null;
     private Snackbar mSnackbar;
     private Tracker mTracker;
     private String mSelectedTeamName;
@@ -371,11 +371,13 @@ public class MainActivity
             
             // Set text for All Tasks TextView
             TextView allTasksTextView = (TextView) allTasksView.findViewById(R.id.team_name_text_view);
-            allTasksTextView.setText(R.string.all_tasks);
+            if (allTasksTextView != null)
+                allTasksTextView.setText(R.string.all_tasks);
             
             // Set image resource for All Tasks icon
             ImageView allTasksImageView = (ImageView) allTasksView.findViewById(R.id.nav_team_color_patch);
-            allTasksImageView.setImageDrawable(ContextCompat.getDrawable(MainActivity.this, R.drawable.nav_list_alltasks_icon));
+            if (allTasksImageView != null)
+                allTasksImageView.setImageDrawable(ContextCompat.getDrawable(MainActivity.this, R.drawable.nav_list_alltasks_icon));
             
             // Add click listener
             allTasksView.setOnClickListener(this);
@@ -386,7 +388,8 @@ public class MainActivity
         if (settingsView != null) {
             // Set text for Settings TextView
             TextView settingsTextView = (TextView) settingsView.findViewById(R.id.team_name_text_view);
-            settingsTextView.setText(R.string.action_settings);
+            if (settingsTextView != null)
+                settingsTextView.setText(R.string.action_settings);
     
             // Set image resource for settings icon
             ImageView settingsImageView = (ImageView) settingsView.findViewById(R.id.nav_team_color_patch);
@@ -404,15 +407,16 @@ public class MainActivity
         if (tagsPlaceholderView != null) {
             // Set text for Settings TextView
             TextView tagsPlaceholderTextView = (TextView) tagsPlaceholderView.findViewById(R.id.team_name_text_view);
-            tagsPlaceholderTextView.setText(R.string.tags_placeholder);
-        
+            if (tagsPlaceholderTextView != null)
+                tagsPlaceholderTextView.setText(R.string.tags_placeholder);
+            
             // Set image resource for settings icon
             ImageView tagsPlaceholderImageView = (ImageView) tagsPlaceholderView.findViewById(R.id.nav_team_color_patch);
             BitmapDrawable settingsIcon = (BitmapDrawable) ContextCompat.getDrawable(MainActivity.this, R.drawable.ic_label_black_24dp).mutate();
             settingsIcon.setAlpha(0x8A);
             if (tagsPlaceholderImageView != null)
                 tagsPlaceholderImageView.setImageDrawable(settingsIcon);
-        
+    
             // Add click listener
             tagsPlaceholderView.setOnClickListener(this);
         }
@@ -660,7 +664,7 @@ public class MainActivity
         switch (id) {
         
             case DONE_LIST_LOADER: {
-            
+                
                 // Sort order:  Descending, by date.
                 String sortOrder = DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE + " DESC, " +
                         DoneListContract.DoneEntry.COLUMN_NAME_IS_LOCAL + " DESC, " +
@@ -685,8 +689,8 @@ public class MainActivity
             
                 String selection = DoneListContract.DoneEntry.COLUMN_NAME_IS_DELETED + " IS 'FALSE'";
             
-                if (mCurFilter != null) {
-                    String[] filterArr = mCurFilter.split(" +");
+                if (mSearchFilter != null) {
+                    String[] filterArr = mSearchFilter.split(" +");
                 
                     for (String filterString : filterArr) {
                         selection += " AND " +
@@ -714,7 +718,7 @@ public class MainActivity
             }
         
             case NAV_LIST_LOADER: {
-            
+                
                 Uri teamUri = DoneListContract.TeamEntry.CONTENT_URI;
             
                 String[] cursorProjectionString = new String[]{
@@ -800,7 +804,7 @@ public class MainActivity
     @Override
     public boolean onQueryTextChange(String newText) {
         // search in database and change loader cursor accordingly
-        mCurFilter = !TextUtils.isEmpty(newText) ? newText : null;
+        mSearchFilter = !TextUtils.isEmpty(newText) ? newText : null;
         getLoaderManager().restartLoader(0, null, this);
         return true;
     }
@@ -871,17 +875,23 @@ public class MainActivity
      * AbsListView.MultiChoiceModeListener methods - for edit & delete selections
      */
     @Override
-    public void onItemClick(AdapterView<?> adapterView, View view, int position, long l) {
+    public void onItemClick(AdapterView<?> adapterView, View view, int position, long rowId) {
     
         switch (adapterView.getId()) {
             case R.id.dones_list_view: {
                 // CursorAdapter returns a cursor at the correct position for getItem(), or null
                 // if it cannot seek to that position.
                 //Cursor cursor = (Cursor) adapterView.getItemAtPosition(position);
-            
+    
                 mPosition = position;
-            
-                mListView.setItemChecked(position, !mListView.isItemChecked(position));
+    
+                // TODO: 29/04/16 Start fragment with full text, edit & delete buttons, author name, and likes & comment counts
+                Intent taskDetailsActivity = new Intent(MainActivity.this, TaskDetailsActivity.class);
+                taskDetailsActivity.putExtra(Utils.TASK_DETAILS_TASK_ID, rowId);
+                taskDetailsActivity.putExtra(Utils.TASK_DETAILS_SEARCH_FILTER, mSearchFilter);
+                taskDetailsActivity.putExtra(Utils.TASK_DETAILS_TEAM_FILTER, mTeamFilter);
+                startActivity(taskDetailsActivity);
+                
                 break;
             }
     
@@ -1016,4 +1026,5 @@ public class MainActivity
                 Log.w(LOG_TAG, "Unhandled view click: " + v);
         }
     }
+    
 }

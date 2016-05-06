@@ -17,19 +17,6 @@ public class NavListAdapter extends ResourceCursorAdapter {
     
     private final String LOG_TAG = Utils.LOG_TAG + this.getClass().getSimpleName();
     
-    private int colorArray[] = {
-            R.color.team1,
-            R.color.team2,
-            R.color.team3,
-            R.color.team4,
-            R.color.team5,
-            R.color.team6,
-            R.color.team7,
-            R.color.team8,
-            R.color.team9,
-            R.color.team10
-    };
-    
     public NavListAdapter(Context context, int layout, Cursor c, int flags) {
         super(context, layout, c, flags);
     }
@@ -56,7 +43,7 @@ public class NavListAdapter extends ResourceCursorAdapter {
         ImageView teamSpace = (ImageView) view.findViewById(R.id.nav_team_color_patch);
         
         GradientDrawable teamCircle = (GradientDrawable) teamSpace.getDrawable().mutate();
-        teamCircle.setColor(ContextCompat.getColor(context, colorArray[teamColor == -1 ? 0 : teamColor]));
+        teamCircle.setColor(ContextCompat.getColor(context, Utils.colorArray[teamColor == -1 ? 0 : teamColor]));
         
         // Set team name
         TextView teamNameTextView = (TextView) view.findViewById(R.id.team_name_text_view);

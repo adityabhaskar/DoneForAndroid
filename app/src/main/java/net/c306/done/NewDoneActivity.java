@@ -201,7 +201,8 @@ public class NewDoneActivity extends AppCompatActivity {
     
     public void openTeamPicker(View view) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        
+    
+        // TODO: 06/05/16 Customize list item layout - add team colour & restrict to single line with ellipises - http://stackoverflow.com/questions/9329156/customize-dialog-list-in-android 
         builder.setItems(teamNames.toArray(new CharSequence[teamNames.size()]),
                 new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int which) {

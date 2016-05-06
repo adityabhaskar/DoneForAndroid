@@ -160,6 +160,24 @@ public class Utils {
     public static final int CHECK_TOKEN_CANCELLED_OFFLINE = 19714;
     public static final int CHECK_TOKEN_OTHER_ERROR = 19715;
     
+    // TASK DETAILS FRAGMENT RELATED CONSTANTS
+    public static final String TASK_DETAILS_TASK_ID = "task_id";
+    public static final String TASK_DETAILS_SEARCH_FILTER = "search_filter";
+    public static final String TASK_DETAILS_TEAM_FILTER = "team_filter";
+    
+    public static final int colorArray[] = {
+            R.color.team1,
+            R.color.team2,
+            R.color.team3,
+            R.color.team4,
+            R.color.team5,
+            R.color.team6,
+            R.color.team7,
+            R.color.team8,
+            R.color.team9,
+            R.color.team10
+    };
+    
     /*
     *           
     *           Methods start here
