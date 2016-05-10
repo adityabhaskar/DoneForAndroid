@@ -168,7 +168,7 @@ public class MainActivity
                             if (mSnackbar != null && mSnackbar.isShown())
                                 mSnackbar.dismiss();
     
-                            mSnackbar = Snackbar.make(findViewById(R.id.fab), (count > 1 ? count + " " + getString(R.string.tasks_string) : getString(R.string.task_string)) + " " + getString(R.string.done_sent_toast_message), Snackbar.LENGTH_LONG);
+                            mSnackbar = Snackbar.make(findViewById(R.id.fab), (count > 1 ? count + " " + getString(R.string.tasks_string) : getString(R.string.task_string)) + " " + getString(R.string.task_sent_toast_message), Snackbar.LENGTH_LONG);
                             mSnackbar.setAction("Action", null).show();
                         }
                     }
@@ -196,15 +196,26 @@ public class MainActivity
                     break;
                 }
     
-                case Utils.TASK_DELETED_SNACKBAR: {
+                case Utils.EDITED_TASK_SAVED:
+                case Utils.NEW_TASK_SAVED: {
                     if (mSnackbar != null && mSnackbar.isShown())
                         mSnackbar.dismiss();
         
+                    mSnackbar = Snackbar.make(findViewById(R.id.fab),
+                            action == Utils.NEW_TASK_SAVED ? R.string.new_task_saved_toast_message : R.string.edited_task_saved_toast_message,
+                            Snackbar.LENGTH_SHORT);
+                    mSnackbar.setAction("Action", null).show();
+                    break;
+                }
+                
+                case Utils.TASK_DELETED_SNACKBAR: {
+                    if (mSnackbar != null && mSnackbar.isShown())
+                        mSnackbar.dismiss();
+    
                     int deletedCount = intent.getIntExtra(Utils.INTENT_COUNT, -1);
-                    Log.v(LOG_TAG, "deletedcount: " + deletedCount);
-        
+    
                     if (deletedCount > 0) {
-                        mSnackbar = Snackbar.make(findViewById(R.id.fab), (deletedCount > 1 ? deletedCount + " " + getString(R.string.tasks_string) : getString(R.string.task_string)) + " " + getString(R.string.done_deleted_toast_message), Snackbar.LENGTH_SHORT);
+                        mSnackbar = Snackbar.make(findViewById(R.id.fab), (deletedCount > 1 ? deletedCount + " " + getString(R.string.tasks_string) : getString(R.string.task_string)) + " " + getString(R.string.task_deleted_toast_message), Snackbar.LENGTH_SHORT);
                         mSnackbar.setAction("Action", null).show();
                     }
                     break;
@@ -377,17 +388,36 @@ public class MainActivity
                 new IntentFilter(Utils.DONE_LOCAL_BROADCAST_LISTENER_INTENT));
         
         Log.v(LOG_TAG, "Got message from activity with result: " + resultCode);
+    
+        switch (requestCode) {
+            case Utils.NEW_DONE_ACTIVITY_IDENTIFIER: {
+                if (resultCode == RESULT_OK && data != null) {
+                    Utils.sendMessage(
+                            MainActivity.this,
+                            Utils.SENDER_NEW_DONE_ACTIVITY,
+                            "Task created, or edited successfully.",
+                            data.getIntExtra(Utils.INTENT_ACTION, Utils.NEW_TASK_SAVED),
+                            1);
+                }
+                break;
+            }
         
-        if (resultCode == Utils.RESULT_TASK_DELETED && data != null) {
-            int deletedCount = data.getIntExtra(Utils.INTENT_COUNT, -1);
-            Utils.sendMessage(
-                    MainActivity.this,
-                    Utils.SENDER_TASK_DETAILS_ACTIVITY,
-                    "Task deleted, or marked for deletion successfully",
-                    Utils.TASK_DELETED_SNACKBAR,
-                    deletedCount);
-        } else
-            super.onActivityResult(requestCode, resultCode, data);
+            case Utils.TASK_DETAILS_ACTIVITY_IDENTIFIER: {
+                if (resultCode == Utils.RESULT_TASK_DELETED && data != null) {
+                    int deletedCount = data.getIntExtra(Utils.INTENT_COUNT, -1);
+                    Utils.sendMessage(
+                            MainActivity.this,
+                            Utils.SENDER_TASK_DETAILS_ACTIVITY,
+                            "Task deleted, or marked for deletion successfully",
+                            Utils.TASK_DELETED_SNACKBAR,
+                            deletedCount);
+                }
+                break;
+            }
+        
+            default:
+                super.onActivityResult(requestCode, resultCode, data);
+        }
     }
     
     /**
@@ -541,7 +571,7 @@ public class MainActivity
 
     public void toNewDone(View view) {
         Intent newDoneIntent = new Intent(MainActivity.this, NewDoneActivity.class);
-        startActivityForResult(newDoneIntent, RESULT_CANCELED);
+        startActivityForResult(newDoneIntent, Utils.NEW_DONE_ACTIVITY_IDENTIFIER);
     }
     
     public void onLogout(MenuItem item) {
@@ -933,7 +963,8 @@ public class MainActivity
                 taskDetailsActivity.putExtra(Utils.TASK_DETAILS_TASK_ID, rowId);
                 taskDetailsActivity.putExtra(Utils.TASK_DETAILS_SEARCH_FILTER, mSearchFilter);
                 taskDetailsActivity.putExtra(Utils.TASK_DETAILS_TEAM_FILTER, mTeamFilter);
-                startActivityForResult(taskDetailsActivity, Utils.MAIN_ACTIVITY_IDENTIFIER);
+                taskDetailsActivity.putExtra(Utils.TASK_DETAILS_TEAM_NAME, mSelectedTeamName);
+                startActivityForResult(taskDetailsActivity, Utils.TASK_DETAILS_ACTIVITY_IDENTIFIER);
                 
                 break;
             }

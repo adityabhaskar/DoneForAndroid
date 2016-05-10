@@ -31,6 +31,8 @@
 
 # Application classes that will be serialized/deserialized over Gson
 -keep class net.c306.done.** { *; }
-#-keep class com.google.gson.examples.android.model.** { *; }
+
+# Resolving search view expansion bug
+-keep class android.support.v7.widget.SearchView { *; }
 
 ##---------------End: proguard configuration for Gson  ----------

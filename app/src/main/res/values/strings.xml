@@ -9,9 +9,11 @@
     <string name="title_activity_login">Sign in</string>
 
     <!-- Strings related to New Done Activity -->
-    <string name="done_edit_text_empty_error">Enter a completed task</string>
-    <string name="done_sent_toast_message">sent.</string>
-    <string name="done_deleted_toast_message">deleted.</string>
+    <string name="task_edit_text_empty_error">Enter a completed task</string>
+    <string name="new_task_saved_toast_message">Task saved.</string>
+    <string name="edited_task_saved_toast_message">Changes saved.</string>
+    <string name="task_sent_toast_message">sent.</string>
+    <string name="task_deleted_toast_message">deleted.</string>
     <string name="new_done_hint">What\'d you get done today?</string>
     <string name="team_label">Team</string>
     <string name="date_label">Date</string>

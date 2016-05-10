@@ -76,6 +76,7 @@ public class Utils {
     public static final int LOGIN_ACTIVITY_IDENTIFIER = 7002;
     public static final int NEW_DONE_ACTIVITY_IDENTIFIER = 7003;
     public static final int SETTINGS_ACTIVITY_IDENTIFIER = 7004;
+    public static final int TASK_DETAILS_ACTIVITY_IDENTIFIER = 7005;
     
     // ACTIVITY RESULT STATUS
     public static final int LOGIN_FINISHED = 0;
@@ -149,6 +150,8 @@ public class Utils {
     public static final int STATUS_TASK_CANCELLED_OFFLINE = 19705;
     public static final int STATUS_TASK_OTHER_ERROR = 19706;
     public static final int TASK_DELETED_SNACKBAR = 19707;
+    public static final int NEW_TASK_SAVED = 19708;
+    public static final int EDITED_TASK_SAVED = 19709;
     
     public static final String SENDER_FETCH_TASKS = "senderFetchTasks";
     public static final String SENDER_FETCH_TEAMS = "senderFetchTeams";
@@ -158,17 +161,19 @@ public class Utils {
     public static final String SENDER_DELETE_TASK = "senderDeleteTask";
     public static final String SENDER_TASK_DETAILS_ACTIVITY = "senderTaskDetailsActivity";
     public static final String SENDER_MAIN_ACTIVITY = "senderMainActivity";
+    public static final String SENDER_NEW_DONE_ACTIVITY = "senderNewDoneActivity";
     
-    public static final int CHECK_TOKEN_STARTED = 19711;
-    public static final int CHECK_TOKEN_SUCCESSFUL = 19712;
-    public static final int CHECK_TOKEN_FAILED = 19713;
-    public static final int CHECK_TOKEN_CANCELLED_OFFLINE = 19714;
-    public static final int CHECK_TOKEN_OTHER_ERROR = 19715;
+    public static final int CHECK_TOKEN_STARTED = 19811;
+    public static final int CHECK_TOKEN_SUCCESSFUL = 19812;
+    public static final int CHECK_TOKEN_FAILED = 19813;
+    public static final int CHECK_TOKEN_CANCELLED_OFFLINE = 19814;
+    public static final int CHECK_TOKEN_OTHER_ERROR = 19815;
     
     // TASK DETAILS FRAGMENT RELATED CONSTANTS
     public static final String TASK_DETAILS_TASK_ID = "task_id";
     public static final String TASK_DETAILS_SEARCH_FILTER = "search_filter";
     public static final String TASK_DETAILS_TEAM_FILTER = "team_filter";
+    public static final String TASK_DETAILS_TEAM_NAME = "team_name";
     
     public static final int colorArray[] = {
             R.color.team1,

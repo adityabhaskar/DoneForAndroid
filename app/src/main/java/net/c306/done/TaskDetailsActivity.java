@@ -60,16 +60,25 @@ public class TaskDetailsActivity
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
     
         // Instantiate variables
-        mId = getIntent().getLongExtra(Utils.TASK_DETAILS_TASK_ID, -1);
-        mSearchFilter = getIntent().getStringExtra(Utils.TASK_DETAILS_SEARCH_FILTER);
-        mTeamFilter = getIntent().getStringExtra(Utils.TASK_DETAILS_TEAM_FILTER);
-    
+        Intent receivedData = getIntent();
+        mId = receivedData.getLongExtra(Utils.TASK_DETAILS_TASK_ID, -1);
+        mSearchFilter = receivedData.getStringExtra(Utils.TASK_DETAILS_SEARCH_FILTER);
+        mTeamFilter = receivedData.getStringExtra(Utils.TASK_DETAILS_TEAM_FILTER);
+        
         // Get saved instance state if recreating
         if (savedInstanceState != null && !savedInstanceState.isEmpty()) {
             if (savedInstanceState.containsKey(CURRENT_TASK_INDEX_KEY))
                 mCurrentTaskIndex = savedInstanceState.getInt(CURRENT_TASK_INDEX_KEY);
         }
     
+        // Set title to search phrase, team name, or app name, in order
+        if (mSearchFilter != null && !mSearchFilter.isEmpty())
+            setTitle(mSearchFilter);
+        else if (mTeamFilter != null && !mTeamFilter.isEmpty())
+            setTitle(receivedData.getStringExtra(Utils.TASK_DETAILS_TEAM_NAME));
+        else
+            setTitle(R.string.app_name);
+        
         // Get task id list
         getTaskList();
     

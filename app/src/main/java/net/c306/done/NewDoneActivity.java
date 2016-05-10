@@ -382,8 +382,8 @@ public class NewDoneActivity extends AppCompatActivity {
         String taskText = doneEditText.getText().toString();
     
         if (taskText.isEmpty() && doneEditText != null)
-            
-            doneEditText.setError(getString(R.string.done_edit_text_empty_error));
+    
+            doneEditText.setError(getString(R.string.task_edit_text_empty_error));
     
         else {
             // Edit or Add done based on if mId > -1
@@ -417,7 +417,9 @@ public class NewDoneActivity extends AppCompatActivity {
                 boolean result = new DoneActions(this).edit(editedDetails);
                 
                 if (result) {
-                    setResult(RESULT_OK);
+                    Intent data = new Intent();
+                    data.putExtra(Utils.INTENT_ACTION, Utils.EDITED_TASK_SAVED);
+                    setResult(RESULT_OK, data);
                 } else {
                     setResult(Utils.RESULT_ERROR);
                 }
@@ -443,7 +445,9 @@ public class NewDoneActivity extends AppCompatActivity {
                 boolean result = new DoneActions(this).create(newDoneDetails);
     
                 if (result) {
-                    setResult(RESULT_OK);
+                    Intent data = new Intent();
+                    data.putExtra(Utils.INTENT_ACTION, Utils.NEW_TASK_SAVED);
+                    setResult(RESULT_OK, data);
                 } else {
                     setResult(Utils.RESULT_ERROR);
                 }
