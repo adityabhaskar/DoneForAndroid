@@ -82,6 +82,7 @@ public class Utils {
     public static final int LOGIN_UNFINISHED = 1;
     public static final int LOGIN_CANCELLED_OR_ERROR = -1;
     public static final int RESULT_ERROR = -1;
+    public static final int RESULT_TASK_DELETED = 29001;
     
     // Intent & extra identifiers
     public static final String INTENT_FROM_ACTIVITY_IDENTIFIER = "fromActivity";
@@ -91,6 +92,7 @@ public class Utils {
     public static final String NOTIFICAION_ALARM_INTENT = "net.c306.done.notificationAlarms";
     public static final String NOTIFICAION_ALARM_SNOOZED_INTENT = "net.c306.done.notificationAlarms.Snoozed";
     public static final String INTENT_ACTION = "intent_action";
+    public static final String INTENT_COUNT = "intent_count";
     public static final int ACTION_SNOOZE = 9001;
     public static final int ACTION_LOG_DONE = 9002;
     public static final int ACTION_OPEN_SETTINGS = 9003;
@@ -146,6 +148,7 @@ public class Utils {
     public static final int STATUS_TASK_UNAUTH = 19704;
     public static final int STATUS_TASK_CANCELLED_OFFLINE = 19705;
     public static final int STATUS_TASK_OTHER_ERROR = 19706;
+    public static final int TASK_DELETED_SNACKBAR = 19707;
     
     public static final String SENDER_FETCH_TASKS = "senderFetchTasks";
     public static final String SENDER_FETCH_TEAMS = "senderFetchTeams";
@@ -153,6 +156,8 @@ public class Utils {
     public static final String SENDER_CREATE_TASK = "senderCreateTask";
     public static final String SENDER_EDIT_TASK = "senderEditTask";
     public static final String SENDER_DELETE_TASK = "senderDeleteTask";
+    public static final String SENDER_TASK_DETAILS_ACTIVITY = "senderTaskDetailsActivity";
+    public static final String SENDER_MAIN_ACTIVITY = "senderMainActivity";
     
     public static final int CHECK_TOKEN_STARTED = 19711;
     public static final int CHECK_TOKEN_SUCCESSFUL = 19712;
@@ -250,7 +255,7 @@ public class Utils {
     
     // TODO: 06/04/16 Remove/Edit this function 
     public static void setTokenValidity(Context c, boolean flag) {
-        SharedPreferences prefs = c.getSharedPreferences(Utils.USER_DETAILS_PREFS_FILENAME, 0);
+        SharedPreferences prefs = c.getSharedPreferences(Utils.USER_DETAILS_PREFS_FILENAME, Context.MODE_PRIVATE);
         SharedPreferences.Editor editor = prefs.edit();
         editor.putBoolean(Utils.VALID_TOKEN, flag);
         editor.apply();
@@ -258,12 +263,12 @@ public class Utils {
     
     @Nullable
     public static String getAccessToken(Context c) {
-        SharedPreferences prefs = c.getSharedPreferences(Utils.USER_DETAILS_PREFS_FILENAME, 0);
+        SharedPreferences prefs = c.getSharedPreferences(Utils.USER_DETAILS_PREFS_FILENAME, Context.MODE_PRIVATE);
         return prefs.getString(Utils.ACCESS_TOKEN, null);
     }
     
     public static void setAccessToken(Context c, String token) {
-        SharedPreferences prefs = c.getSharedPreferences(Utils.USER_DETAILS_PREFS_FILENAME, 0);
+        SharedPreferences prefs = c.getSharedPreferences(Utils.USER_DETAILS_PREFS_FILENAME, Context.MODE_PRIVATE);
         SharedPreferences.Editor editor = prefs.edit();
         editor.putString(Utils.ACCESS_TOKEN, token);
         editor.apply();
@@ -271,12 +276,12 @@ public class Utils {
     
     @Nullable
     public static String getRefreshToken(Context c) {
-        SharedPreferences prefs = c.getSharedPreferences(Utils.USER_DETAILS_PREFS_FILENAME, 0);
+        SharedPreferences prefs = c.getSharedPreferences(Utils.USER_DETAILS_PREFS_FILENAME, Context.MODE_PRIVATE);
         return prefs.getString("refreshToken", null);
     }
     
     public static void setRefreshToken(Context c, String token) {
-        SharedPreferences prefs = c.getSharedPreferences(Utils.USER_DETAILS_PREFS_FILENAME, 0);
+        SharedPreferences prefs = c.getSharedPreferences(Utils.USER_DETAILS_PREFS_FILENAME, Context.MODE_PRIVATE);
         SharedPreferences.Editor editor = prefs.edit();
         editor.putString("refreshToken", token);
         editor.apply();
@@ -290,19 +295,19 @@ public class Utils {
     }
     
     public static long getExpiryTime(Context c) {
-        SharedPreferences prefs = c.getSharedPreferences(Utils.USER_DETAILS_PREFS_FILENAME, 0);
+        SharedPreferences prefs = c.getSharedPreferences(Utils.USER_DETAILS_PREFS_FILENAME, Context.MODE_PRIVATE);
         return prefs.getLong("expires", -1);
     }
     
     public static void setExpiryTime(Context c, long time) {
-        SharedPreferences prefs = c.getSharedPreferences(Utils.USER_DETAILS_PREFS_FILENAME, 0);
+        SharedPreferences prefs = c.getSharedPreferences(Utils.USER_DETAILS_PREFS_FILENAME, Context.MODE_PRIVATE);
         SharedPreferences.Editor editor = prefs.edit();
         editor.putLong("expires", time);
         editor.apply();
     }
     
     public static void setUsername(Context c, String username) {
-        SharedPreferences prefs = c.getSharedPreferences(Utils.USER_DETAILS_PREFS_FILENAME, 0);
+        SharedPreferences prefs = c.getSharedPreferences(Utils.USER_DETAILS_PREFS_FILENAME, Context.MODE_PRIVATE);
         SharedPreferences.Editor editor = prefs.edit();
         editor.putString(Utils.USERNAME, username);
         editor.apply();
@@ -310,7 +315,7 @@ public class Utils {
     
     @Nullable
     public static String getUsername(Context c) {
-        SharedPreferences prefs = c.getSharedPreferences(Utils.USER_DETAILS_PREFS_FILENAME, 0);
+        SharedPreferences prefs = c.getSharedPreferences(Utils.USER_DETAILS_PREFS_FILENAME, Context.MODE_PRIVATE);
         return prefs.getString(Utils.USERNAME, null);
     }
     
@@ -329,7 +334,7 @@ public class Utils {
     
     public static void setTeams(Context c, String[] teams) {
         if (teams.length > 0) {
-            SharedPreferences prefs = c.getSharedPreferences(Utils.USER_DETAILS_PREFS_FILENAME, 0);
+            SharedPreferences prefs = c.getSharedPreferences(Utils.USER_DETAILS_PREFS_FILENAME, Context.MODE_PRIVATE);
             SharedPreferences.Editor editor = prefs.edit();
             editor.putString(Utils.TEAMS, new Gson().toJson(teams));
             editor.apply();
@@ -337,13 +342,13 @@ public class Utils {
     }
     
     public static String[] getTeams(Context c) {
-        SharedPreferences prefs = c.getSharedPreferences(Utils.USER_DETAILS_PREFS_FILENAME, 0);
+        SharedPreferences prefs = c.getSharedPreferences(Utils.USER_DETAILS_PREFS_FILENAME, Context.MODE_PRIVATE);
         return new Gson().fromJson(prefs.getString(Utils.TEAMS, "[]"), new TypeToken<String[]>() {
         }.getType());
     }
     
     public static int findTeam(Context c, String team) {
-        SharedPreferences prefs = c.getSharedPreferences(Utils.USER_DETAILS_PREFS_FILENAME, 0);
+        SharedPreferences prefs = c.getSharedPreferences(Utils.USER_DETAILS_PREFS_FILENAME, Context.MODE_PRIVATE);
         String[] teams = new Gson().fromJson(prefs.getString(Utils.TEAMS, "[]"), new TypeToken<String[]>() {
         }.getType());
         
@@ -351,32 +356,32 @@ public class Utils {
     }
     
     public static String[] getNewTaskActivityState(Context c) {
-        SharedPreferences prefs = c.getSharedPreferences(Utils.USER_DETAILS_PREFS_FILENAME, 0);
+        SharedPreferences prefs = c.getSharedPreferences(Utils.USER_DETAILS_PREFS_FILENAME, Context.MODE_PRIVATE);
         return new Gson().fromJson(prefs.getString(Utils.NEW_TASK_ACTIVITY_STATE, "[]"), new TypeToken<String[]>() {
         }.getType());
     }
     
     public static void setNewTaskActivityState(Context c, String[] state) {
-        SharedPreferences prefs = c.getSharedPreferences(Utils.USER_DETAILS_PREFS_FILENAME, 0);
+        SharedPreferences prefs = c.getSharedPreferences(Utils.USER_DETAILS_PREFS_FILENAME, Context.MODE_PRIVATE);
         SharedPreferences.Editor editor = prefs.edit();
         editor.putString(Utils.NEW_TASK_ACTIVITY_STATE, new Gson().toJson(state));
         editor.apply();
     }
     
     public static void clearNewTaskActivityState(Context c) {
-        SharedPreferences prefs = c.getSharedPreferences(Utils.USER_DETAILS_PREFS_FILENAME, 0);
+        SharedPreferences prefs = c.getSharedPreferences(Utils.USER_DETAILS_PREFS_FILENAME, Context.MODE_PRIVATE);
         SharedPreferences.Editor editor = prefs.edit();
         editor.remove(Utils.NEW_TASK_ACTIVITY_STATE);
         editor.apply();
     }
     
     public static int getLocalDoneIdCounter(Context c) {
-        SharedPreferences prefs = c.getSharedPreferences(Utils.USER_DETAILS_PREFS_FILENAME, 0);
+        SharedPreferences prefs = c.getSharedPreferences(Utils.USER_DETAILS_PREFS_FILENAME, Context.MODE_PRIVATE);
         return prefs.getInt(Utils.LOCAL_DONE_ID_COUNTER, Utils.MIN_LOCAL_DONE_ID);
     }
     
     public static void setLocalDoneIdCounter(Context c, int localDoneIdCounter) {
-        SharedPreferences prefs = c.getSharedPreferences(Utils.USER_DETAILS_PREFS_FILENAME, 0);
+        SharedPreferences prefs = c.getSharedPreferences(Utils.USER_DETAILS_PREFS_FILENAME, Context.MODE_PRIVATE);
         SharedPreferences.Editor editor = prefs.edit();
         editor.putInt(Utils.LOCAL_DONE_ID_COUNTER, localDoneIdCounter);
         editor.apply();
@@ -606,12 +611,11 @@ public class Utils {
     }
     
     public static void sendMessage(Context mContext, String sender, String message, int action, int fetchedTaskCount) {
-        //Log.v(LOG_TAG, sender + " :: " + message + " :: " + action + " :: " + fetchedTaskCount);
         Intent intent = new Intent(Utils.DONE_LOCAL_BROADCAST_LISTENER_INTENT);
         
         // You can also include some extra data.
         intent.putExtra("sender", sender);
-        intent.putExtra("count", fetchedTaskCount);
+        intent.putExtra(Utils.INTENT_COUNT, fetchedTaskCount);
         intent.putExtra("message", message);
         intent.putExtra("action", action);
         LocalBroadcastManager.getInstance(mContext.getApplicationContext()).sendBroadcast(intent);

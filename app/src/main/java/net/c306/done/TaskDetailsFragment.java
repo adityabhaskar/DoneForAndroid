@@ -11,6 +11,10 @@ import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.support.v4.content.ContextCompat;
 import android.text.Html;
+import android.text.Spannable;
+import android.text.SpannableString;
+import android.text.TextPaint;
+import android.text.style.URLSpan;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -19,8 +23,13 @@ import android.widget.TextView;
 import net.c306.done.db.DoneListContract;
 import net.c306.done.db.DoneListDbHelper;
 
+import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Date;
+import java.util.Locale;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 
 /**
@@ -36,8 +45,6 @@ public class TaskDetailsFragment extends Fragment {
     private final String LOG_TAG = Utils.LOG_TAG + getClass().getSimpleName();
     // TODO: Rename and change types of parameters
     private long mTaskId; // Used to fetch & display task details
-    private String mSearchFilter; // Used for previous, next swipes
-    private String mTeamFilter; // Used for previous, next swipes
     private OnFragmentInteractionListener mListener;
     
     public TaskDetailsFragment() {
@@ -49,16 +56,12 @@ public class TaskDetailsFragment extends Fragment {
      * this fragment using the provided parameters.
      *
      * @param taskId       Id of task to be displayed.
-     * @param searchFilter filter text to use when selecting tasks from database.
-     * @param teamFilter   team to use when selecting tasks from database.
      * @return A new instance of fragment TaskDetailsFragment.
      */
-    public static TaskDetailsFragment newInstance(long taskId, String searchFilter, String teamFilter) {
+    public static TaskDetailsFragment newInstance(long taskId) {
         TaskDetailsFragment fragment = new TaskDetailsFragment();
         Bundle args = new Bundle();
         args.putLong(Utils.TASK_DETAILS_TASK_ID, taskId);
-        args.putString(Utils.TASK_DETAILS_SEARCH_FILTER, searchFilter);
-        args.putString(Utils.TASK_DETAILS_TEAM_FILTER, teamFilter);
         fragment.setArguments(args);
         return fragment;
     }
@@ -68,8 +71,6 @@ public class TaskDetailsFragment extends Fragment {
         super.onCreate(savedInstanceState);
         if (getArguments() != null) {
             mTaskId = getArguments().getLong(Utils.TASK_DETAILS_TASK_ID);
-            mSearchFilter = getArguments().getString(Utils.TASK_DETAILS_SEARCH_FILTER);
-            mTeamFilter = getArguments().getString(Utils.TASK_DETAILS_TEAM_FILTER);
         }
         
     }
@@ -148,25 +149,46 @@ public class TaskDetailsFragment extends Fragment {
         // Format text with HTML
         TextView taskTextTextView = (TextView) view.findViewById(R.id.task_text);
         String taskText = taskDetails.getString(DoneListContract.DoneEntry.COLUMN_NAME_MARKEDUP_TEXT);
-        if (taskTextTextView != null && taskText != null)
-            taskTextTextView.setText(
-                    Html.fromHtml(taskText)
-            );
+        if (taskTextTextView != null && taskText != null) {
+            Spannable rawTextWithUnderlines = (Spannable) Html.fromHtml(taskText);
+            SpannableString formattedText = new SpannableString(formatForTextView(rawTextWithUnderlines));
         
-        // Format date for locale
-        String[] dateParts = taskDetails.getString(DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE).split("\\-");
+            taskTextTextView.setText(formattedText);
+        }
         
-        Calendar c = Calendar.getInstance();
-        c.set(
-                Integer.parseInt(dateParts[0]),
-                Integer.parseInt(dateParts[1]) - 1,
-                Integer.parseInt(dateParts[2])
-        );
         
         // Set task date
         TextView taskDate = (TextView) view.findViewById(R.id.task_done_date);
-        if (taskDate != null)
-            taskDate.setText(SimpleDateFormat.getDateInstance().format(c.getTime()));
+        if (taskDate != null) {
+            // Format date for locale
+            String dateString = taskDetails.getString(DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE);
+            String[] dateParts = dateString.split("\\-");
+        
+            SimpleDateFormat idtDateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.UK);
+            SimpleDateFormat userDateFormat = (SimpleDateFormat) DateFormat.getDateInstance(DateFormat.DEFAULT);
+        
+            Calendar c = Calendar.getInstance();
+            c.setTime(new Date());
+            c.add(Calendar.DATE, -1);
+            String yesterday = idtDateFormat.format(c.getTime());
+        
+            String today = idtDateFormat.format(new Date());
+        
+            if (dateString.equals(yesterday))
+                dateString = "Yesterday";
+            else if (dateString.equals(today))
+                dateString = "Today";
+            else {
+                c.set(
+                        Integer.parseInt(dateParts[0]),
+                        Integer.parseInt(dateParts[1]) - 1,
+                        Integer.parseInt(dateParts[2])
+                );
+                dateString = userDateFormat.format(c.getTime());
+            }
+        
+            taskDate.setText(dateString);
+        }
         
         // Set task owner
         TextView taskOwner = (TextView) view.findViewById(R.id.task_owner);
@@ -264,7 +286,25 @@ public class TaskDetailsFragment extends Fragment {
     }
     
     public void showByTeam(View view) {
-        // TODO: 05/05/16 return to main, with team name in intent 
+        // TODO: 05/05/16 return to MainActivity, with team name in intent 
+    }
+    
+    private Spannable formatForTextView(Spannable p_Text) {
+        URLSpan[] spans = p_Text.getSpans(0, p_Text.length(), URLSpan.class);
+        Pattern hashTagURLPattern = Pattern.compile(".*\\/\\#tags\\/.*", Pattern.CASE_INSENSITIVE);
+        Matcher hashtagMatcher = null;
+        for (URLSpan span : spans) {
+            hashtagMatcher = hashTagURLPattern.matcher(span.getURL());
+            // Only format if it's a hashtag link
+            if (hashtagMatcher.find()) {
+                int start = p_Text.getSpanStart(span);
+                int end = p_Text.getSpanEnd(span);
+                p_Text.removeSpan(span);
+                span = new URLSpanNoUnderline(span.getURL());
+                p_Text.setSpan(span, start, end, 0);
+            }
+        }
+        return p_Text;
     }
     
     /**
@@ -281,4 +321,19 @@ public class TaskDetailsFragment extends Fragment {
         // TODO: Update argument type and name
         void onFragmentInteraction(Uri uri);
     }
+    
+    private class URLSpanNoUnderline extends URLSpan {
+        public URLSpanNoUnderline(String url) {
+            super(url);
+        }
+        
+        @Override
+        public void updateDrawState(TextPaint ds) {
+            super.updateDrawState(ds);
+            ds.setUnderlineText(false);
+            //ds.setFakeBoldText(true);
+            ds.setColor(ContextCompat.getColor(getContext(), R.color.link_colour));
+        }
+    }
+    
 }

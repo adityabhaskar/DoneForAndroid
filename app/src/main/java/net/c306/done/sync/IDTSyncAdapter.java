@@ -431,9 +431,12 @@ public class IDTSyncAdapter extends AbstractThreadedSyncAdapter {
             * To be used only till we can get all updates from server, including deletes
             * 
             * */
-            // Delete all dones from local, to be replaced by freshly retrieved ones 
-            // (shouldn't have gotten this far if there were unposted dones)
-            getContext().getContentResolver().delete(DoneListContract.DoneEntry.CONTENT_URI, null, null);
+            // Delete non-local dones from local database, to be replaced by freshly retrieved ones 
+            // There could be some local non-posted dones that were typed while sync was on
+            getContext().getContentResolver().delete(
+                    DoneListContract.DoneEntry.CONTENT_URI, // Table uri
+                    DoneListContract.DoneEntry.COLUMN_NAME_IS_LOCAL + " IS 'FALSE'", // Selection
+                    null); // Selection args
             
             // Add newly fetched entries to the server
             getContext().getContentResolver().bulkInsert(DoneListContract.DoneEntry.CONTENT_URI, cvArray);

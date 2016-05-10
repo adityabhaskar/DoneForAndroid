@@ -8,7 +8,7 @@
     android:paddingLeft="@dimen/single_margin"
     android:paddingRight="@dimen/single_margin"
     android:paddingTop="@dimen/single_margin"
-    tools:context=".TaskDetailsFragment">
+    tools:context="net.c306.done.TaskDetailsFragment">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -38,17 +38,17 @@
 
     </LinearLayout>
 
-
     <View style="@style/divider"/>
 
     <TextView
         android:id="@+id/task_text"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_marginTop="@dimen/single_margin"
+        android:layout_marginTop="@dimen/half_margin"
         android:layout_weight="1"
         android:lineSpacingMultiplier="1.4"
         android:text="@string/hello_blank_fragment"
+        android:textColor="@color/primary_text"
         android:textSize="18sp"/>
 
     <View style="@style/divider"/>
@@ -96,4 +96,3 @@
     </LinearLayout>
 
 </LinearLayout>
-

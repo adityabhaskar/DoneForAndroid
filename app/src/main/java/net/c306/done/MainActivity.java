@@ -77,11 +77,11 @@ public class MainActivity
     
     private ActionBarDrawerToggle mToggle;
     private String mSearchFilter = null;
+    private String mTeamFilter = null;
     private Snackbar mSnackbar;
     private Tracker mTracker;
     private String mSelectedTeamName;
     
-    private String mTeamFilter = null;
     private ListView mListView;
     private DoneListAdapter mDoneListAdapter;
     
@@ -131,7 +131,7 @@ public class MainActivity
             
             switch (action) {
                 case Utils.STATUS_TASK_UNAUTH:
-                case Utils.CHECK_TOKEN_FAILED:
+                case Utils.CHECK_TOKEN_FAILED: {
                     // Unauthorised, i.e. token issues, show snackbar
     
                     Log.w(LOG_TAG, "Broadcast Receiver - Unauthorised! " + message);
@@ -157,25 +157,27 @@ public class MainActivity
                             .setActionTextColor(ContextCompat.getColor(getApplicationContext(), R.color.link_colour))
                             .show();
                     break;
+                }
     
-                case Utils.STATUS_TASK_SUCCESSFUL:
+                case Utils.STATUS_TASK_SUCCESSFUL: {
                     if (sender.equals(Utils.SENDER_CREATE_TASK)) {
                         // PostDone successful, show snackbar
-                        int count = intent.getIntExtra("count", -1);
+                        int count = intent.getIntExtra(Utils.INTENT_COUNT, -1);
     
                         if (count > 0) {
                             if (mSnackbar != null && mSnackbar.isShown())
                                 mSnackbar.dismiss();
-        
-                            mSnackbar = Snackbar.make(findViewById(R.id.fab), (count > 1 ? count + " tasks " : "Task ") + getString(R.string.done_sent_toast_message), Snackbar.LENGTH_LONG);
+    
+                            mSnackbar = Snackbar.make(findViewById(R.id.fab), (count > 1 ? count + " " + getString(R.string.tasks_string) : getString(R.string.task_string)) + " " + getString(R.string.done_sent_toast_message), Snackbar.LENGTH_LONG);
                             mSnackbar.setAction("Action", null).show();
                         }
                     }
                     break;
+                }
     
-                case Utils.STATUS_TASK_STARTED:
+                case Utils.STATUS_TASK_STARTED: {
                     if (sender.equals(Utils.SENDER_FETCH_TASKS)) {
-                        
+    
                         SwipeRefreshLayout swp = (SwipeRefreshLayout) findViewById(R.id.swipe_refresh_layout);
     
                         if (swp != null && !swp.isRefreshing()) {
@@ -184,12 +186,29 @@ public class MainActivity
                         }
                     }
                     break;
+                }
     
-                case Utils.STATUS_TASK_CANCELLED_OFFLINE:
+                case Utils.STATUS_TASK_CANCELLED_OFFLINE: {
                     if (sender.equals(Utils.SENDER_FETCH_TASKS)) {
                         Toast.makeText(getApplicationContext(), R.string.offline_toast_message, Toast.LENGTH_SHORT)
                                 .show();
                     }
+                    break;
+                }
+    
+                case Utils.TASK_DELETED_SNACKBAR: {
+                    if (mSnackbar != null && mSnackbar.isShown())
+                        mSnackbar.dismiss();
+        
+                    int deletedCount = intent.getIntExtra(Utils.INTENT_COUNT, -1);
+                    Log.v(LOG_TAG, "deletedcount: " + deletedCount);
+        
+                    if (deletedCount > 0) {
+                        mSnackbar = Snackbar.make(findViewById(R.id.fab), (deletedCount > 1 ? deletedCount + " " + getString(R.string.tasks_string) : getString(R.string.task_string)) + " " + getString(R.string.done_deleted_toast_message), Snackbar.LENGTH_SHORT);
+                        mSnackbar.setAction("Action", null).show();
+                    }
+                    break;
+                }
             }
     
             //Log.v(LOG_TAG, "Sender: " + sender + "\nAction: " + action + "\nMessage: " + message);
@@ -295,7 +314,13 @@ public class MainActivity
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         if (drawer != null && drawer.isDrawerOpen(GravityCompat.START)) {
             drawer.closeDrawer(GravityCompat.START);
+    
+        } else if (mTeamFilter != null) {
+            // First 'back' goes back to showing all tasks
+            showTeam(null, false);
+            
         } else {
+            // Second 'back' closes activity
             super.onBackPressed();
         }
     }
@@ -345,6 +370,25 @@ public class MainActivity
         }
     }
     
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        // Duplicated from onResume (since it's called later, which means this broadcast isn't fired
+        LocalBroadcastManager.getInstance(this).registerReceiver(mMessageReceiver,
+                new IntentFilter(Utils.DONE_LOCAL_BROADCAST_LISTENER_INTENT));
+        
+        Log.v(LOG_TAG, "Got message from activity with result: " + resultCode);
+        
+        if (resultCode == Utils.RESULT_TASK_DELETED && data != null) {
+            int deletedCount = data.getIntExtra(Utils.INTENT_COUNT, -1);
+            Utils.sendMessage(
+                    MainActivity.this,
+                    Utils.SENDER_TASK_DETAILS_ACTIVITY,
+                    "Task deleted, or marked for deletion successfully",
+                    Utils.TASK_DELETED_SNACKBAR,
+                    deletedCount);
+        } else
+            super.onActivityResult(requestCode, resultCode, data);
+    }
     
     /**
      * My methods
@@ -640,13 +684,13 @@ public class MainActivity
         
         // Delete selected ids from database, then from server, finishing with updating tasks from server on success
         int deletedCount = new DoneActions(getApplicationContext()).delete(ids);
-        
-        if (mSnackbar != null && mSnackbar.isShown())
-            mSnackbar.dismiss();
-        
-        mSnackbar = Snackbar.make(findViewById(R.id.fab), (deletedCount > 1 ? deletedCount + " tasks " : "Task ") + getString(R.string.done_deleted_toast_message), Snackbar.LENGTH_SHORT);
-        mSnackbar.setAction("Action", null).show();
-        
+    
+        Utils.sendMessage(
+                MainActivity.this,
+                Utils.SENDER_MAIN_ACTIVITY,
+                "Task deleted, or marked for deletion successfully",
+                Utils.TASK_DELETED_SNACKBAR,
+                deletedCount);
     }
     
     /**
@@ -885,12 +929,11 @@ public class MainActivity
     
                 mPosition = position;
     
-                // TODO: 29/04/16 Start fragment with full text, edit & delete buttons, author name, and likes & comment counts
                 Intent taskDetailsActivity = new Intent(MainActivity.this, TaskDetailsActivity.class);
                 taskDetailsActivity.putExtra(Utils.TASK_DETAILS_TASK_ID, rowId);
                 taskDetailsActivity.putExtra(Utils.TASK_DETAILS_SEARCH_FILTER, mSearchFilter);
                 taskDetailsActivity.putExtra(Utils.TASK_DETAILS_TEAM_FILTER, mTeamFilter);
-                startActivity(taskDetailsActivity);
+                startActivityForResult(taskDetailsActivity, Utils.MAIN_ACTIVITY_IDENTIFIER);
                 
                 break;
             }
@@ -958,14 +1001,14 @@ public class MainActivity
             case R.id.menu_delete_done:
                 // Show alert message to confirm delete
                 new AlertDialog.Builder(this)
-                        .setMessage("Are you sure you want to delete these tasks?")
-                        .setPositiveButton("Delete", new DialogInterface.OnClickListener() {
+                        .setMessage(getString(R.string.delete_tasks_message))
+                        .setPositiveButton(getString(R.string.delete_string), new DialogInterface.OnClickListener() {
                             @Override
                             public void onClick(DialogInterface dialog, int which) {
                                 deleteSelectedItems(selectedTasks);
                             }
                         })
-                        .setNegativeButton("Cancel", null)
+                        .setNegativeButton(getString(R.string.cancel_string), null)
                         .create()
                         .show();
                 

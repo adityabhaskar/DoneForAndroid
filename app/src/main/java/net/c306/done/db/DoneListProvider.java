@@ -270,7 +270,7 @@ public class DoneListProvider extends ContentProvider {
             // "dones/*/*"
             case DONES: {
                 long _id = db.insert(DoneListContract.DoneEntry.TABLE_NAME, null, values);
-                if (_id > 0)
+                if (_id > -1) // based on http://stackoverflow.com/a/17628179/1078008
                     returnUri = DoneListContract.DoneEntry.buildDoneListWithIdUri(_id);
                 else
                     throw new android.database.SQLException("Failed to insert row into " + uri);
@@ -279,7 +279,7 @@ public class DoneListProvider extends ContentProvider {
         
             case TEAMS: {
                 long _id = db.insert(DoneListContract.TeamEntry.TABLE_NAME, null, values);
-                if (_id > 0)
+                if (_id > -1) // based on http://stackoverflow.com/a/17628179/1078008
                     returnUri = DoneListContract.TeamEntry.buildTeamUri(_id);
                 else
                     throw new android.database.SQLException("Failed to insert row into " + uri);

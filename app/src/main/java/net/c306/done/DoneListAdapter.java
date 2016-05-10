@@ -122,8 +122,8 @@ public class DoneListAdapter extends ResourceCursorAdapter{
         public void updateDrawState(TextPaint ds) {
             super.updateDrawState(ds);
             ds.setUnderlineText(false);
-            ds.setFakeBoldText(true);
-            ds.setColor(ContextCompat.getColor(mContext, R.color.link_colour));
+            //ds.setFakeBoldText(true);
+            ds.setColor(ContextCompat.getColor(mContext, R.color.secondary_text));
         }
     }
     
