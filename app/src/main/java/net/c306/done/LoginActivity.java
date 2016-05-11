@@ -277,7 +277,6 @@ public class LoginActivity extends AccountAuthenticatorActivity {
                                 //Store both expires in and access token in shared preferences
                                 SharedPreferences preferences = LoginActivity.this.getSharedPreferences(Utils.USER_DETAILS_PREFS_FILENAME, 0);
                                 SharedPreferences.Editor editor = preferences.edit();
-                                // TODO: 25/04/16 Replace strings with Utils constants 
                                 editor.putLong(Utils.EXPIRES_TOKEN, expireDate);
                                 editor.putString(Utils.ACCESS_TOKEN, accessToken);
                                 editor.putString(Utils.REFRESH_TOKEN, refreshToken);

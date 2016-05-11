@@ -48,16 +48,17 @@ public class DoneListAdapter extends ResourceCursorAdapter{
     * */
     @Override
     public void bindView(View view, Context context, Cursor cursor) {
+    
         // Set team colour
         View teamSpace = view.findViewById(R.id.team_color_patch);
-        //int teamColor = (int) Math.round(Math.random() * (colorArray.length - 1));
+    
         int teamColor = Utils.findTeam(context, cursor.getString(
                 cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_TEAM)
         ));
     
-        // Set colour based on team of the task
         teamSpace.setBackgroundResource(Utils.colorArray[teamColor == -1 ? 0 : teamColor]);
-        
+    
+    
         // Set text
         TextView rawTextTextView = (TextView) view.findViewById(R.id.text_view_task_text);
         
@@ -69,8 +70,8 @@ public class DoneListAdapter extends ResourceCursorAdapter{
             rawTextTextView.setTextColor(ContextCompat.getColor(mContext, R.color.secondary_text));
         else
             rawTextTextView.setTextColor(ContextCompat.getColor(mContext, R.color.primary_text));
-        
-        
+    
+    
         // Set date
         TextView dateTextView = (TextView) view.findViewById(R.id.item_date);
         String doneDate = cursor.getString(cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE));

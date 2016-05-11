@@ -3,8 +3,8 @@ package net.c306.done;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.database.Cursor;
-import android.net.Uri;
 import android.os.Bundle;
+import android.support.design.widget.Snackbar;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentPagerAdapter;
@@ -16,14 +16,17 @@ import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.ViewGroup;
+
+import com.google.android.gms.analytics.Tracker;
 
 import net.c306.done.db.DoneListContract;
 import net.c306.done.idonethis.DoneActions;
 
 public class TaskDetailsActivity 
         extends AppCompatActivity
-        implements TaskDetailsFragment.OnFragmentInteractionListener {
+        implements
+        TaskDetailsFragment.OnFragmentInteractionListener,
+        ViewPager.OnPageChangeListener {
     
     private final String LOG_TAG = Utils.LOG_TAG + getClass().getSimpleName();
     private final String CURRENT_TASK_INDEX_KEY = "currentTaskIndex";
@@ -31,9 +34,13 @@ public class TaskDetailsActivity
     private long mId;
     private String mTeamFilter = null;
     private String mSearchFilter = null;
+    private boolean mIsOwner = false;
     
     private long[] mTaskIdList;
     private int mCurrentTaskIndex = -1;
+    
+    private Snackbar mSnackbar;
+    private Tracker mTracker;
     
     /**
      * The {@link android.support.v4.view.PagerAdapter} that will provide
@@ -87,7 +94,7 @@ public class TaskDetailsActivity
         mSectionsPagerAdapter = new SectionsPagerAdapter(getSupportFragmentManager());
     
         // Set up the ViewPager with the sections adapter.
-        mViewPager = (ViewPager) findViewById(R.id.container);
+        mViewPager = (ViewPager) findViewById(R.id.view_pager_container);
         if (mViewPager != null) {
             mViewPager.setAdapter(mSectionsPagerAdapter);
         
@@ -96,7 +103,30 @@ public class TaskDetailsActivity
                 mViewPager.setCurrentItem(mCurrentTaskIndex);
         
             mViewPager.setClipChildren(false);
+    
         }
+    
+        // Analytics Obtain the shared Tracker instance.
+        AnalyticsApplication application = (AnalyticsApplication) getApplication();
+        mTracker = application.getDefaultTracker();
+    
+        // Log screen open in Analytics
+        Utils.sendScreen(mTracker, getClass().getSimpleName());
+    }
+    
+    @Override
+    protected void onResume() {
+        super.onResume();
+        
+        if (mViewPager != null)
+            mViewPager.addOnPageChangeListener(this);
+    }
+    
+    @Override
+    protected void onPause() {
+        super.onPause();
+        if (mViewPager != null)
+            mViewPager.removeOnPageChangeListener(this);
     }
     
     /**
@@ -186,6 +216,13 @@ public class TaskDetailsActivity
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.menu_task_details, menu);
+    
+        // If user not owner, don't show edit & delete actions 
+        if (!mIsOwner) {
+            menu.findItem(R.id.action_edit).setVisible(false);
+            menu.findItem(R.id.action_delete).setVisible(false);
+        }
+        
         return true;
     }
     
@@ -205,7 +242,12 @@ public class TaskDetailsActivity
             }
             
             case R.id.action_edit: {
-                // TODO: 09/05/16 get current activity id, and start edit activity for that id 
+                Intent editDoneIntent = new Intent(TaskDetailsActivity.this, NewDoneActivity.class);
+                editDoneIntent.putExtra(DoneListContract.DoneEntry.COLUMN_NAME_ID, mTaskIdList[mCurrentTaskIndex]);
+    
+                // Start edit activity
+                startActivityForResult(editDoneIntent, Utils.NEW_DONE_ACTIVITY_IDENTIFIER);
+                
                 return true;
             }
             
@@ -216,14 +258,13 @@ public class TaskDetailsActivity
                         .setPositiveButton("Delete", new DialogInterface.OnClickListener() {
                             @Override
                             public void onClick(DialogInterface dialog, int which) {
-                                // TODO: 10/05/16 Analytics tracking 
-                                //Utils.sendEvent(mTracker, "Action", "DeleteDones", String.valueOf(ids.length));
-                                
                                 // Delete selected ids from database, then from server, finishing with updating tasks from server on success
                                 int deletedCount = new DoneActions(getApplicationContext()).delete(new long[]{mTaskIdList[mCurrentTaskIndex]});
                                 
                                 Log.v(LOG_TAG, deletedCount + " task deleted. \n Id: " + mTaskIdList[mCurrentTaskIndex]);
-                                
+    
+                                Utils.sendEvent(mTracker, "Action", "Task Deleted - Details", String.valueOf(1));
+    
                                 Intent dataIntent = new Intent();
                                 dataIntent.putExtra(Utils.INTENT_COUNT, deletedCount);
                                 setResult(Utils.RESULT_TASK_DELETED, dataIntent);
@@ -243,8 +284,60 @@ public class TaskDetailsActivity
     }
     
     @Override
-    public void onFragmentInteraction(Uri uri) {
-        // nothing to do yet
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        // If task edited successfully
+        if (requestCode == Utils.NEW_DONE_ACTIVITY_IDENTIFIER && resultCode == RESULT_OK) {
+            Utils.sendEvent(mTracker, "Action", "Task Edited - Details");
+        
+            // Show snackbar
+            if (mSnackbar != null && mSnackbar.isShown())
+                mSnackbar.dismiss();
+        
+            mSnackbar = Snackbar.make(findViewById(R.id.view_pager_container),
+                    R.string.edited_task_saved_toast_message,
+                    Snackbar.LENGTH_SHORT);
+            mSnackbar.setAction("Action", null).show();
+        
+            // Update view
+            mSectionsPagerAdapter.notifyDataSetChanged();
+        
+            // Get currently visible fragment (which was edited, and ask it to refresh its contents)
+            TaskDetailsFragment taskDetailsFragment = mSectionsPagerAdapter.getFragment(mCurrentTaskIndex);
+            if (taskDetailsFragment != null)
+                taskDetailsFragment.refreshContent();
+        
+        }
+        super.onActivityResult(requestCode, resultCode, data);
+    }
+    
+    @Override
+    public void setOwnerMenu(boolean isOwner) {
+        //mIsOwner = isOwner;
+        //invalidateOptionsMenu();
+    }
+    
+    @Override
+    public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
+        
+    }
+    
+    @Override
+    public void onPageSelected(int position) {
+        mCurrentTaskIndex = position;
+        
+        // Get currently visible fragment, and check it's isOwner
+        TaskDetailsFragment taskDetailsFragment = mSectionsPagerAdapter.getFragment(mCurrentTaskIndex);
+        if (taskDetailsFragment != null) {
+            mIsOwner = taskDetailsFragment.checkOwner();
+            invalidateOptionsMenu();
+        }
+        
+        Log.v(LOG_TAG, "Page in viewpager: " + position);
+    }
+    
+    @Override
+    public void onPageScrollStateChanged(int state) {
+        
     }
     
     /**
@@ -258,15 +351,6 @@ public class TaskDetailsActivity
         }
         
         @Override
-        public void setPrimaryItem(ViewGroup container, int position, Object object) {
-            // Set the primary visible task as current task
-            // Can't do this in getItem since it fetches multiple items - previous and next too - 
-            // to maintain speed of transitions
-            mCurrentTaskIndex = position;
-            super.setPrimaryItem(container, position, object);
-        }
-        
-        @Override
         public Fragment getItem(int position) {
             // getItem is called to instantiate the fragment for the given page.
             // Return a PlaceholderFragment (defined as a static inner class below).
@@ -276,15 +360,21 @@ public class TaskDetailsActivity
             
             return TaskDetailsFragment.newInstance(mTaskIdList[position]);
         }
+    
+    
+        public TaskDetailsFragment getFragment(int index) {
+            /**
+             * Fragments are cached in Adapter, so instantiateItem will return 
+             * the cached one (if any) or a new instance if necessary. 
+             */
         
+            return (TaskDetailsFragment) instantiateItem(mViewPager, index);
+        }
+    
         @Override
         public int getCount() {
             return mTaskIdList.length;
         }
         
-        @Override
-        public CharSequence getPageTitle(int position) {
-            return getString(R.string.app_name);
-        }
     }
 }

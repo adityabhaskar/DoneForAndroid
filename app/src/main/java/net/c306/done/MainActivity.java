@@ -41,16 +41,11 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.analytics.Tracker;
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
 
 import net.c306.done.db.DoneListContract;
 import net.c306.done.idonethis.DoneActions;
 import net.c306.done.sync.IDTAccountManager;
 import net.c306.done.sync.IDTSyncAdapter;
-
-import java.util.ArrayList;
-import java.util.List;
 
 // TODO: 20/02/16 Group dones under date headers in listView
 public class MainActivity
@@ -68,15 +63,18 @@ public class MainActivity
     
     private static final String SELECTED_KEY = "selected_position";
     private static final String NAV_SELECTED_KEY = "selected_nav_position";
-    private static final String NAV_SELECTED_TEAM = "selected_nav_team";
+    private static final String NAV_SELECTED_TEAM_KEY = "selected_nav_team";
+    private static final String NAV_SELECTED_TEAM_NAME_KEY = "selected_nav_team_name";
+    private static final String SEARCH_STRING_KEY = "search_string";
     
-    private static final int DONE_LIST_LOADER = 0;
-    private static final int NAV_LIST_LOADER = 1;
+    private static final int TASK_LIST_LOADER = 0;
+    private static final int TEAM_LIST_LOADER = 1;
     
     private final String LOG_TAG = Utils.LOG_TAG + this.getClass().getSimpleName();
     
     private ActionBarDrawerToggle mToggle;
     private String mSearchFilter = null;
+    private String mRestoredSearchFilter = null;
     private String mTeamFilter = null;
     private Snackbar mSnackbar;
     private Tracker mTracker;
@@ -242,11 +240,21 @@ public class MainActivity
         
             if (savedInstanceState.containsKey(NAV_SELECTED_KEY))
                 mNavPosition = savedInstanceState.getInt(NAV_SELECTED_KEY);
-        
-            if (savedInstanceState.containsKey(NAV_SELECTED_TEAM))
-                mTeamFilter = savedInstanceState.getString(NAV_SELECTED_TEAM);
-        }
     
+            if (savedInstanceState.containsKey(NAV_SELECTED_TEAM_KEY)) {
+                mTeamFilter = savedInstanceState.getString(NAV_SELECTED_TEAM_KEY);
+        
+                if (savedInstanceState.containsKey(NAV_SELECTED_TEAM_NAME_KEY)) {
+                    mSelectedTeamName = savedInstanceState.getString(NAV_SELECTED_TEAM_NAME_KEY);
+                    setTitle(mSelectedTeamName);
+                }
+        
+            }
+    
+            if (savedInstanceState.containsKey(SEARCH_STRING_KEY))
+                mRestoredSearchFilter = savedInstanceState.getString(SEARCH_STRING_KEY);
+        }
+        
         // Setup Nav Bar
         setupNavBar();
     
@@ -345,8 +353,15 @@ public class MainActivity
         if (searchItem != null) {
             SearchView searchView =
                     (SearchView) MenuItemCompat.getActionView(searchItem);
-            if (searchView != null)
+            if (searchView != null) {
                 searchView.setOnQueryTextListener(this);
+                if (mRestoredSearchFilter != null && !mRestoredSearchFilter.isEmpty()) {
+                    searchItem.expandActionView();
+                    searchView.setQuery(mRestoredSearchFilter, true);
+                    mRestoredSearchFilter = null;
+                    searchView.clearFocus();
+                }
+            }
     
             MenuItemCompat.setOnActionExpandListener(searchItem, MainActivity.this);
         }
@@ -501,8 +516,8 @@ public class MainActivity
         mNavListView = (ListView) findViewById(R.id.nav_drawer_teams_listview);
         if (mNavListView != null)
             mNavListView.setAdapter(mNavListAdapter);
-        
-        getLoaderManager().initLoader(NAV_LIST_LOADER, null, this);
+    
+        getLoaderManager().initLoader(TEAM_LIST_LOADER, null, this);
     }
     
     private void setupTasksListView() {
@@ -513,9 +528,9 @@ public class MainActivity
         mListView = (ListView) findViewById(R.id.dones_list_view);
         if (mListView != null)
             mListView.setAdapter(mDoneListAdapter);
-        
-        // Initialize the Loader with id DONE_LIST_LOADER and callbacks 'this'.
-        getLoaderManager().initLoader(DONE_LIST_LOADER, null, this);
+    
+        // Initialize the Loader with id TASK_LIST_LOADER and callbacks 'this'.
+        getLoaderManager().initLoader(TASK_LIST_LOADER, null, this);
         
         // Set colours for swipe-to-refresh rotator
         SwipeRefreshLayout swp = (SwipeRefreshLayout) findViewById(R.id.swipe_refresh_layout);
@@ -640,70 +655,12 @@ public class MainActivity
      * @param id row id of selected task in listView
      */
     private void editSelectedItems(long id) {
-        
-        // Fetch done details from database
-        Cursor cursor = getContentResolver().query(
-                DoneListContract.DoneEntry.CONTENT_URI,                         // URI
-                new String[]{                                                   // Projection
-                        DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT,
-                        DoneListContract.DoneEntry.COLUMN_NAME_TEAM,
-                        DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE,
-                        DoneListContract.DoneEntry.COLUMN_NAME_EDITED_FIELDS
-                },
-                DoneListContract.DoneEntry.COLUMN_NAME_ID + " IS ? AND " +      // Selection
-                        DoneListContract.DoneEntry.COLUMN_NAME_OWNER + " IS ?",
-                new String[]{String.valueOf(id), Utils.getUsername(this)},      // Selection Args
-                null                                                            // Sort Order
-        );
-        
-        if (cursor != null) {
-            if (cursor.getCount() == 0) {
-                // No such task, or user not owner, so not allowed.
-                Toast.makeText(
-                        this,
-                        "Not allowed - only task creater can edit tasks.",
-                        Toast.LENGTH_LONG)
-                        .show();
-            } else {
-                
-                Intent editDoneIntent = new Intent(MainActivity.this, NewDoneActivity.class);
-                cursor.moveToNext();
-                
-                // Add details to bundle
-                editDoneIntent.putExtra(DoneListContract.DoneEntry.COLUMN_NAME_ID, id);
-                editDoneIntent.putExtra(
-                        DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT,
-                        cursor.getString(cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT))
-                );
-                editDoneIntent.putExtra(
-                        DoneListContract.DoneEntry.COLUMN_NAME_TEAM,
-                        cursor.getString(cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_TEAM))
-                );
-                editDoneIntent.putExtra(
-                        DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE,
-                        cursor.getString(cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE))
-                );
-                
-                String editedFieldsString = cursor.getString(cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_EDITED_FIELDS));
-                List<String> editedFields;
-                
-                if (editedFieldsString != null && !editedFieldsString.equals("")) {
-                    editedFields = new Gson().fromJson(editedFieldsString, new TypeToken<ArrayList<String>>() {
-                    }.getType());
-                } else {
-                    editedFields = new ArrayList<>();
-                }
-                
-                editDoneIntent.putStringArrayListExtra(
-                        DoneListContract.DoneEntry.COLUMN_NAME_EDITED_FIELDS,
-                        (ArrayList<String>) editedFields
-                );
-                
-                // Start edit activity
-                startActivityForResult(editDoneIntent, Utils.NEW_DONE_ACTIVITY_IDENTIFIER);
-            }
-            cursor.close();
-        }
+    
+        Intent editDoneIntent = new Intent(MainActivity.this, NewDoneActivity.class);
+        editDoneIntent.putExtra(DoneListContract.DoneEntry.COLUMN_NAME_ID, id);
+    
+        // Start edit activity
+        startActivityForResult(editDoneIntent, Utils.NEW_DONE_ACTIVITY_IDENTIFIER);
     }
     
     private void deleteSelectedItems(long[] ids) {
@@ -736,8 +693,8 @@ public class MainActivity
         // fragment only uses one loader, so we don't care about checking the id.
     
         switch (id) {
-        
-            case DONE_LIST_LOADER: {
+    
+            case TASK_LIST_LOADER: {
                 
                 // Sort order:  Descending, by date.
                 String sortOrder = DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE + " DESC, " +
@@ -757,6 +714,7 @@ public class MainActivity
                         //DoneListContract.DoneEntry.COLUMN_NAME_TEAM_SHORT_NAME,
                         DoneListContract.DoneEntry.COLUMN_NAME_TEAM,
                         DoneListContract.DoneEntry.COLUMN_NAME_IS_LOCAL,
+                        DoneListContract.DoneEntry.COLUMN_NAME_OWNER,
                         DoneListContract.DoneEntry.COLUMN_NAME_UPDATED,
                         DoneListContract.DoneEntry.COLUMN_NAME_EDITED_FIELDS
                 };
@@ -790,8 +748,8 @@ public class MainActivity
                         null,
                         sortOrder);
             }
-        
-            case NAV_LIST_LOADER: {
+    
+            case TEAM_LIST_LOADER: {
                 
                 Uri teamUri = DoneListContract.TeamEntry.CONTENT_URI;
             
@@ -820,8 +778,8 @@ public class MainActivity
     @Override
     public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
         switch (loader.getId()) {
-        
-            case DONE_LIST_LOADER: {
+    
+            case TASK_LIST_LOADER: {
                 mDoneListAdapter.swapCursor(data);
             
                 if (mPosition != ListView.INVALID_POSITION)
@@ -829,8 +787,8 @@ public class MainActivity
             
                 break;
             }
-        
-            case NAV_LIST_LOADER: {
+    
+            case TEAM_LIST_LOADER: {
                 mNavListAdapter.swapCursor(data);
             
                 if (mNavPosition != ListView.INVALID_POSITION)
@@ -849,13 +807,13 @@ public class MainActivity
     @Override
     public void onLoaderReset(Loader<Cursor> loader) {
         switch (loader.getId()) {
-        
-            case DONE_LIST_LOADER: {
+    
+            case TASK_LIST_LOADER: {
                 mDoneListAdapter.swapCursor(null);
                 break;
             }
-        
-            case NAV_LIST_LOADER: {
+    
+            case TEAM_LIST_LOADER: {
                 mNavListAdapter.swapCursor(null);
                 break;
             }
@@ -924,10 +882,20 @@ public class MainActivity
             outState.putInt(NAV_SELECTED_KEY, mNavPosition);
     
         if (mTeamFilter != null)
-            outState.putString(NAV_SELECTED_TEAM, mTeamFilter);
+            outState.putString(NAV_SELECTED_TEAM_KEY, mTeamFilter);
         else
-            outState.remove(NAV_SELECTED_TEAM);
-        
+            outState.remove(NAV_SELECTED_TEAM_KEY);
+    
+        if (mTeamFilter != null)
+            outState.putString(NAV_SELECTED_TEAM_NAME_KEY, mSelectedTeamName);
+        else
+            outState.remove(NAV_SELECTED_TEAM_NAME_KEY);
+    
+        if (mSearchFilter != null)
+            outState.putString(SEARCH_STRING_KEY, mSearchFilter);
+        else
+            outState.remove(SEARCH_STRING_KEY);
+    
         super.onSaveInstanceState(outState);
     }
     
@@ -994,8 +962,28 @@ public class MainActivity
     
     @Override
     public void onItemCheckedStateChanged(ActionMode mode, int position, long id, boolean checked) {
-        // Here you can do something when items are selected/de-selected,
-        // such as update the title in the CAB
+        // If selected item's owner is not the same as user, unselect and show toast
+        if (checked) {
+            Cursor cursor = (Cursor) mDoneListAdapter.getItem(position);
+            String taskOwner = cursor.getString(cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_OWNER));
+        
+            if (!taskOwner.equals(Utils.getUsername(getApplicationContext()))) {
+                // Uncheck the item
+                mListView.setItemChecked(position, false);
+            
+                // Show error toast
+                Toast.makeText(
+                        this,
+                        R.string.task_owner_mismatch_toast,
+                        Toast.LENGTH_LONG)
+                        .show();
+            
+                return;
+            }
+        }
+    
+    
+        // Show edit and delete buttons based on number of checked items
         int checkedCount = mListView.getCheckedItemCount();
         mode.setTitle(checkedCount + " tasks selected");
         

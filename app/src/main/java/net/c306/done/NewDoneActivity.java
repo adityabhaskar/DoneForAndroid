@@ -16,6 +16,8 @@ import android.widget.DatePicker;
 import android.widget.EditText;
 
 import com.google.android.gms.analytics.Tracker;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
 import net.c306.done.db.DoneListContract;
 import net.c306.done.idonethis.DoneActions;
@@ -59,7 +61,7 @@ public class NewDoneActivity extends AppCompatActivity {
         populateTeamPicker();
         
         if (mId > -1)
-            populateForEdit(sender);
+            populateForEdit();
         else {
             // Populate task text from saved data, if available
             String[] state = Utils.getNewTaskActivityState(this);
@@ -255,61 +257,91 @@ public class NewDoneActivity extends AppCompatActivity {
     }
     
     
-    private void populateForEdit(Intent sender) {
+    private void populateForEdit() {
+        
         // Edit activity title to edit task, instead of 'Done!'
         ActionBar ab = getSupportActionBar();
         if (ab != null)
             ab.setTitle("Edit Task");
         
-        // Populate activity view with details
         
-        // Set text
-        String rawText = sender.getStringExtra(DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT);
-        mPreEditBundle.putString(DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT, rawText);
-        EditText editText = (EditText) findViewById(R.id.done_edit_text);
-        if (editText != null) {
-            editText.setText(rawText);
-            // Set cursor at end of text
-            editText.setSelection(editText.getText().length());
-        }
-    
-    
-        // Set team
-        mTeam = sender.getStringExtra(DoneListContract.DoneEntry.COLUMN_NAME_TEAM);
-        mPreEditBundle.putString(DoneListContract.DoneEntry.COLUMN_NAME_TEAM, mTeam);
-        EditText teamEditText = (EditText) findViewById(R.id.team_picker);
-        if (teamEditText != null) {
-            String teamName = teamNames.get(teamURLs.indexOf(mTeam));
-            teamEditText.setText(teamName);
-        }
-        
-        // Set date
-        String editDate = sender.getStringExtra(DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE);
-        if (!mDoneDate.equals(editDate)) {
-            mDoneDate = sender.getStringExtra(DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE);
-        
-            String[] dateParts = mDoneDate.split("\\-");
-            Calendar c = Calendar.getInstance();
-            c.set(
-                    Integer.parseInt(dateParts[0]),
-                    Integer.parseInt(dateParts[1]) - 1,
-                    Integer.parseInt(dateParts[2])
-            );
-            mFormattedDoneDate = userDateFormat.format(c.getTime());
-        }
-        mPreEditBundle.putString(DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE, mDoneDate);
-        
-        EditText doneDateText = (EditText) findViewById(R.id.done_date_text);
-        if (doneDateText != null)
-            doneDateText.setText(mFormattedDoneDate);
-        
-        
-        // Set edited fields
-        mEditedFields = sender.getStringArrayListExtra(DoneListContract.DoneEntry.COLUMN_NAME_EDITED_FIELDS);
-        mPreEditBundle.putStringArrayList(
-                DoneListContract.DoneEntry.COLUMN_NAME_EDITED_FIELDS,
-                (ArrayList<String>) mEditedFields
+        // Fetch task details from database
+        Cursor cursor = getContentResolver().query(
+                DoneListContract.DoneEntry.CONTENT_URI,                         // URI
+                new String[]{                                                   // Projection
+                        DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT,
+                        DoneListContract.DoneEntry.COLUMN_NAME_TEAM,
+                        DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE,
+                        DoneListContract.DoneEntry.COLUMN_NAME_EDITED_FIELDS
+                },
+                DoneListContract.DoneEntry.COLUMN_NAME_ID + " IS ? ",      // Selection
+                new String[]{String.valueOf(mId),},      // Selection Args
+                null                                                            // Sort Order
         );
+        
+        if (cursor != null) {
+            if (cursor.getCount() < 1) {
+                Log.w(LOG_TAG, "No data returned. Some error happened!");
+            } else {
+                
+                cursor.moveToNext();
+                
+                // Set text
+                String rawText = cursor.getString(cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT));
+                mPreEditBundle.putString(DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT, rawText);
+                EditText editText = (EditText) findViewById(R.id.done_edit_text);
+                if (editText != null) {
+                    editText.setText(rawText);
+                    // Set cursor at end of text
+                    editText.setSelection(editText.getText().length());
+                }
+                
+                // Set team
+                mTeam = cursor.getString(cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_TEAM));
+                mPreEditBundle.putString(DoneListContract.DoneEntry.COLUMN_NAME_TEAM, mTeam);
+                EditText teamEditText = (EditText) findViewById(R.id.team_picker);
+                if (teamEditText != null) {
+                    String teamName = teamNames.get(teamURLs.indexOf(mTeam));
+                    teamEditText.setText(teamName);
+                }
+                
+                // Set date
+                String editDate = cursor.getString(cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE));
+                if (!mDoneDate.equals(editDate)) {
+                    mDoneDate = editDate;
+                    
+                    String[] dateParts = mDoneDate.split("\\-");
+                    Calendar c = Calendar.getInstance();
+                    c.set(
+                            Integer.parseInt(dateParts[0]),
+                            Integer.parseInt(dateParts[1]) - 1,
+                            Integer.parseInt(dateParts[2])
+                    );
+                    mFormattedDoneDate = userDateFormat.format(c.getTime());
+                }
+                mPreEditBundle.putString(DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE, mDoneDate);
+                
+                EditText doneDateText = (EditText) findViewById(R.id.done_date_text);
+                if (doneDateText != null)
+                    doneDateText.setText(mFormattedDoneDate);
+                
+                
+                // Set edited fields
+                String editedFieldsString = cursor.getString(cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_EDITED_FIELDS));
+                
+                if (editedFieldsString != null && !editedFieldsString.equals(""))
+                    mEditedFields = new Gson().fromJson(editedFieldsString, new TypeToken<ArrayList<String>>() {
+                    }.getType());
+                else
+                    mEditedFields = new ArrayList<>();
+                
+                mPreEditBundle.putStringArrayList(
+                        DoneListContract.DoneEntry.COLUMN_NAME_EDITED_FIELDS,
+                        (ArrayList<String>) mEditedFields);
+                
+            }
+            cursor.close();
+        }
     }
     
     @Override

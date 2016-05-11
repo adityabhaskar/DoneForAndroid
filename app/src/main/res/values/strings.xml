@@ -159,5 +159,6 @@
     <string name="task_string">Task</string>
     <string name="delete_string">Delete</string>
     <string name="cancel_string">Cancel</string>
+    <string name="task_owner_mismatch_toast">Only task owner can edit or delete task.</string>
 
 </resources>

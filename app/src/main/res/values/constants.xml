@@ -40,4 +40,7 @@
     <string name="sync_account_type">done.c306.net</string>
     <string name="content_authority">net.c306.done.app</string>
 
+
+    <string name="owner_tag" translatable="false">owner_tag</string>
+
 </resources>

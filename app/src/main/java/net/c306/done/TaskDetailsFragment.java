@@ -5,7 +5,6 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteQueryBuilder;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.GradientDrawable;
-import android.net.Uri;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
@@ -43,9 +42,10 @@ import java.util.regex.Pattern;
 public class TaskDetailsFragment extends Fragment {
     
     private final String LOG_TAG = Utils.LOG_TAG + getClass().getSimpleName();
-    // TODO: Rename and change types of parameters
+    
     private long mTaskId; // Used to fetch & display task details
     private OnFragmentInteractionListener mListener;
+    private boolean mIsOwner;
     
     public TaskDetailsFragment() {
         // Required empty public constructor
@@ -78,6 +78,7 @@ public class TaskDetailsFragment extends Fragment {
     @Nullable
     private Bundle getTaskDetails() {
         SQLiteQueryBuilder qb = new SQLiteQueryBuilder();
+    
         qb.setTables(DoneListContract.DoneEntry.TABLE_NAME + " INNER JOIN " +
                 DoneListContract.TeamEntry.TABLE_NAME +
                 " ON " + DoneListContract.DoneEntry.TABLE_NAME +
@@ -145,7 +146,7 @@ public class TaskDetailsFragment extends Fragment {
     private void populateCard(Bundle taskDetails, View view) {
         if (view == null)
             view = getView();
-        
+    
         // Format text with HTML
         TextView taskTextTextView = (TextView) view.findViewById(R.id.task_text);
         String taskText = taskDetails.getString(DoneListContract.DoneEntry.COLUMN_NAME_MARKEDUP_TEXT);
@@ -191,14 +192,20 @@ public class TaskDetailsFragment extends Fragment {
         }
         
         // Set task owner
-        TextView taskOwner = (TextView) view.findViewById(R.id.task_owner);
-        if (taskOwner != null) {
+        TextView taskOwnerTextView = (TextView) view.findViewById(R.id.task_owner);
+        if (taskOwnerTextView != null) {
             // Set grey drawable icon
             BitmapDrawable ownerIcon = (BitmapDrawable) ContextCompat.getDrawable(getContext(), R.drawable.ic_person_black_24dp).mutate();
             ownerIcon.setAlpha(0x8A);
-            taskOwner.setCompoundDrawablesWithIntrinsicBounds(ownerIcon, null, null, null);
+            taskOwnerTextView.setCompoundDrawablesWithIntrinsicBounds(ownerIcon, null, null, null);
+        
+            String taskOwner = taskDetails.getString(DoneListContract.DoneEntry.COLUMN_NAME_OWNER);
+        
+            taskOwnerTextView.setText(taskOwner);
+        
+            if (mListener != null && taskOwner != null)
+                mIsOwner = taskOwner.equals(Utils.getUsername(getContext()));
             
-            taskOwner.setText(taskDetails.getString(DoneListContract.DoneEntry.COLUMN_NAME_OWNER));
         }
         
         
@@ -261,13 +268,6 @@ public class TaskDetailsFragment extends Fragment {
         return view;
     }
     
-    // TODO: Rename method, update argument and hook method into UI event
-    public void onButtonPressed(Uri uri) {
-        if (mListener != null) {
-            mListener.onFragmentInteraction(uri);
-        }
-    }
-    
     @Override
     public void onAttach(Context context) {
         super.onAttach(context);
@@ -307,6 +307,16 @@ public class TaskDetailsFragment extends Fragment {
         return p_Text;
     }
     
+    public void refreshContent() {
+        Bundle taskDetails = getTaskDetails();
+        if (taskDetails != null)
+            populateCard(taskDetails, getView());
+    }
+    
+    public boolean checkOwner() {
+        return mIsOwner;
+    }
+    
     /**
      * This interface must be implemented by activities that contain this
      * fragment to allow an interaction in this fragment to be communicated
@@ -318,8 +328,7 @@ public class TaskDetailsFragment extends Fragment {
      * >Communicating with Other Fragments</a> for more information.
      */
     public interface OnFragmentInteractionListener {
-        // TODO: Update argument type and name
-        void onFragmentInteraction(Uri uri);
+        void setOwnerMenu(boolean isOwner);
     }
     
     private class URLSpanNoUnderline extends URLSpan {
