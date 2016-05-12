@@ -24,14 +24,14 @@ import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class DoneListAdapter extends ResourceCursorAdapter{
+public class TaskListAdapter extends ResourceCursorAdapter {
     
     private final String LOG_TAG = Utils.LOG_TAG + this.getClass().getSimpleName();
     private SimpleDateFormat idtDateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.UK);
     private SimpleDateFormat userDateFormat = (SimpleDateFormat) DateFormat.getDateInstance(DateFormat.DEFAULT);
     private Calendar calendar = Calendar.getInstance();
     
-    public DoneListAdapter(Context context, int layout, Cursor c, int flags) {
+    public TaskListAdapter(Context context, int layout, Cursor c, int flags) {
         super(context, layout, c, flags);
     }
     

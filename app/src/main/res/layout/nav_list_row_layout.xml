@@ -6,8 +6,8 @@
     android:layout_marginBottom="0dp"
     android:layout_marginTop="0dp"
     android:background="@drawable/nav_list_item_background"
-    android:paddingEnd="@dimen/single_margin"
-    android:paddingStart="@dimen/single_margin"
+    android:paddingEnd="@dimen/_16dp_single"
+    android:paddingStart="@dimen/_16dp_single"
     >
 
     <ImageView
@@ -27,7 +27,7 @@
         android:layout_weight="1"
         android:ellipsize="end"
         android:maxLines="1"
-        android:paddingStart="@dimen/double_margin"
+        android:paddingStart="@dimen/_32_double"
         android:scrollHorizontally="true"
         android:text="Task Description"
         android:textColor="@drawable/nav_list_item_textcolor"/>

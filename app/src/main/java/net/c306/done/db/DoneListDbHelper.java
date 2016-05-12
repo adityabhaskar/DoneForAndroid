@@ -11,7 +11,7 @@ import net.c306.done.sync.IDTSyncAdapter;
 public class DoneListDbHelper extends SQLiteOpenHelper {
     
     // If you change the database schema, you must increment the database version.
-    public static final int DATABASE_VERSION = 13;
+    public static final int DATABASE_VERSION = 14;
     public static final String DATABASE_NAME = "DoneList.db";
     private static DoneListDbHelper sInstance;
     private final String LOG_TAG = Utils.LOG_TAG + this.getClass().getSimpleName();
@@ -50,6 +50,24 @@ public class DoneListDbHelper extends SQLiteOpenHelper {
     
         db.execSQL(SQL_CREATE_TABLE_TEAMS);
     
+    
+        // Create tags table 
+        final String SQL_CREATE_TABLE_TAGS = "CREATE TABLE " + DoneListContract.TagEntry.TABLE_NAME +
+                "(" +
+                // Main Fields
+                DoneListContract.TagEntry.COLUMN_NAME_ID + " INTEGER NOT NULL UNIQUE PRIMARY KEY, " +
+                DoneListContract.TagEntry.COLUMN_NAME_NAME + " TEXT NOT NULL " +
+                //DoneListContract.TagEntry.COLUMN_NAME_URL + " TEXT NOT NULL UNIQUE, " +
+                //DoneListContract.TagEntry.COLUMN_NAME_SHORT_NAME + " TEXT NOT NULL, " +
+                //DoneListContract.TagEntry.COLUMN_NAME_DONES + " TEXT, " +
+                //DoneListContract.TagEntry.COLUMN_NAME_IS_PERSONAL + " TEXT NOT NULL DEFAULT 'FALSE', " +
+                //DoneListContract.TagEntry.COLUMN_NAME_DONE_COUNT + " INTEGER, " +
+                //DoneListContract.TagEntry.COLUMN_NAME_PERMALINK + " TEXT " +
+                ")";
+    
+        db.execSQL(SQL_CREATE_TABLE_TAGS);
+        
+        
         // Create dones table 
         final String SQL_CREATE_TABLE_DONES = "CREATE TABLE " + DoneListContract.DoneEntry.TABLE_NAME +
                 "(" +
@@ -110,6 +128,7 @@ public class DoneListDbHelper extends SQLiteOpenHelper {
         onCreate(db);
 */
         db.execSQL("DROP TABLE IF EXISTS " + DoneListContract.TeamEntry.TABLE_NAME);
+        db.execSQL("DROP TABLE IF EXISTS " + DoneListContract.TagEntry.TABLE_NAME);
         db.execSQL("DROP TABLE IF EXISTS " + DoneListContract.DoneEntry.TABLE_NAME);
         onCreate(db);
     

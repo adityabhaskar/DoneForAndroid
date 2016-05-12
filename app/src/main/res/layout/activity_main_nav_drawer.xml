@@ -23,80 +23,97 @@
         android:fitsSystemWindows="false"
         android:maxWidth="@dimen/nav_max_width">
 
-        <LinearLayout
+        <RelativeLayout
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:background="@android:color/background_light"
-            android:orientation="vertical">
+            android:layout_height="match_parent">
 
-            <!-- Import header layout-->
-            <include layout="@layout/nav_header_main_nav_drawer"/>
-
-            <!-- All teams list item -->
-            <include
-                android:id="@+id/nav_all_tasks"
-                layout="@layout/nav_list_row_layout"
+            <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="@dimen/nav_list_item_height"
-                android:layout_marginTop="@dimen/half_margin"/>
+                android:layout_height="match_parent"
+                android:background="@android:color/background_light"
+                android:orientation="vertical">
 
-            <!-- Divider -->
-            <View style="@style/divider"/>
+                <!-- Import header layout-->
+                <include layout="@layout/nav_header_main_nav_drawer"/>
 
-            <!-- Teams sub header -->
-            <!--<TextView-->
-            <!--style="@style/nav_subtitle"-->
-            <!--android:text="@string/teams_header"/>-->
+                <!-- All teams -->
+                <include
+                    android:id="@+id/nav_all_tasks"
+                    layout="@layout/nav_list_row_layout"
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/nav_list_item_height"
+                    android:layout_marginTop="@dimen/_8dp_half"/>
 
-            <!-- ListView with other teams -->
-            <ListView
-                android:id="@+id/nav_drawer_teams_listview"
+                <!-- Divider -->
+                <View style="@style/divider"/>
+
+                <!-- Teams sub header -->
+                <TextView
+                    style="@style/nav_subtitle"
+                    android:text="@string/teams_header"/>
+
+                <!-- ListView for teams -->
+                <ListView
+                    android:id="@+id/nav_drawer_teams_listview"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:choiceMode="singleChoice"
+                    android:divider="@android:color/transparent"
+                    android:dividerHeight="0dp"
+                    android:paddingBottom="@dimen/_8dp_half"/>
+
+                <!-- Divider -->
+                <View style="@style/divider"/>
+
+                <!-- Teams sub header -->
+                <TextView
+                    style="@style/nav_subtitle"
+                    android:text="@string/tags_header"/>
+
+                <!-- ListView for tags -->
+                <ListView
+                    android:id="@+id/nav_drawer_tags_listview"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:choiceMode="singleChoice"
+                    android:divider="@android:color/transparent"
+                    android:dividerHeight="0dp"
+                    android:isScrollContainer="false"
+                    android:paddingBottom="@dimen/_8dp_half"
+                    android:scrollbars="none"/>
+
+                <!-- Placeholder: remove when tags are implemented -->
+                <include
+                    android:id="@+id/nav_tags_empty"
+                    layout="@layout/nav_list_row_layout"
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/nav_list_item_height"
+                    android:layout_marginBottom="@dimen/_8dp_half"/>
+
+                <!-- Divider -->
+                <View style="@style/divider"/>
+
+            </LinearLayout>
+
+            <!-- Settings -->
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:choiceMode="singleChoice"
-                android:divider="@android:color/transparent"
-                android:dividerHeight="0dp"
-                android:paddingBottom="@dimen/half_margin"/>
+                android:layout_alignParentBottom="true"
+                android:background="@android:color/background_light"
+                android:elevation="@dimen/_4dp"
+                android:paddingBottom="@dimen/_8dp_half"
+                android:paddingTop="@dimen/_8dp_half">
 
-            <!-- Divider -->
-            <View style="@style/divider"/>
+                <include
+                    android:id="@+id/nav_settings"
+                    layout="@layout/nav_list_row_layout"
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/nav_list_item_height"/>
+            </LinearLayout>
 
-            <!-- Teams sub header -->
-            <TextView
-                style="@style/nav_subtitle"
-                android:text="@string/tags_header"/>
+        </RelativeLayout>
 
-            <!-- Placeholder: remove when tags are implemented -->
-            <include
-                android:id="@+id/nav_tags_placeholder"
-                layout="@layout/nav_list_row_layout"
-                android:layout_width="match_parent"
-                android:layout_height="@dimen/nav_list_item_height"
-                android:layout_marginBottom="@dimen/half_margin"/>
-
-            <!-- Actual listview - add adapter and click listener when implementing -->
-            <ListView
-                android:id="@+id/nav_drawer_tags_listview"
-                android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_weight="1"
-                android:choiceMode="singleChoice"
-                android:divider="@android:color/transparent"
-                android:dividerHeight="0dp"
-                android:paddingBottom="@dimen/half_margin"/>
-
-            <!-- Divider -->
-            <View style="@style/divider"/>
-
-            <!-- All teams list item -->
-            <include
-                android:id="@+id/nav_settings"
-                layout="@layout/nav_list_row_layout"
-                android:layout_width="match_parent"
-                android:layout_height="@dimen/nav_list_item_height"
-                android:layout_marginBottom="@dimen/half_margin"/>
-
-        </LinearLayout>
 
     </android.support.design.widget.NavigationView>
 

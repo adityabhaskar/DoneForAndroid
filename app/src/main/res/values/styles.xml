@@ -38,8 +38,8 @@
     </style>
 
     <style name="touchable_items">
-        <item name="android:paddingTop">@dimen/half_margin</item>
-        <item name="android:paddingBottom">@dimen/half_margin</item>
+        <item name="android:paddingTop">@dimen/_8dp_half</item>
+        <item name="android:paddingBottom">@dimen/_8dp_half</item>
         <item name="android:minHeight">24dp</item>
         <item name="android:minWidth">24dp</item>
         <!--<item name="android:background">@drawable/touchable_item_background</item>-->

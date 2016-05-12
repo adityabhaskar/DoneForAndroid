@@ -11,7 +11,7 @@
         android:layout_height="wrap_content"
         android:layout_centerHorizontal="true"
         android:layout_centerVertical="true"
-        android:layout_marginTop="@dimen/double_margin"
+        android:layout_marginTop="@dimen/_32_double"
         android:contentDescription="@string/app_name"
         android:paddingBottom="120dp"
         android:src="@drawable/ic_splash_icon_120"/>
@@ -21,9 +21,9 @@
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
         android:layout_centerHorizontal="true"
-        android:layout_marginBottom="@dimen/double_margin"
-        android:layout_marginEnd="@dimen/double_margin"
-        android:layout_marginStart="@dimen/double_margin"
+        android:layout_marginBottom="@dimen/_32_double"
+        android:layout_marginEnd="@dimen/_32_double"
+        android:layout_marginStart="@dimen/_32_double"
         android:background="@drawable/splash_login_rounded_rectangle"
         android:gravity="center_horizontal"
         android:orientation="vertical"
@@ -32,7 +32,7 @@
         <Button
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="@dimen/half_margin"
+            android:layout_marginBottom="@dimen/_8dp_half"
             android:background="@color/accent"
             android:minWidth="160dp"
             android:onClick="openLoginActivity"
@@ -51,7 +51,7 @@
 
         <ImageView
             android:layout_width="wrap_content"
-            android:layout_height="@dimen/double_margin"
+            android:layout_height="@dimen/_32_double"
             android:contentDescription="@string/idonethis_logo"
             android:src="@drawable/idt_logo"/>
     </LinearLayout>

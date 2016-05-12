@@ -24,11 +24,41 @@ public class DoneListContract {
     // At least, let's hope not.  Don't be that dev, reader.  Don't be that dev.
     public static final String PATH_DONES = "dones";
     public static final String PATH_TEAMS = "teams";
+    public static final String PATH_TAGS = "tags";
     
     // To prevent someone from accidentally instantiating the contract class,
     // give it an empty constructor.
     public DoneListContract() {}
     
+    /* Inner class that defines the table contents */
+    public static abstract class TagEntry implements BaseColumns {
+        public static final String TABLE_NAME = "tags";
+        
+        public static final String TAG_ID_PRE = "tag_";
+        public static final String TAG_ID_POST = "_tag";
+        
+        public static final String COLUMN_NAME_ID = "tags_id";   // assign locally
+        public static final String COLUMN_NAME_NAME = "tags_name";
+        //public static final String COLUMN_NAME_URL = "tags_url"; // unique on server - api url - same as dones.team
+        //public static final String COLUMN_NAME_SHORT_NAME = "tags_short_name";
+        //public static final String COLUMN_NAME_DONES = "tags_dones"; // api url to dones in tag
+        //public static final String COLUMN_NAME_IS_PERSONAL = "tags_is_personal";
+        //public static final String COLUMN_NAME_DONE_COUNT = "tags_done_count"; // total done count in tag, on server
+        //public static final String COLUMN_NAME_PERMALINK = "tags_permalink"; // url to web page
+        
+        public static final Uri CONTENT_URI = BASE_CONTENT_URI.buildUpon().appendPath(PATH_TAGS).build();
+        
+        public static final String CONTENT_TYPE =
+                ContentResolver.CURSOR_DIR_BASE_TYPE + "/" + CONTENT_AUTHORITY + "/" + PATH_TAGS;
+        public static final String CONTENT_ITEM_TYPE =
+                ContentResolver.CURSOR_ITEM_BASE_TYPE + "/" + CONTENT_AUTHORITY + "/" + PATH_TAGS;
+        
+        public static Uri buildTagUri(long id) {
+            return ContentUris.withAppendedId(CONTENT_URI, id);
+        }
+    }
+    
+    /* Inner class that defines the table contents */
     public static abstract class TeamEntry implements BaseColumns {
         public static final String TABLE_NAME = "teams";
     

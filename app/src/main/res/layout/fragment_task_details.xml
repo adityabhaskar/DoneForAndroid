@@ -4,10 +4,10 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:paddingBottom="@dimen/half_margin"
-    android:paddingLeft="@dimen/single_margin"
-    android:paddingRight="@dimen/single_margin"
-    android:paddingTop="@dimen/half_margin"
+    android:paddingBottom="@dimen/_8dp_half"
+    android:paddingLeft="@dimen/_16dp_single"
+    android:paddingRight="@dimen/_16dp_single"
+    android:paddingTop="@dimen/_8dp_half"
     tools:context="net.c306.done.TaskDetailsFragment">
 
     <LinearLayout
@@ -23,7 +23,7 @@
             android:layout_gravity="center_vertical"
             android:layout_weight="1"
             android:background="@drawable/touchable_item_background"
-            android:drawablePadding="@dimen/half_margin"
+            android:drawablePadding="@dimen/_8dp_half"
             android:gravity="center_vertical"
             android:singleLine="true"
             android:text="adityabhaskar"/>
@@ -33,7 +33,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center_vertical"
-            android:paddingLeft="@dimen/single_margin"
+            android:paddingLeft="@dimen/_16dp_single"
             android:text="01 Jan 2016"/>
 
     </LinearLayout>
@@ -44,7 +44,7 @@
         android:id="@+id/task_text"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_marginTop="@dimen/half_margin"
+        android:layout_marginTop="@dimen/_8dp_half"
         android:layout_weight="1"
         android:lineSpacingMultiplier="1.4"
         android:text="@string/hello_blank_fragment"
@@ -64,9 +64,9 @@
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
-            android:drawablePadding="@dimen/half_margin"
+            android:drawablePadding="@dimen/_8dp_half"
             android:gravity="center_vertical"
-            android:paddingEnd="@dimen/single_margin"
+            android:paddingEnd="@dimen/_16dp_single"
             android:singleLine="true"
             android:text="Dev Log"/>
 
@@ -75,10 +75,10 @@
             style="@style/touchable_items"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:drawablePadding="@dimen/half_margin"
+            android:drawablePadding="@dimen/_8dp_half"
             android:gravity="center_vertical"
-            android:paddingLeft="@dimen/single_margin"
-            android:paddingRight="@dimen/half_margin"
+            android:paddingLeft="@dimen/_16dp_single"
+            android:paddingRight="@dimen/_8dp_half"
             android:singleLine="true"
             android:text="@string/digit_zero"/>
 
@@ -87,9 +87,9 @@
             style="@style/touchable_items"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:drawablePadding="@dimen/half_margin"
+            android:drawablePadding="@dimen/_8dp_half"
             android:gravity="center_vertical"
-            android:paddingRight="@dimen/single_margin"
+            android:paddingRight="@dimen/_16dp_single"
             android:singleLine="true"
             android:text="@string/digit_zero"/>
 

@@ -29,6 +29,7 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Vector;
 
@@ -384,6 +385,9 @@ public class IDTSyncAdapter extends AbstractThreadedSyncAdapter {
         Gson gson = new Gson();
         String doneItemString;
         DoneItem doneItem;
+    
+        List<DoneItem.DoneTags> allTagsArray = new ArrayList<>();
+        List<String> taskTagsArray = new ArrayList<>();
         
         JSONObject masterObj = new JSONObject(forecastJsonStr);
         JSONArray donesListArray = masterObj.getJSONArray("results");
@@ -405,7 +409,7 @@ public class IDTSyncAdapter extends AbstractThreadedSyncAdapter {
             doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE, doneItem.done_date);
             doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_OWNER, doneItem.owner);
             doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_TEAM_SHORT_NAME, doneItem.team_short_name);
-            doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_TAGS, gson.toJson(doneItem.tags, DoneItem.DoneTags[].class));
+            //doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_TAGS, gson.toJson(doneItem.tags, DoneItem.DoneTags[].class));
             doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_LIKES, "");
             doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_COMMENTS, "");
             doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_META_DATA, gson.toJson(doneItem.meta_data, DoneItem.DoneMeta.class));
@@ -416,18 +420,25 @@ public class IDTSyncAdapter extends AbstractThreadedSyncAdapter {
             doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT, Html.fromHtml(doneItem.raw_text).toString());
             doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_PERMALINK, doneItem.permalink);
             doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_IS_LOCAL, doneItem.is_local);
+    
+            taskTagsArray.clear();
+            for (int j = 0; j < doneItem.tags.length; j++) {
+                taskTagsArray.add(DoneListContract.TagEntry.TAG_ID_PRE + doneItem.tags[j].id + DoneListContract.TagEntry.TAG_ID_POST);
+            }
+            allTagsArray.addAll(Arrays.asList(doneItem.tags));
+            doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_TAGS, gson.toJson(taskTagsArray.toArray(), String[].class));
             
             cVVector.add(doneItemValues);
         }
         
         Log.v(LOG_TAG, "Fetched " + cVVector.size() + " tasks");
-        
-        // add to database
+    
+        // add tasks to database
         if (cVVector.size() > 0) {
             ContentValues[] cvArray = new ContentValues[cVVector.size()];
             cVVector.toArray(cvArray);
-            
-            /*
+    
+            /**
             * To be used only till we can get all updates from server, including deletes
             * 
             * */
@@ -442,8 +453,51 @@ public class IDTSyncAdapter extends AbstractThreadedSyncAdapter {
             getContext().getContentResolver().bulkInsert(DoneListContract.DoneEntry.CONTENT_URI, cvArray);
             
         }
+    
+        if (allTagsArray.size() > 0)
+            saveTagsToDatabase(allTagsArray);
         
         return cVVector.size();
+    }
+    
+    /**
+     * Save parsed #tags to database in table tags
+     *
+     * @param tagsList An ArrayList of DoneItem.DoneTags
+     * @return number of tags saved to database
+     */
+    private int saveTagsToDatabase(List<DoneItem.DoneTags> tagsList) {
+        
+        int tagCount = tagsList.size();
+        Vector<ContentValues> cVVector = new Vector<>(tagCount);
+        
+        for (DoneItem.DoneTags tag : tagsList) {
+            ContentValues tagValues = new ContentValues();
+            
+            tagValues.put(DoneListContract.TagEntry.COLUMN_NAME_ID, tag.id);
+            tagValues.put(DoneListContract.TagEntry.COLUMN_NAME_NAME, tag.name);
+            cVVector.add(tagValues);
+            
+        }
+        
+        Log.v(LOG_TAG, "Tags found " + cVVector.size());
+        
+        // add tags to database
+        if (cVVector.size() > 0) {
+            ContentValues[] cvArray = new ContentValues[cVVector.size()];
+            cVVector.toArray(cvArray);
+            
+            // Delete previous tags from database 
+            // There could be some local non-posted dones that were typed while sync was on
+            getContext().getContentResolver().delete(
+                    DoneListContract.TagEntry.CONTENT_URI, // Table uri
+                    null,
+                    null); // Selection args
+            
+            // Add newly fetched entries to the server
+            return getContext().getContentResolver().bulkInsert(DoneListContract.TagEntry.CONTENT_URI, cvArray);
+        } else
+            return 0;
     }
     
     /**

@@ -13,11 +13,11 @@ import android.widget.TextView;
 
 import net.c306.done.db.DoneListContract;
 
-public class NavListAdapter extends ResourceCursorAdapter {
+public class NavTeamListAdapter extends ResourceCursorAdapter {
     
     private final String LOG_TAG = Utils.LOG_TAG + this.getClass().getSimpleName();
     
-    public NavListAdapter(Context context, int layout, Cursor c, int flags) {
+    public NavTeamListAdapter(Context context, int layout, Cursor c, int flags) {
         super(context, layout, c, flags);
     }
     
