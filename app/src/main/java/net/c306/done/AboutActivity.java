@@ -15,7 +15,8 @@ public class AboutActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_about);
-        
+    
+        // TODO: 16/05/16 Add analytics to link click using this method: http://stackoverflow.com/a/3452944/1078008 
         TextView developerName = (TextView) findViewById(R.id.about_dialog_developer_name);
         if (developerName != null) {
             developerName.setMovementMethod(LinkMovementMethod.getInstance());

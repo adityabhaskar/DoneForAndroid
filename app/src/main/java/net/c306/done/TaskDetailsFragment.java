@@ -45,7 +45,7 @@ public class TaskDetailsFragment extends Fragment {
     
     private long mTaskId; // Used to fetch & display task details
     private OnFragmentInteractionListener mListener;
-    private boolean mIsOwner;
+    private boolean mIsOwner = false;
     
     public TaskDetailsFragment() {
         // Required empty public constructor
@@ -61,7 +61,7 @@ public class TaskDetailsFragment extends Fragment {
     public static TaskDetailsFragment newInstance(long taskId) {
         TaskDetailsFragment fragment = new TaskDetailsFragment();
         Bundle args = new Bundle();
-        args.putLong(Utils.TASK_DETAILS_TASK_ID, taskId);
+        args.putLong(Utils.KEY_SELECTED_TASK_ID, taskId);
         fragment.setArguments(args);
         return fragment;
     }
@@ -70,7 +70,7 @@ public class TaskDetailsFragment extends Fragment {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         if (getArguments() != null) {
-            mTaskId = getArguments().getLong(Utils.TASK_DETAILS_TASK_ID);
+            mTaskId = getArguments().getLong(Utils.KEY_SELECTED_TASK_ID);
         }
         
     }
@@ -202,10 +202,12 @@ public class TaskDetailsFragment extends Fragment {
             String taskOwner = taskDetails.getString(DoneListContract.DoneEntry.COLUMN_NAME_OWNER);
         
             taskOwnerTextView.setText(taskOwner);
-        
-            if (mListener != null && taskOwner != null)
+    
+            if (taskOwner != null)
                 mIsOwner = taskOwner.equals(Utils.getUsername(getContext()));
-            
+    
+            if (mListener != null)
+                mListener.setOwnerMenu(mIsOwner);
         }
         
         
@@ -246,7 +248,7 @@ public class TaskDetailsFragment extends Fragment {
                     taskDetails.getString(DoneListContract.TeamEntry.COLUMN_NAME_URL));
             
             GradientDrawable teamCircle = (GradientDrawable) ContextCompat.getDrawable(getContext(), R.drawable.task_details_team_circle).mutate();
-            teamCircle.setColor(ContextCompat.getColor(getActivity().getApplicationContext(), Utils.colorArray[teamColor == -1 ? 0 : teamColor]));
+            teamCircle.setColor(ContextCompat.getColor(getActivity().getApplicationContext(), Utils.colorArray[teamColor == -1 ? 0 : teamColor % Utils.colorArray.length]));
             teamCircle.setBounds(0, 0, 48, 48);
             taskTeam.setCompoundDrawables(teamCircle, null, null, null);
             

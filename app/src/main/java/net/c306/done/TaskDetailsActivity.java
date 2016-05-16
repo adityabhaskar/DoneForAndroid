@@ -31,31 +31,23 @@ public class TaskDetailsActivity
     private final String LOG_TAG = Utils.LOG_TAG + getClass().getSimpleName();
     private final String CURRENT_TASK_INDEX_KEY = "currentTaskIndex";
     
-    private long mId;
-    private String mTeamFilter = null;
-    private String mSearchFilter = null;
-    private boolean mIsOwner = false;
+    private long mId;                                   // Current task's db id
+    private String mSearchFilter = null;                // Search phrase to filter
+    private String mNavFilter = null;                   // Team or tag filter query string
+    private int mNavFilterType = Utils.NAV_LAYOUT_ALL;  // Nav filter type - team, tag, or all 
+    private String mFilterTitle = null;                  // Title string - team name, #tag or search phrase
     
-    private long[] mTaskIdList;
-    private int mCurrentTaskIndex = -1;
+    private boolean mIsOwner = false;                   // Is user owner of mId task
     
-    private Snackbar mSnackbar;
-    private Tracker mTracker;
+    private long[] mTaskIdList;                         // List of db ids for all tasks given current filters
+    private int mCurrentTaskIndex = -1;                 // Index of mId in mTaskIdList
     
-    /**
-     * The {@link android.support.v4.view.PagerAdapter} that will provide
-     * fragments for each of the sections. We use a
-     * {@link FragmentPagerAdapter} derivative, which will keep every
-     * loaded fragment in memory. If this becomes too memory intensive, it
-     * may be best to switch to a
-     * {@link android.support.v4.app.FragmentStatePagerAdapter}.
-     */
-    private SectionsPagerAdapter mSectionsPagerAdapter;
+    private Snackbar mSnackbar;                         // Snackbar instance to show messages
+    private Tracker mTracker;                           // Google Analytics tracker
     
-    /**
-     * The {@link ViewPager} that will host the section contents.
-     */
-    private ViewPager mViewPager;
+    private SectionsPagerAdapter mSectionsPagerAdapter; // Adapter to provide views for view pager
+    
+    private ViewPager mViewPager;                       // View pager to display task details in
     
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -68,9 +60,11 @@ public class TaskDetailsActivity
     
         // Instantiate variables
         Intent receivedData = getIntent();
-        mId = receivedData.getLongExtra(Utils.TASK_DETAILS_TASK_ID, -1);
-        mSearchFilter = receivedData.getStringExtra(Utils.TASK_DETAILS_SEARCH_FILTER);
-        mTeamFilter = receivedData.getStringExtra(Utils.TASK_DETAILS_TEAM_FILTER);
+        mId = receivedData.getLongExtra(Utils.KEY_SELECTED_TASK_ID, -1);
+        mSearchFilter = receivedData.getStringExtra(Utils.KEY_SEARCH_FILTER);
+        mNavFilter = receivedData.getStringExtra(Utils.KEY_NAV_FILTER);
+        mNavFilterType = receivedData.getIntExtra(Utils.KEY_NAV_FILTER_TYPE, mNavFilterType);
+        mFilterTitle = receivedData.getStringExtra(Utils.KEY_FILTER_TITLE);
         
         // Get saved instance state if recreating
         if (savedInstanceState != null && !savedInstanceState.isEmpty()) {
@@ -79,12 +73,10 @@ public class TaskDetailsActivity
         }
     
         // Set title to search phrase, team name, or app name, in order
-        if (mSearchFilter != null && !mSearchFilter.isEmpty())
-            setTitle(mSearchFilter);
-        else if (mTeamFilter != null && !mTeamFilter.isEmpty())
-            setTitle(receivedData.getStringExtra(Utils.TASK_DETAILS_TEAM_NAME));
-        else
-            setTitle(R.string.app_name);
+        mFilterTitle = (mSearchFilter != null && !mSearchFilter.isEmpty()) ? mSearchFilter :
+                (mNavFilter != null && !mNavFilter.isEmpty()) ? mFilterTitle :
+                        getString(R.string.app_name);
+        setTitle(mFilterTitle);
         
         // Get task id list
         getTaskList();
@@ -97,13 +89,12 @@ public class TaskDetailsActivity
         mViewPager = (ViewPager) findViewById(R.id.view_pager_container);
         if (mViewPager != null) {
             mViewPager.setAdapter(mSectionsPagerAdapter);
-        
+    
             // Set to display selected task, instead of first task 
             if (mCurrentTaskIndex > -1)
                 mViewPager.setCurrentItem(mCurrentTaskIndex);
-        
-            mViewPager.setClipChildren(false);
     
+            mViewPager.setClipChildren(false);
         }
     
         // Analytics Obtain the shared Tracker instance.
@@ -144,35 +135,53 @@ public class TaskDetailsActivity
         
         String[] cursorProjectionString = new String[]{
                 DoneListContract.DoneEntry.COLUMN_NAME_ID
-                //DoneListContract.DoneEntry.COLUMN_NAME_MARKEDUP_TEXT,
-                //DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE,
-                ////DoneListContract.DoneEntry.COLUMN_NAME_TEAM_SHORT_NAME,
-                //DoneListContract.DoneEntry.COLUMN_NAME_TEAM,
-                //DoneListContract.DoneEntry.COLUMN_NAME_IS_LOCAL,
-                //DoneListContract.DoneEntry.COLUMN_NAME_UPDATED,
-                //DoneListContract.DoneEntry.COLUMN_NAME_EDITED_FIELDS
         };
         
         String selection = DoneListContract.DoneEntry.COLUMN_NAME_IS_DELETED + " IS 'FALSE'";
+    
+        switch (mNavFilterType) {
+            case Utils.NAV_LAYOUT_ALL: {
+                // Show all, no filter required
+                break;
+            }
+        
+            case Utils.NAV_LAYOUT_TEAMS: {
+                // Add team filtering string
+                selection += " AND " +
+                        DoneListContract.DoneEntry.COLUMN_NAME_TEAM +
+                        " IS '" +
+                        mNavFilter +
+                        "'";
+                break;
+            }
+        
+            case Utils.NAV_LAYOUT_TAGS: {
+                // Add tag filtering string
+                selection += " AND " +
+                        DoneListContract.DoneEntry.COLUMN_NAME_TAGS +
+                        " LIKE '%" +
+                        mNavFilter +
+                        "%'";
+                break;
+            }
+        
+        }
+        
         
         if (mSearchFilter != null) {
             String[] filterArr = mSearchFilter.split(" +");
             
             for (String filterString : filterArr) {
-                selection += " AND " +
+                selection += " AND (" +
                         DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT +
                         " LIKE '%" +
                         filterString +
-                        "%'";
+                        "%' OR " +
+                        DoneListContract.DoneEntry.COLUMN_NAME_OWNER +
+                        " LIKE '%" +
+                        filterString +
+                        "%')";
             }
-        }
-        
-        if (mTeamFilter != null) {
-            selection += " AND " +
-                    DoneListContract.DoneEntry.COLUMN_NAME_TEAM +
-                    " IS '" +
-                    mTeamFilter +
-                    "'";
         }
         
         Cursor cursor = getContentResolver().query(
@@ -297,7 +306,9 @@ public class TaskDetailsActivity
                     R.string.edited_task_saved_toast_message,
                     Snackbar.LENGTH_SHORT);
             mSnackbar.setAction("Action", null).show();
-        
+    
+    
+            // TODO: 16/05/16 Ask the adapter to remove all items and recreate - team/tag/text changes may have rendered current filtered list incorrect 
             // Update view
             mSectionsPagerAdapter.notifyDataSetChanged();
         
@@ -312,8 +323,11 @@ public class TaskDetailsActivity
     
     @Override
     public void setOwnerMenu(boolean isOwner) {
-        //mIsOwner = isOwner;
-        //invalidateOptionsMenu();
+        boolean prevIsOwner = mIsOwner;
+        mIsOwner = isOwner;
+    
+        if (mIsOwner != prevIsOwner)
+            invalidateOptionsMenu();
     }
     
     @Override
@@ -324,15 +338,6 @@ public class TaskDetailsActivity
     @Override
     public void onPageSelected(int position) {
         mCurrentTaskIndex = position;
-        
-        // Get currently visible fragment, and check it's isOwner
-        TaskDetailsFragment taskDetailsFragment = mSectionsPagerAdapter.getFragment(mCurrentTaskIndex);
-        if (taskDetailsFragment != null) {
-            mIsOwner = taskDetailsFragment.checkOwner();
-            invalidateOptionsMenu();
-        }
-        
-        Log.v(LOG_TAG, "Page in viewpager: " + position);
     }
     
     @Override
@@ -348,6 +353,8 @@ public class TaskDetailsActivity
         
         public SectionsPagerAdapter(FragmentManager fm) {
             super(fm);
+            // TODO: 16/05/16 Create an observer to listen to data set changes and recreate the fragments 
+            //SectionsPagerAdapter.this.registerDataSetObserver(something);
         }
         
         @Override

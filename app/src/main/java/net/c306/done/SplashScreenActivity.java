@@ -67,7 +67,7 @@ public class SplashScreenActivity extends AppCompatActivity {
         Intent loginActivityIntent = new Intent(SplashScreenActivity.this, LoginActivity.class);
         loginActivityIntent.putExtra("fromSplash", true);
         startActivityForResult(loginActivityIntent, Utils.LOGIN_ACTIVITY_IDENTIFIER);
-        finish();
+        //finish();
     }
     
     @Override
@@ -101,8 +101,8 @@ public class SplashScreenActivity extends AppCompatActivity {
                     
                     // Setup sync
                     IDTSyncAdapter.initializeSyncAdapter(getApplicationContext());
-                    
-                    Utils.sendEvent(mTracker, "action", "loginSuccessful");
+    
+                    Utils.sendEvent(mTracker, "Action", "Login Successful");
                     
                     Intent mainActivity = new Intent(SplashScreenActivity.this, MainActivity.class);
                     mainActivity.putExtra(
@@ -110,6 +110,7 @@ public class SplashScreenActivity extends AppCompatActivity {
                             Utils.LOGIN_ACTIVITY_IDENTIFIER
                     );
                     startActivity(mainActivity);
+                    finish();
                 }
             }
         }

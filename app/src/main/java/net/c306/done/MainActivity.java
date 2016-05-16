@@ -11,6 +11,7 @@ import android.content.Loader;
 import android.content.res.Configuration;
 import android.database.Cursor;
 import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
@@ -18,6 +19,7 @@ import android.support.annotation.Nullable;
 import android.support.design.widget.Snackbar;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.content.LocalBroadcastManager;
+import android.support.v4.util.ArrayMap;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.view.MenuItemCompat;
 import android.support.v4.widget.DrawerLayout;
@@ -33,9 +35,11 @@ import android.view.ActionMode;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.AbsListView;
 import android.widget.AdapterView;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -46,6 +50,8 @@ import net.c306.done.db.DoneListContract;
 import net.c306.done.idonethis.DoneActions;
 import net.c306.done.sync.IDTAccountManager;
 import net.c306.done.sync.IDTSyncAdapter;
+
+import java.util.Map;
 
 // TODO: 20/02/16 Group dones under date headers in listView
 public class MainActivity
@@ -61,49 +67,38 @@ public class MainActivity
         AbsListView.MultiChoiceModeListener,
         View.OnClickListener {
     
-    private static final String TASK_SELECTED_KEY = "selected_position";
-    private static final String SEARCH_STRING_KEY = "search_string";
-    
-    private static final String NAV_SELECTED_TEAM_POSITION_KEY = "nav_selected_team_position";
-    private static final String NAV_SELECTED_TEAM_FILTER_KEY = "nav_selected_team_filter";
-    private static final String NAV_SELECTED_TEAM_NAME_KEY = "nav_selected_team_name";
-    
-    private static final String NAV_SELECTED_TAG_POSITION_KEY = "nav_selected_tag_position";
-    private static final String NAV_SELECTED_TAG_FILTER_KEY = "nav_selected_tag_filter";
-    private static final String NAV_SELECTED_TAG_NAME_KEY = "nav_selected_tag_name";
-    
-    
+    // Saved State Bundle keys
+    private static final String TASK_SELECTED_KEY = "selected_position";    // Saved state id for mTaskListPosition
+    private static final String NAV_SELECTED_ID_KEY = "nav_selected_tag_position";  // Saved state id for mNavSelectedId
+    // Loader ids
     private static final int TASK_LIST_LOADER = 0;
     private static final int TEAM_LIST_LOADER = 1;
     private static final int TAG_LIST_LOADER = 2;
-    
     private final String LOG_TAG = Utils.LOG_TAG + this.getClass().getSimpleName();
+    private ActionBarDrawerToggle mNavDrawerToggle;      // Toggle for nav drawer
+    private Snackbar mSnackbar;                 // Snackbar to show messages
+    private Tracker mTracker;                   // Google Analytics tracker
     
-    private ActionBarDrawerToggle mToggle;
+    
+    private String mFilterTitle = null;          // Title to display - team name, #tag or search phrase
+    
+    // Search filter strings
     private String mSearchFilter = null;
     private String mRestoredSearchFilter = null;
-    private String mTeamFilter = null;
-    private String mTagFilter = null;
-    private Snackbar mSnackbar;
-    private Tracker mTracker;
-    private String mSelectedTeamName;
-    private String mSelectedTagName;
     
-    private ListView mListView;
-    private TaskListAdapter mTaskListAdapter;
-    
-    private int mPosition = ListView.INVALID_POSITION;
+    // Nav item identifiers
+    private int mNavFilterType = Utils.NAV_LAYOUT_ALL;  // All, Team, or Tag
+    private String mNavFilterString = null;             // SQL query string
+    private int mNavSelectedId = -1;                    // int id of item to locate in nav linear layout
     
     
-    // Team ListView variables
-    private ListView mNavTeamListView;
-    private NavTeamListAdapter mNavTeamListAdapter;
-    private int mNavTeamPosition = ListView.INVALID_POSITION;
+    private ListView mTasksListView;                    // List of tasks in main view
+    private TaskListAdapter mTaskListAdapter;           // Adapter for list of tasks
+    private int mTaskListPosition = ListView.INVALID_POSITION;  // Position of selected item in task list
     
-    // Tag ListView variables
-    private ListView mNavTagListView;
-    private NavTagListAdapter mNavTagListAdapter;
-    private int mNavTagPosition = ListView.INVALID_POSITION;
+    private Map<Integer, Integer> idToLayoutMap = new ArrayMap<>(); // Mapping type of item (team / tag) to id of respective linear layout in view 
+    private NavTagsClickListener navTagsClickListener = new NavTagsClickListener();
+    private NavTeamsClickListener navTeamsClickListener = new NavTeamsClickListener();
     
     // Our handler for received Intents. This will be called whenever an Intent
     // with an action named "custom-event-name" is broadcasted.
@@ -247,41 +242,44 @@ public class MainActivity
         setContentView(R.layout.activity_main_nav_drawer);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-        
+    
+        idToLayoutMap.put(Utils.NAV_LAYOUT_TEAMS, R.id.nav_drawer_teams);
+        idToLayoutMap.put(Utils.NAV_LAYOUT_TAGS, R.id.nav_drawer_tags);
+    
+        // Restore variables from saved state, if any
         if (savedInstanceState != null) {
-            // Get listview location
+    
+            // Get tasks listview location
             if (savedInstanceState.containsKey(TASK_SELECTED_KEY))
-                mPosition = savedInstanceState.getInt(TASK_SELECTED_KEY);
+                mTaskListPosition = savedInstanceState.getInt(TASK_SELECTED_KEY);
     
-            // Get selected team's position, filter url, and name
-            if (savedInstanceState.containsKey(NAV_SELECTED_TEAM_POSITION_KEY))
-                mNavTeamPosition = savedInstanceState.getInt(NAV_SELECTED_TEAM_POSITION_KEY);
-    
-            if (savedInstanceState.containsKey(NAV_SELECTED_TEAM_FILTER_KEY)) {
-                mTeamFilter = savedInstanceState.getString(NAV_SELECTED_TEAM_FILTER_KEY);
-        
-                if (savedInstanceState.containsKey(NAV_SELECTED_TEAM_NAME_KEY)) {
-                    mSelectedTeamName = savedInstanceState.getString(NAV_SELECTED_TEAM_NAME_KEY);
-                    setTitle(mSelectedTeamName);
-                }
+            // Get title string, if not null (then it is 'all')
+            if (savedInstanceState.containsKey(Utils.KEY_FILTER_TITLE)) {
+                mFilterTitle = savedInstanceState.getString(Utils.KEY_FILTER_TITLE);
+                setTitle(mFilterTitle);
             }
     
-            // Get selected tag's position, filter url, and name
-            if (savedInstanceState.containsKey(NAV_SELECTED_TAG_POSITION_KEY))
-                mNavTagPosition = savedInstanceState.getInt(NAV_SELECTED_TAG_POSITION_KEY);
-    
-            if (savedInstanceState.containsKey(NAV_SELECTED_TAG_FILTER_KEY)) {
-                mTagFilter = savedInstanceState.getString(NAV_SELECTED_TAG_FILTER_KEY);
+            // Get filter type
+            if (savedInstanceState.containsKey(Utils.KEY_NAV_FILTER_TYPE)) {
+                mNavFilterType = savedInstanceState.getInt(Utils.KEY_NAV_FILTER_TYPE);
         
-                if (savedInstanceState.containsKey(NAV_SELECTED_TAG_NAME_KEY)) {
-                    mSelectedTagName = savedInstanceState.getString(NAV_SELECTED_TAG_NAME_KEY);
-                    setTitle(mSelectedTagName);
+                // If filter type is All, no need to read other values
+                if (mNavFilterType != Utils.NAV_LAYOUT_ALL) {
+            
+                    // Get selected item's id
+                    if (savedInstanceState.containsKey(NAV_SELECTED_ID_KEY))
+                        mNavSelectedId = savedInstanceState.getInt(NAV_SELECTED_ID_KEY);
+            
+                    // Get selected item's filter string
+                    if (savedInstanceState.containsKey(Utils.KEY_NAV_FILTER))
+                        mNavFilterString = savedInstanceState.getString(Utils.KEY_NAV_FILTER);
+                    
                 }
             }
     
             // Get search filter string
-            if (savedInstanceState.containsKey(SEARCH_STRING_KEY))
-                mRestoredSearchFilter = savedInstanceState.getString(SEARCH_STRING_KEY);
+            if (savedInstanceState.containsKey(Utils.KEY_SEARCH_FILTER))
+                mRestoredSearchFilter = savedInstanceState.getString(Utils.KEY_SEARCH_FILTER);
         }
         
         // Setup Nav Bar
@@ -311,14 +309,14 @@ public class MainActivity
     @Override
     protected void onPostCreate(@Nullable Bundle savedInstanceState) {
         super.onPostCreate(savedInstanceState);
-        
-        mToggle.syncState();
+    
+        mNavDrawerToggle.syncState();
     }
     
     @Override
     public void onConfigurationChanged(Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
-        mToggle.onConfigurationChanged(newConfig);
+        mNavDrawerToggle.onConfigurationChanged(newConfig);
     }
     
     @Override
@@ -330,14 +328,9 @@ public class MainActivity
                 new IntentFilter(Utils.DONE_LOCAL_BROADCAST_LISTENER_INTENT));
         
         // Register to save click location, and edit/delete buttons
-        mListView.setOnItemClickListener(this);
-        mListView.setMultiChoiceModeListener(this);
-        
-        mListView.setOnScrollListener(this);
-        
-        // Add click listener to nav list
-        mNavTeamListView.setOnItemClickListener(this);
-        mNavTagListView.setOnItemClickListener(this);
+        mTasksListView.setOnItemClickListener(this);
+        mTasksListView.setMultiChoiceModeListener(this);
+        mTasksListView.setOnScrollListener(this);
         
         // Register to get on swiped events
         SwipeRefreshLayout swp = (SwipeRefreshLayout) findViewById(R.id.swipe_refresh_layout);
@@ -364,10 +357,9 @@ public class MainActivity
         if (drawer != null && drawer.isDrawerOpen(GravityCompat.START)) {
             drawer.closeDrawer(GravityCompat.START);
     
-        } else if (mTeamFilter != null || mTagFilter != null) {
-            // FIXME: 12/05/16 implement back for tags, like teams
+        } else if (mNavFilterString != null) {
             // First 'back' goes back to showing all tasks
-            showTeam(null, false);
+            filterByTagOrTeam(Utils.NAV_LAYOUT_ALL, null, false, false);
             
         } else {
             // Second 'back' closes activity
@@ -433,8 +425,6 @@ public class MainActivity
         LocalBroadcastManager.getInstance(this).registerReceiver(mMessageReceiver,
                 new IntentFilter(Utils.DONE_LOCAL_BROADCAST_LISTENER_INTENT));
         
-        Log.v(LOG_TAG, "Got message from activity with result: " + resultCode);
-    
         switch (requestCode) {
             case Utils.NEW_DONE_ACTIVITY_IDENTIFIER: {
                 if (resultCode == RESULT_OK && data != null) {
@@ -475,18 +465,20 @@ public class MainActivity
         // Add hamburger icon toggle to action bar for the drawer
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
-        mToggle = new ActionBarDrawerToggle(
+        mNavDrawerToggle = new ActionBarDrawerToggle(
                 this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
         if (drawer != null)
-            drawer.addDrawerListener(mToggle);
-        
+            drawer.addDrawerListener(mNavDrawerToggle);
+    
+    
         // Add name and email address to nav header
         TextView navHeaderName = (TextView) findViewById(R.id.username_textview);
         if (navHeaderName != null)
             navHeaderName.setText(Utils.getUsername(MainActivity.this));
     
-        // Set up all tasks item
-        View allTasksView = findViewById(R.id.nav_all_tasks);
+    
+        // Set up ALL TASKS item
+        View allTasksView = findViewById(R.id.nav_drawer_all_tasks);
         if (allTasksView != null) {
             
             // Set text for All Tasks TextView
@@ -503,7 +495,8 @@ public class MainActivity
             allTasksView.setOnClickListener(this);
         }
     
-        // Set up settings item
+    
+        // Set up SETTINGS item
         View settingsView = findViewById(R.id.nav_settings);
         if (settingsView != null) {
             // Set text for Settings TextView
@@ -522,18 +515,9 @@ public class MainActivity
             settingsView.setOnClickListener(this);
         }
     
-        // Set up tags_placeholder item
-        mNavTagListAdapter = new NavTagListAdapter(this, R.layout.nav_list_row_layout, null, 0);
     
-        mNavTagListView = (ListView) findViewById(R.id.nav_drawer_tags_listview);
-        if (mNavTagListView != null) {
-            mNavTagListView.setEmptyView(findViewById(R.id.nav_tags_empty));
-            mNavTagListView.setAdapter(mNavTagListAdapter);
-        }
-    
-        getLoaderManager().initLoader(TAG_LIST_LOADER, null, this);
-/*
-        View tagsPlaceholderView = findViewById(R.id.nav_tags_placeholder);
+        // Set up EMPTY TAGS item
+        View tagsPlaceholderView = findViewById(R.id.nav_tags_empty);
         if (tagsPlaceholderView != null) {
             // Set text for Settings TextView
             TextView tagsPlaceholderTextView = (TextView) tagsPlaceholderView.findViewById(R.id.team_name_text_view);
@@ -550,26 +534,26 @@ public class MainActivity
             // Add click listener
             tagsPlaceholderView.setOnClickListener(this);
         }
-*/
-        
-        // Setup Nav TeamListView
-        mNavTeamListAdapter = new NavTeamListAdapter(this, R.layout.nav_list_row_layout, null, 0);
     
-        mNavTeamListView = (ListView) findViewById(R.id.nav_drawer_teams_listview);
-        if (mNavTeamListView != null)
-            mNavTeamListView.setAdapter(mNavTeamListAdapter);
-        
+        // Load tags
+        getLoaderManager().initLoader(TAG_LIST_LOADER, null, this);
+    
+        // Load teams
         getLoaderManager().initLoader(TEAM_LIST_LOADER, null, this);
+    
+        // Set initial highlighting
+        filterByTagOrTeam(mNavFilterType, null, false, true);
     }
+    
     
     private void setupTasksListView() {
         
         // Add listview adapter
         mTaskListAdapter = new TaskListAdapter(this, R.layout.tasks_list_row_layout, null, 0);
         
-        mListView = (ListView) findViewById(R.id.dones_list_view);
-        if (mListView != null)
-            mListView.setAdapter(mTaskListAdapter);
+        mTasksListView = (ListView) findViewById(R.id.dones_list_view);
+        if (mTasksListView != null)
+            mTasksListView.setAdapter(mTaskListAdapter);
         
         // Initialize the Loader with id TASK_LIST_LOADER and callbacks 'this'.
         getLoaderManager().initLoader(TASK_LIST_LOADER, null, this);
@@ -585,46 +569,127 @@ public class MainActivity
             );
     }
     
-    // FIXME: 12/05/16 Implement tag views like team views
-    private void showTeam(String teamURL, boolean isInit) {
-        if (teamURL != mTeamFilter || isInit) {
-            
-            if (teamURL == null) {
-                
-                // Show all teams
-                mTeamFilter = null;
-                
-                // Clear listview selection
-                mNavTeamListView.clearChoices();
-                mNavTeamListView.requestLayout();
-                
-                // Set app bar title
-                setTitle(R.string.app_name);
-                
-            } else {
-                
-                // Show selected teams
-                mTeamFilter = teamURL;
-                
-                // Highlight item in listview
-                if (mNavTeamPosition != ListView.INVALID_POSITION)
-                    mNavTeamListView.setItemChecked(mNavTeamPosition, true);
-                
-                // Set app bar title
-                setTitle(mSelectedTeamName);
-                
+    /**
+     * filters task list (and highlights selected nav drawer item)
+     *
+     * @param filterType             Tag or Team filter. Value from Utils.NAV_LAYOUT_TEAMS or Utils.NAV_LAYOUT_TAGS
+     * @param teamOrTagIdentifier    Bundle with either team id or tag id, both saved with same key as filterType
+     * @param isInit                 If called from init, to restart loader
+     * @param changeNavHighlightOnly called from loaderFinished when only nav highlighting needs to be changed - fields are already filtered
+     */
+    private void filterByTagOrTeam(int filterType, Bundle teamOrTagIdentifier, boolean isInit, boolean changeNavHighlightOnly) {
+        
+        // Uncheck previously selected items
+        switch (mNavFilterType) {
+            case Utils.NAV_LAYOUT_TEAMS: {
+                View teamsLinearLayout = findViewById(R.id.nav_drawer_teams);
+                if (teamsLinearLayout != null) {
+                    View selectedTeamView = teamsLinearLayout.findViewById(mNavSelectedId);
+                    if (selectedTeamView != null)
+                        selectedTeamView.setSelected(false);
+                }
+                break;
             }
             
-            // Mark all tasks selected/unselected
-            View alltasksItem = findViewById(R.id.nav_all_tasks);
-            if (alltasksItem != null)
-                alltasksItem.setSelected(teamURL == null);
+            case Utils.NAV_LAYOUT_TAGS: {
+                View tagsLinearLayout = findViewById(R.id.nav_drawer_tags);
+                if (tagsLinearLayout != null) {
+                    View selectedTagView = tagsLinearLayout.findViewById(mNavSelectedId);
+                    if (selectedTagView != null)
+                        selectedTagView.setSelected(false);
+                }
+                break;
+            }
             
-            
-            // Restart loader if not equals "init"
-            if (!isInit)
-                getLoaderManager().restartLoader(0, null, this);
+            case Utils.NAV_LAYOUT_ALL: {
+                View alltasksItem = findViewById(R.id.nav_drawer_all_tasks);
+                if (alltasksItem != null)
+                    alltasksItem.setSelected(false);
+                break;
+            }
         }
+        
+        // Select new selected item, and set title
+        switch (filterType) {
+            
+            case Utils.NAV_LAYOUT_TEAMS: {
+                // Get item url
+                int teamId = changeNavHighlightOnly ? mNavSelectedId : teamOrTagIdentifier.getInt(DoneListContract.TeamEntry.COLUMN_NAME_ID);
+                String teamURL = changeNavHighlightOnly ? mNavFilterString : teamOrTagIdentifier.getString(DoneListContract.TeamEntry.COLUMN_NAME_URL);
+                
+                // Check selected item
+                View teamsLinearLayout = findViewById(R.id.nav_drawer_teams);
+                if (teamsLinearLayout != null) {
+                    View selectedTeamView = teamsLinearLayout.findViewById(teamId);
+                    if (selectedTeamView != null)
+                        selectedTeamView.setSelected(true);
+                }
+                
+                // Set filter
+                if (!changeNavHighlightOnly) {
+                    mNavFilterString = teamURL;
+                    mFilterTitle = teamOrTagIdentifier.getString(DoneListContract.TeamEntry.COLUMN_NAME_NAME);
+                    mNavSelectedId = teamId;
+                    setTitle(mFilterTitle);
+                }
+                
+                break;
+            }
+            
+            case Utils.NAV_LAYOUT_TAGS: {
+                // Get item url
+                int tagId = changeNavHighlightOnly ? mNavSelectedId : teamOrTagIdentifier.getInt(DoneListContract.TagEntry.COLUMN_NAME_ID);
+                
+                // Check selected item
+                View tagsLinearLayout = findViewById(R.id.nav_drawer_tags);
+                if (tagsLinearLayout != null) {
+                    View selectedTagView = tagsLinearLayout.findViewById(tagId);
+                    if (selectedTagView != null)
+                        selectedTagView.setSelected(true);
+                }
+                
+                // Set filter
+                if (!changeNavHighlightOnly) {
+                    mNavFilterString = DoneListContract.TagEntry.TAG_ID_PRE + tagId + DoneListContract.TagEntry.TAG_ID_POST;
+                    mFilterTitle = "#" + teamOrTagIdentifier.getString(DoneListContract.TagEntry.COLUMN_NAME_NAME);
+                    mNavSelectedId = tagId;
+                    setTitle(mFilterTitle);
+                }
+                
+                break;
+            }
+            
+            case Utils.NAV_LAYOUT_ALL: {
+                // Check selected item
+                View alltasksItem = findViewById(R.id.nav_drawer_all_tasks);
+                if (alltasksItem != null)
+                    alltasksItem.setSelected(true);
+                
+                // Set filter
+                if (!changeNavHighlightOnly) {
+                    mNavFilterString = null;
+                    mFilterTitle = null;
+                    mNavSelectedId = -1;
+                    setTitle(R.string.app_name);
+                }
+                
+                break;
+            }
+            
+            default:
+                Log.w(LOG_TAG, "filterByTagOrTeam: Unidentified filterType: " + filterType);
+        }
+        
+        mNavFilterType = filterType;
+        
+        // Restart loader to filter tasks, if not equals "init"
+        if (!isInit && !changeNavHighlightOnly)
+            getLoaderManager().restartLoader(TASK_LIST_LOADER, null, this);
+        
+        // Close drawer
+        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
+        if (drawer != null)
+            drawer.closeDrawer(GravityCompat.START);
     }
     
     public void toNewDone(View view) {
@@ -661,7 +726,6 @@ public class MainActivity
                         getContentResolver().delete(DoneListContract.DoneEntry.CONTENT_URI, null, null);
                         getContentResolver().delete(DoneListContract.TeamEntry.CONTENT_URI, null, null);
                         mTaskListAdapter.notifyDataSetChanged();
-                        //mListView.setAdapter(null);
                         Log.v(LOG_TAG, "Database deleted.");
                         
                         // Empty sharedPreferences & set to default
@@ -687,7 +751,6 @@ public class MainActivity
     }
     
     private void showAbout() {
-        Log.v(LOG_TAG, "Opening about dialog");
         Intent aboutIntent = new Intent(MainActivity.this, AboutActivity.class);
         startActivity(aboutIntent);
     }
@@ -709,7 +772,7 @@ public class MainActivity
         Log.v(LOG_TAG, "Delete selected items: " + ids.length);
     
         // Log event in analytics
-        Utils.sendEvent(mTracker, "Action", "DeleteDones", String.valueOf(ids.length));
+        Utils.sendEvent(mTracker, "Action", "Task Deleted - MainActivity", String.valueOf(ids.length));
         
         // Delete selected ids from database, then from server, finishing with updating tasks from server on success
         int deletedCount = new DoneActions(getApplicationContext()).delete(ids);
@@ -731,9 +794,7 @@ public class MainActivity
     
     @Override
     public Loader<Cursor> onCreateLoader(int id, Bundle args) {
-        // This is called when a new Loader needs to be created.  This
-        // fragment only uses one loader, so we don't care about checking the id.
-    
+        
         switch (id) {
         
             case TASK_LIST_LOADER: {
@@ -760,38 +821,51 @@ public class MainActivity
             
                 // Filter out deleted tasks
                 String selection = DoneListContract.DoneEntry.COLUMN_NAME_IS_DELETED + " IS 'FALSE'";
-            
+    
+                switch (mNavFilterType) {
+                    case Utils.NAV_LAYOUT_ALL: {
+                        // Show all, no filter required
+                        break;
+                    }
+        
+                    case Utils.NAV_LAYOUT_TEAMS: {
+                        // Add team filtering string
+                        selection += " AND " +
+                                DoneListContract.DoneEntry.COLUMN_NAME_TEAM +
+                                " IS '" +
+                                mNavFilterString +
+                                "'";
+                        break;
+                    }
+        
+                    case Utils.NAV_LAYOUT_TAGS: {
+                        // Add tag filtering string
+                        selection += " AND " +
+                                DoneListContract.DoneEntry.COLUMN_NAME_TAGS +
+                                " LIKE '%" +
+                                mNavFilterString +
+                                "%'";
+                        break;
+                    }
+        
+                }
+                
                 // Search filter
                 if (mSearchFilter != null) {
                     String[] filterArr = mSearchFilter.split(" +");
                 
                     for (String filterString : filterArr) {
-                        selection += " AND " +
+                        selection += " AND (" +
                                 DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT +
                                 " LIKE '%" +
                                 filterString +
-                                "%'";
+                                "%' OR " +
+                                DoneListContract.DoneEntry.COLUMN_NAME_OWNER +
+                                " LIKE '%" +
+                                filterString +
+                                "%')";
                     }
                 }
-            
-                // Team filter
-                if (mTeamFilter != null) {
-                    selection += " AND " +
-                            DoneListContract.DoneEntry.COLUMN_NAME_TEAM +
-                            " IS '" +
-                            mTeamFilter +
-                            "'";
-                }
-            
-                // Tag filter
-                if (mTagFilter != null) {
-                    selection += " AND " +
-                            DoneListContract.DoneEntry.COLUMN_NAME_TAGS +
-                            " LIKE '%" +
-                            mTagFilter +
-                            "%'";
-                }
-                
                 
                 return new CursorLoader(this,
                         donesUri,
@@ -800,11 +874,11 @@ public class MainActivity
                         null,
                         sortOrder);
             }
-    
+            
             case TEAM_LIST_LOADER: {
                 
                 Uri teamUri = DoneListContract.TeamEntry.CONTENT_URI;
-    
+                
                 String sortOrder = DoneListContract.TeamEntry.COLUMN_NAME_NAME + " COLLATE NOCASE ASC, " +
                         "_id ASC";
                 
@@ -823,13 +897,13 @@ public class MainActivity
                         null,
                         sortOrder);
             }
-        
+    
             case TAG_LIST_LOADER: {
-            
+                
                 Uri tagUri = DoneListContract.TagEntry.CONTENT_URI;
-            
+                
                 String sortOrder = DoneListContract.TagEntry.COLUMN_NAME_NAME + " COLLATE NOCASE ASC";
-            
+                
                 String[] cursorProjectionString = new String[]{
                         DoneListContract.TagEntry.COLUMN_NAME_ID + " AS _id",
                         DoneListContract.TagEntry.COLUMN_NAME_NAME
@@ -851,37 +925,23 @@ public class MainActivity
     
     @Override
     public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
-        switch (loader.getId()) {
-    
+        int loaderId = loader.getId();
+        
+        switch (loaderId) {
+            
             case TASK_LIST_LOADER: {
                 mTaskListAdapter.swapCursor(data);
-            
-                if (mPosition != ListView.INVALID_POSITION)
-                    mListView.smoothScrollToPosition(mPosition);
-            
+    
+                if (mTaskListPosition != ListView.INVALID_POSITION)
+                    mTasksListView.smoothScrollToPosition(mTaskListPosition);
+    
                 break;
             }
     
-            case TEAM_LIST_LOADER: {
-                mNavTeamListAdapter.swapCursor(data);
-    
-                if (mNavTeamPosition != ListView.INVALID_POSITION)
-                    mNavTeamListView.smoothScrollToPosition(mNavTeamPosition);
-            
-                showTeam(mTeamFilter, true);
-            
-                break;
-            }
-    
+            case TEAM_LIST_LOADER:
             case TAG_LIST_LOADER: {
-                mNavTagListAdapter.swapCursor(data);
-        
-                if (mNavTagPosition != ListView.INVALID_POSITION)
-                    mNavTagListView.smoothScrollToPosition(mNavTagPosition);
-        
-                // FIXME: 12/05/16 Set to tag filter if not null
-                //showTeam(mTagFilter, true);
-        
+                populateLayoutFromCursor(data, loaderId);
+                
                 break;
             }
             
@@ -890,25 +950,148 @@ public class MainActivity
         }
     }
     
+    /**
+     * Populate linear layouts in nav drawer with teams and tags
+     *
+     * @param cursor   database cursor to tags or teams
+     * @param itemType identifier for tags or teams - Utils.NAV_LAYOUT_TEAMS or Utils.NAV_LAYOUT_TAGS
+     */
+    private void populateLayoutFromCursor(Cursor cursor, int itemType) {
+        // Get linear layout to populate
+        LinearLayout linearLayout = (LinearLayout) findViewById(idToLayoutMap.get(itemType));
+        
+        if (linearLayout != null && cursor != null) {
+            // Clear out previous data in linear layout
+            linearLayout.removeAllViews();
+            
+            // Set height for list items
+            LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    (int) getResources().getDimension(R.dimen._48dp));
+            
+            switch (itemType) {
+                case TAG_LIST_LOADER: {
+                    // Iterate over cursor to populate
+                    
+                    int idColIndex = cursor.getColumnIndex("_id");
+                    int nameColIndex = cursor.getColumnIndex(DoneListContract.TagEntry.COLUMN_NAME_NAME);
+                    
+                    // When loader is already initialised (recreate activity on finished/rotated), 
+                    // cursor is beyond last (from previous iteration). 
+                    // Move it to first before starting.
+                    cursor.moveToFirst();
+                    
+                    do {
+                        // Set item id
+                        View view = getLayoutInflater().inflate(R.layout.nav_list_row_layout, null);
+                        view.setId(cursor.getInt(idColIndex));
+                        view.setLayoutParams(layoutParams);
+                        view.setOnClickListener(navTagsClickListener);
+                        
+                        // Set image resource for tag icon
+                        ImageView tagIconImageView = (ImageView) view.findViewById(R.id.nav_team_color_patch);
+                        BitmapDrawable settingsIcon = (BitmapDrawable) ContextCompat.getDrawable(getApplicationContext(), R.drawable.ic_label_black_24dp).mutate();
+                        settingsIcon.setAlpha(0x8A);
+                        if (tagIconImageView != null)
+                            tagIconImageView.setImageDrawable(settingsIcon);
+                        
+                        // Set tag name
+                        TextView tagNameTextView = (TextView) view.findViewById(R.id.team_name_text_view);
+                        tagNameTextView.setText(cursor.getString(nameColIndex));
+                        
+                        linearLayout.addView(view);
+                        
+                    } while (cursor.moveToNext());
+                    
+                    if (mNavFilterType == Utils.NAV_LAYOUT_TAGS) {
+                        Bundle tagDetailsBundle = new Bundle();
+                        tagDetailsBundle.putInt(DoneListContract.TagEntry.COLUMN_NAME_ID, mNavSelectedId);
+                        tagDetailsBundle.putString(DoneListContract.TagEntry.COLUMN_NAME_NAME, mFilterTitle);
+                        
+                        filterByTagOrTeam(mNavFilterType, tagDetailsBundle, false, true);
+                    }
+                    
+                    break;
+                }
+                
+                case TEAM_LIST_LOADER: {
+                    // Iterate over cursor to populate
+                    
+                    int idColIndex = cursor.getColumnIndex("_id");
+                    int nameColIndex = cursor.getColumnIndex(DoneListContract.TeamEntry.COLUMN_NAME_NAME);
+                    int urlColIndex = cursor.getColumnIndex(DoneListContract.TeamEntry.COLUMN_NAME_URL);
+                    
+                    // When loader is already initialised (recreate activity on finished/rotated), 
+                    // cursor is beyond last (from previous iteration). 
+                    // Move it to first before starting.
+                    cursor.moveToFirst();
+                    
+                    do {
+                        // Set item id
+                        View view = getLayoutInflater().inflate(R.layout.nav_list_row_layout, null);
+                        view.setId(cursor.getInt(idColIndex));
+                        view.setLayoutParams(layoutParams);
+                        view.setOnClickListener(navTeamsClickListener);
+                        
+                        // Set team colour
+                        int teamColor = Utils.findTeam(getApplicationContext(), cursor.getString(urlColIndex));
+                        
+                        ImageView teamSpace = (ImageView) view.findViewById(R.id.nav_team_color_patch);
+                        
+                        GradientDrawable teamCircle = (GradientDrawable) teamSpace.getDrawable().mutate();
+                        teamCircle.setColor(ContextCompat.getColor(getApplicationContext(), Utils.colorArray[teamColor == -1 ? 0 : teamColor % Utils.colorArray.length]));
+                        
+                        // Set team name
+                        TextView teamNameTextView = (TextView) view.findViewById(R.id.team_name_text_view);
+                        teamNameTextView.setText(cursor.getString(nameColIndex));
+                        
+                        linearLayout.addView(view);
+                    } while (cursor.moveToNext());
+                    
+                    if (mNavFilterType == Utils.NAV_LAYOUT_TEAMS) {
+                        Bundle teamDetailsBundle = new Bundle();
+                        teamDetailsBundle.putInt(DoneListContract.TagEntry.COLUMN_NAME_ID, mNavSelectedId);
+                        teamDetailsBundle.putString(DoneListContract.TagEntry.COLUMN_NAME_NAME, mFilterTitle);
+                        teamDetailsBundle.putString(DoneListContract.TeamEntry.COLUMN_NAME_URL, mNavFilterString);
+                        
+                        filterByTagOrTeam(mNavFilterType, teamDetailsBundle, false, true);
+                    }
+                    
+                    break;
+                }
+            }
+        } else
+            Log.w(LOG_TAG, "Either layout, or cursor are null");
+    }
+    
+    private void clearLayout(int itemType) {
+        // Get linear layout to populate
+        LinearLayout linearLayout = (LinearLayout) findViewById(idToLayoutMap.get(itemType));
+        
+        if (linearLayout != null) {
+            // Clear out previous data in linear layout
+            linearLayout.removeAllViews();
+        }
+    }
+    
     @Override
     public void onLoaderReset(Loader<Cursor> loader) {
         switch (loader.getId()) {
-    
             case TASK_LIST_LOADER: {
                 mTaskListAdapter.swapCursor(null);
                 break;
             }
     
             case TEAM_LIST_LOADER: {
-                mNavTeamListAdapter.swapCursor(null);
+                clearLayout(Utils.NAV_LAYOUT_TEAMS);
                 break;
             }
     
             case TAG_LIST_LOADER: {
-                mNavTagListAdapter.swapCursor(null);
+                clearLayout(Utils.NAV_LAYOUT_TAGS);
                 break;
             }
-        
+            
             default:
                 Log.e(LOG_TAG, "No such loader.");
         }
@@ -951,8 +1134,6 @@ public class MainActivity
      */
     @Override
     public void onRefresh() {
-        Log.v(LOG_TAG, "Calling syncImmediately from swipe to refresh");
-        
         // Track event in analytics
         Utils.sendEvent(mTracker, "Action", "PullToRefresh");
         
@@ -964,42 +1145,38 @@ public class MainActivity
      */
     @Override
     public void onSaveInstanceState(Bundle outState) {
-        // When no item is selected, mPosition will be set to Listview.INVALID_POSITION,
+        // When no item is selected, mTaskListPosition will be set to Listview.INVALID_POSITION,
         // so check for that before storing.
-        if (mPosition != ListView.INVALID_POSITION)
-            outState.putInt(TASK_SELECTED_KEY, mPosition);
+        if (mTaskListPosition != ListView.INVALID_POSITION)
+            outState.putInt(TASK_SELECTED_KEY, mTaskListPosition);
     
-        if (mNavTeamPosition != ListView.INVALID_POSITION)
-            outState.putInt(NAV_SELECTED_TEAM_POSITION_KEY, mNavTeamPosition);
+        // Store variables only if in nav filtered state 
+        if (mNavFilterType != Utils.NAV_LAYOUT_ALL) {
+            outState.putInt(Utils.KEY_NAV_FILTER_TYPE, mNavFilterType);
         
-        if (mTeamFilter != null)
-            outState.putString(NAV_SELECTED_TEAM_FILTER_KEY, mTeamFilter);
+            // Get selected item's id
+            outState.putInt(NAV_SELECTED_ID_KEY, mNavSelectedId);
+        
+            // Get selected item's filter string
+            outState.putString(Utils.KEY_NAV_FILTER, mNavFilterString);
+        } else {
+            outState.remove(Utils.KEY_NAV_FILTER_TYPE);
+            outState.remove(NAV_SELECTED_ID_KEY);
+            outState.remove(Utils.KEY_NAV_FILTER);
+        }
+    
+        // Store filter string name
+        if (mFilterTitle != null)
+            outState.putString(Utils.KEY_FILTER_TITLE, mFilterTitle);
         else
-            outState.remove(NAV_SELECTED_TEAM_FILTER_KEY);
+            outState.remove(Utils.KEY_FILTER_TITLE);
     
-        if (mSelectedTeamName != null)
-            outState.putString(NAV_SELECTED_TEAM_NAME_KEY, mSelectedTeamName);
-        else
-            outState.remove(NAV_SELECTED_TEAM_NAME_KEY);
-    
-        if (mNavTagPosition != ListView.INVALID_POSITION)
-            outState.putInt(NAV_SELECTED_TAG_POSITION_KEY, mNavTagPosition);
-    
-        if (mTagFilter != null)
-            outState.putString(NAV_SELECTED_TAG_FILTER_KEY, mTagFilter);
-        else
-            outState.remove(NAV_SELECTED_TAG_FILTER_KEY);
-    
-        if (mSelectedTagName != null)
-            outState.putString(NAV_SELECTED_TAG_NAME_KEY, mSelectedTagName);
-        else
-            outState.remove(NAV_SELECTED_TAG_NAME_KEY);
-    
+        // Store search filter string
         if (mSearchFilter != null)
-            outState.putString(SEARCH_STRING_KEY, mSearchFilter);
+            outState.putString(Utils.KEY_SEARCH_FILTER, mSearchFilter);
         else
-            outState.remove(SEARCH_STRING_KEY);
-    
+            outState.remove(Utils.KEY_SEARCH_FILTER);
+        
         super.onSaveInstanceState(outState);
     }
     
@@ -1014,7 +1191,7 @@ public class MainActivity
     @Override
     public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
         // Save position
-        mPosition = firstVisibleItem;
+        mTaskListPosition = firstVisibleItem;
     }
     
     /**
@@ -1023,68 +1200,21 @@ public class MainActivity
     @Override
     public void onItemClick(AdapterView<?> adapterView, View view, int position, long rowId) {
     
-        switch (adapterView.getId()) {
-            case R.id.dones_list_view: {
-                // CursorAdapter returns a cursor at the correct position for getItem(), or null
-                // if it cannot seek to that position.
-                //Cursor cursor = (Cursor) adapterView.getItemAtPosition(position);
+        mTaskListPosition = position;
     
-                mPosition = position;
+        Intent taskDetailsActivity = new Intent(MainActivity.this, TaskDetailsActivity.class);
+        // Initial task to show details of 
+        taskDetailsActivity.putExtra(Utils.KEY_SELECTED_TASK_ID, rowId);
+        // Title string - search string, team name, or #tag
+        taskDetailsActivity.putExtra(Utils.KEY_FILTER_TITLE, mFilterTitle);
+        // Search string to filter in sql query
+        taskDetailsActivity.putExtra(Utils.KEY_SEARCH_FILTER, mSearchFilter);
+        // Actual string to filter in sqlite query
+        taskDetailsActivity.putExtra(Utils.KEY_NAV_FILTER, mNavFilterString);
+        // Type - tags, teams, or all
+        taskDetailsActivity.putExtra(Utils.KEY_NAV_FILTER_TYPE, mNavFilterType);
     
-                Intent taskDetailsActivity = new Intent(MainActivity.this, TaskDetailsActivity.class);
-                taskDetailsActivity.putExtra(Utils.TASK_DETAILS_TASK_ID, rowId);
-                taskDetailsActivity.putExtra(Utils.TASK_DETAILS_SEARCH_FILTER, mSearchFilter);
-                taskDetailsActivity.putExtra(Utils.TASK_DETAILS_TEAM_FILTER, mTeamFilter);
-                taskDetailsActivity.putExtra(Utils.TASK_DETAILS_TEAM_NAME, mSelectedTeamName);
-                startActivityForResult(taskDetailsActivity, Utils.TASK_DETAILS_ACTIVITY_IDENTIFIER);
-                
-                break;
-            }
-    
-            case R.id.nav_drawer_teams_listview: {
-                // Set selected option position for next drawer open
-                mNavTeamPosition = position;
-        
-                // Set item as selected - done in method showTeam
-                //mNavTeamListView.setItemChecked(position, true);
-        
-                TextView teamNameTextView = (TextView) view.findViewById(R.id.team_name_text_view);
-                if (teamNameTextView != null)
-                    mSelectedTeamName = (String) teamNameTextView.getText();
-            
-                showTeam(Utils.getTeams(MainActivity.this)[position], false);
-            
-                // Close drawer
-                DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
-                if (drawer != null)
-                    drawer.closeDrawer(GravityCompat.START);
-            
-                break;
-            }
-        
-            case R.id.nav_drawer_tags_listview: {
-                // Set selected option position for next drawer open
-                mNavTagPosition = position;
-            
-                // Set item as selected - done in method showTeam
-                //mNavTeamListView.setItemChecked(position, true);
-            
-                TextView tagNameTextView = (TextView) view.findViewById(R.id.team_name_text_view);
-                if (tagNameTextView != null)
-                    mSelectedTagName = (String) tagNameTextView.getText();
-            
-                // FIXME: 12/05/16 Action to be taken on team selection
-                //showTeam(Utils.getTeams(MainActivity.this)[position], false);
-                Log.wtf(LOG_TAG, "Tag selected: " + mSelectedTagName + "(" + rowId + ")");
-            
-                // Close drawer
-                DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
-                if (drawer != null)
-                    drawer.closeDrawer(GravityCompat.START);
-            
-                break;
-            }
-        }
+        startActivityForResult(taskDetailsActivity, Utils.TASK_DETAILS_ACTIVITY_IDENTIFIER);
     }
     
     @Override
@@ -1096,7 +1226,7 @@ public class MainActivity
         
             if (!taskOwner.equals(Utils.getUsername(getApplicationContext()))) {
                 // Uncheck the item
-                mListView.setItemChecked(position, false);
+                mTasksListView.setItemChecked(position, false);
             
                 // Show error toast
                 Toast.makeText(
@@ -1111,7 +1241,7 @@ public class MainActivity
     
     
         // Show edit and delete buttons based on number of checked items
-        int checkedCount = mListView.getCheckedItemCount();
+        int checkedCount = mTasksListView.getCheckedItemCount();
         mode.setTitle(checkedCount + " tasks selected");
         
         if (checkedCount == 2 && checked) {
@@ -1133,14 +1263,14 @@ public class MainActivity
     @Override
     public boolean onPrepareActionMode(ActionMode mode, Menu menu) {
         // Hide or show edit button, based on whether more than one items is selected
-        menu.findItem(R.id.menu_edit_done).setVisible(mListView.getCheckedItemCount() <= 1);
+        menu.findItem(R.id.menu_edit_done).setVisible(mTasksListView.getCheckedItemCount() <= 1);
         return true;
     }
     
     @Override
     public boolean onActionItemClicked(ActionMode mode, MenuItem item) {
         // Respond to clicks on the actions in the CAB
-        final long[] selectedTasks = mListView.getCheckedItemIds();
+        final long[] selectedTasks = mTasksListView.getCheckedItemIds();
         
         switch (item.getItemId()) {
             
@@ -1164,9 +1294,9 @@ public class MainActivity
             
             case R.id.menu_edit_done:
                 Log.v(LOG_TAG, "Edit selected item");
-                
+    
                 // Log event in analytics
-                Utils.sendEvent(mTracker, "Action", "EditDone");
+                Utils.sendEvent(mTracker, "Action", "Edit Item Clicked on MainActivity");
                 
                 // Action picked, so close the CAB
                 mode.finish();
@@ -1188,13 +1318,9 @@ public class MainActivity
     @Override
     public void onClick(View v) {
         switch (v.getId()) {
-            case R.id.nav_all_tasks: {
-                showTeam(null, false);
-                
-                // Close drawer
-                DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
-                if (drawer != null)
-                    drawer.closeDrawer(GravityCompat.START);
+            case R.id.nav_drawer_all_tasks: {
+                mFilterTitle = null;
+                filterByTagOrTeam(Utils.NAV_LAYOUT_ALL, null, false, false);
                 
                 break;
             }
@@ -1204,9 +1330,9 @@ public class MainActivity
                 startActivity(settingsIntent);
                 break;
             }
-    
+        
             case R.id.nav_tags_empty: {
-                Utils.sendEvent(mTracker, "action", "tagsEmpty");
+                Utils.sendEvent(mTracker, "Action", "Empty Tags Clicked");
                 Log.i(LOG_TAG, "Tags empty placeholder clicked");
                 break;
             }
@@ -1216,4 +1342,82 @@ public class MainActivity
         }
     }
     
+    
+    private class NavTagsClickListener implements View.OnClickListener {
+        @Override
+        public void onClick(View v) {
+            int tagId = v.getId();
+            
+            Bundle tagDetailsBundle = new Bundle();
+            tagDetailsBundle.putInt(DoneListContract.TagEntry.COLUMN_NAME_ID, tagId);
+            
+            Cursor cursor = getContentResolver().query(
+                    DoneListContract.TagEntry.CONTENT_URI,
+                    new String[]{
+                            DoneListContract.TagEntry.COLUMN_NAME_NAME,
+                            DoneListContract.TagEntry.COLUMN_NAME_ID,
+                    },
+                    DoneListContract.TagEntry.COLUMN_NAME_ID + " IS ?",
+                    new String[]{
+                            String.valueOf(tagId)
+                    },
+                    null
+            );
+            
+            if (cursor != null) {
+                cursor.moveToNext();
+                
+                tagDetailsBundle.putString(DoneListContract.TagEntry.COLUMN_NAME_NAME,
+                        cursor.getString(cursor.getColumnIndex(DoneListContract.TagEntry.COLUMN_NAME_NAME)));
+                //mFilterTitle = cursor.getString(cursor.getColumnIndex(DoneListContract.TagEntry.COLUMN_NAME_NAME));
+                
+                cursor.close();
+                
+                filterByTagOrTeam(Utils.NAV_LAYOUT_TAGS, tagDetailsBundle, false, false);
+                
+            } else
+                Log.w(LOG_TAG, "NavTeamsClickListener.onClick: No such team found!");
+        }
+    }
+    
+    private class NavTeamsClickListener implements View.OnClickListener {
+        @Override
+        public void onClick(View v) {
+            int teamId = v.getId();
+            
+            Bundle teamDetailsBundle = new Bundle();
+            teamDetailsBundle.putInt(DoneListContract.TeamEntry.COLUMN_NAME_ID, teamId);
+            
+            Cursor cursor = getContentResolver().query(
+                    DoneListContract.TeamEntry.CONTENT_URI,
+                    new String[]{
+                            DoneListContract.TeamEntry.COLUMN_NAME_NAME,
+                            DoneListContract.TeamEntry.COLUMN_NAME_URL,
+                            DoneListContract.TeamEntry.COLUMN_NAME_SHORT_NAME,
+                            DoneListContract.TeamEntry.COLUMN_NAME_ID,
+                    },
+                    DoneListContract.TeamEntry.COLUMN_NAME_ID + " IS ?",
+                    new String[]{
+                            String.valueOf(teamId)
+                    },
+                    null
+            );
+            
+            if (cursor != null) {
+                cursor.moveToNext();
+                
+                teamDetailsBundle.putString(DoneListContract.TeamEntry.COLUMN_NAME_URL,
+                        cursor.getString(cursor.getColumnIndex(DoneListContract.TeamEntry.COLUMN_NAME_URL)));
+                
+                teamDetailsBundle.putString(DoneListContract.TeamEntry.COLUMN_NAME_NAME,
+                        cursor.getString(cursor.getColumnIndex(DoneListContract.TeamEntry.COLUMN_NAME_NAME)));
+                //mFilterTitle = cursor.getString(cursor.getColumnIndex(DoneListContract.TeamEntry.COLUMN_NAME_NAME));
+                
+                cursor.close();
+                
+                filterByTagOrTeam(Utils.NAV_LAYOUT_TEAMS, teamDetailsBundle, false, false);
+            } else
+                Log.w(LOG_TAG, "NavTeamsClickListener.onClick: No such team found!");
+        }
+    }
 }

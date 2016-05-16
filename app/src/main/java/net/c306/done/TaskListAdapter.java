@@ -56,9 +56,8 @@ public class TaskListAdapter extends ResourceCursorAdapter {
                 cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_TEAM)
         ));
     
-        teamSpace.setBackgroundResource(Utils.colorArray[teamColor == -1 ? 0 : teamColor]);
-    
-    
+        teamSpace.setBackgroundResource(Utils.colorArray[teamColor == -1 ? 0 : teamColor % Utils.colorArray.length]);
+        
         // Set text
         TextView rawTextTextView = (TextView) view.findViewById(R.id.text_view_task_text);
         

@@ -23,79 +23,83 @@
         android:fitsSystemWindows="false"
         android:maxWidth="@dimen/nav_max_width">
 
+        <!-- To position Settings at bottom (like Inbox) -->
         <RelativeLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent">
 
-            <LinearLayout
+            <!-- To ensure the team and tags list scroll like material guidelines & Inbox -->
+            <ScrollView
                 android:layout_width="match_parent"
-                android:layout_height="match_parent"
+                android:layout_height="match_parent">
+
+                <!-- Linear layout for nav bar contents, including tags, teams, headers, and all tasks -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
                 android:background="@android:color/background_light"
                 android:orientation="vertical">
 
-                <!-- Import header layout-->
-                <include layout="@layout/nav_header_main_nav_drawer"/>
+                    <!-- Import header layout-->
+                    <include layout="@layout/nav_header_main_nav_drawer"/>
 
-                <!-- All teams -->
-                <include
-                    android:id="@+id/nav_all_tasks"
-                    layout="@layout/nav_list_row_layout"
-                    android:layout_width="match_parent"
-                    android:layout_height="@dimen/nav_list_item_height"
-                    android:layout_marginTop="@dimen/_8dp_half"/>
+                    <!-- All teams link -->
+                    <include
+                        android:id="@+id/nav_drawer_all_tasks"
+                        layout="@layout/nav_list_row_layout"
+                        android:layout_width="match_parent"
+                        android:layout_height="@dimen/nav_list_item_height"
+                        android:layout_marginTop="@dimen/_8dp_half"/>
 
-                <!-- Divider -->
-                <View style="@style/divider"/>
+                    <!-- Divider -->
+                    <View style="@style/divider"/>
 
-                <!-- Teams sub header -->
-                <TextView
-                    style="@style/nav_subtitle"
-                    android:text="@string/teams_header"/>
+                    <!-- Teams sub header -->
+                    <!--
+                                    <TextView
+                                        style="@style/nav_subtitle"
+                                        android:text="@string/teams_header"/>
+                    -->
 
-                <!-- ListView for teams -->
-                <ListView
-                    android:id="@+id/nav_drawer_teams_listview"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:choiceMode="singleChoice"
-                    android:divider="@android:color/transparent"
-                    android:dividerHeight="0dp"
-                    android:paddingBottom="@dimen/_8dp_half"/>
+                    <!-- Linear layout for teams -->
+                    <LinearLayout
+                        android:id="@+id/nav_drawer_teams"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"/>
 
-                <!-- Divider -->
-                <View style="@style/divider"/>
+                    <!-- Divider -->
+                    <View style="@style/divider"/>
 
-                <!-- Teams sub header -->
-                <TextView
-                    style="@style/nav_subtitle"
-                    android:text="@string/tags_header"/>
+                    <!-- Tags sub header -->
+                    <!--
+                                    <TextView
+                                        style="@style/nav_subtitle"
+                                        android:text="@string/tags_header"/>
+                    -->
 
-                <!-- ListView for tags -->
-                <ListView
-                    android:id="@+id/nav_drawer_tags_listview"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:choiceMode="singleChoice"
-                    android:divider="@android:color/transparent"
-                    android:dividerHeight="0dp"
-                    android:isScrollContainer="false"
-                    android:paddingBottom="@dimen/_8dp_half"
-                    android:scrollbars="none"/>
+                    <!-- Linear layout for tags -->
+                    <LinearLayout
+                        android:id="@+id/nav_drawer_tags"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"/>
 
-                <!-- Placeholder: remove when tags are implemented -->
-                <include
-                    android:id="@+id/nav_tags_empty"
-                    layout="@layout/nav_list_row_layout"
-                    android:layout_width="match_parent"
-                    android:layout_height="@dimen/nav_list_item_height"
-                    android:layout_marginBottom="@dimen/_8dp_half"/>
+                    <!-- Placeholder: remove when tags are implemented -->
+                    <include
+                        android:id="@+id/nav_tags_empty"
+                        layout="@layout/nav_list_row_layout"
+                        android:layout_width="match_parent"
+                        android:layout_height="@dimen/nav_list_item_height"
+                        android:layout_marginBottom="@dimen/_8dp_half"/>
 
-                <!-- Divider -->
-                <View style="@style/divider"/>
+                    <!-- Divider -->
+                    <View style="@style/divider"/>
 
-            </LinearLayout>
+                </LinearLayout>
+            </ScrollView>
 
-            <!-- Settings -->
+            <!-- Settings & Feedback -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

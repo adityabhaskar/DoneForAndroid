@@ -170,10 +170,17 @@ public class Utils {
     public static final int CHECK_TOKEN_OTHER_ERROR = 19815;
     
     // TASK DETAILS FRAGMENT RELATED CONSTANTS
-    public static final String TASK_DETAILS_TASK_ID = "task_id";
-    public static final String TASK_DETAILS_SEARCH_FILTER = "search_filter";
-    public static final String TASK_DETAILS_TEAM_FILTER = "team_filter";
-    public static final String TASK_DETAILS_TEAM_NAME = "team_name";
+    public static final String KEY_SELECTED_TASK_ID = "task_id";
+    public static final String KEY_FILTER_TITLE = "filter_string_to_display";
+    public static final String KEY_SEARCH_FILTER = "search_filter_phrase";
+    public static final String KEY_NAV_FILTER_TYPE = "nav_filter_type";
+    public static final String KEY_NAV_FILTER = "nav_filter_query_string";
+    
+    // Constants to determine how to inflate layout
+    public static final int NAV_LAYOUT_TEAMS = 1;
+    public static final int NAV_LAYOUT_TAGS = 2;
+    public static final int NAV_LAYOUT_ALL = 3;
+    
     
     public static final int colorArray[] = {
             R.color.team1,
@@ -188,12 +195,11 @@ public class Utils {
             R.color.team10
     };
     
-    /*
+    /**
     *           
     *           Methods start here
     *           
     * */
-    
     
     public static int getSyncInterval(Context c) {
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(c);
