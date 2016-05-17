@@ -49,6 +49,7 @@
         android:lineSpacingMultiplier="1.4"
         android:text="@string/hello_blank_fragment"
         android:textColor="@color/primary_text"
+        android:textIsSelectable="true"
         android:textSize="18sp"/>
 
     <View style="@style/divider"/>

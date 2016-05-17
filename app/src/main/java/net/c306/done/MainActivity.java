@@ -967,101 +967,104 @@ public class MainActivity
         if (linearLayout != null && cursor != null) {
             // Clear out previous data in linear layout
             linearLayout.removeAllViews();
-            
-            // Set height for list items
-            LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    (int) getResources().getDimension(R.dimen._48dp));
-            
-            switch (itemType) {
-                case TAG_LIST_LOADER: {
-                    // Iterate over cursor to populate
-                    
-                    int idColIndex = cursor.getColumnIndex("_id");
-                    int nameColIndex = cursor.getColumnIndex(DoneListContract.TagEntry.COLUMN_NAME_NAME);
-                    
-                    // When loader is already initialised (recreate activity on finished/rotated), 
-                    // cursor is beyond last (from previous iteration). 
-                    // Move it to first before starting.
-                    cursor.moveToFirst();
-                    
-                    do {
-                        // Set item id
-                        View view = getLayoutInflater().inflate(R.layout.nav_list_row_layout, null);
-                        view.setId(cursor.getInt(idColIndex));
-                        view.setLayoutParams(layoutParams);
-                        view.setOnClickListener(navTagsClickListener);
-                        
-                        // Set image resource for tag icon
-                        ImageView tagIconImageView = (ImageView) view.findViewById(R.id.nav_team_color_patch);
-                        BitmapDrawable settingsIcon = (BitmapDrawable) ContextCompat.getDrawable(getApplicationContext(), R.drawable.ic_label_black_24dp).mutate();
-                        settingsIcon.setAlpha(0x8A);
-                        if (tagIconImageView != null)
-                            tagIconImageView.setImageDrawable(settingsIcon);
-                        
-                        // Set tag name
-                        TextView tagNameTextView = (TextView) view.findViewById(R.id.team_name_text_view);
-                        tagNameTextView.setText(cursor.getString(nameColIndex));
-                        
-                        linearLayout.addView(view);
-                        
-                    } while (cursor.moveToNext());
-                    
-                    if (mNavFilterType == Utils.NAV_LAYOUT_TAGS) {
-                        Bundle tagDetailsBundle = new Bundle();
-                        tagDetailsBundle.putInt(DoneListContract.TagEntry.COLUMN_NAME_ID, mNavSelectedId);
-                        tagDetailsBundle.putString(DoneListContract.TagEntry.COLUMN_NAME_NAME, mFilterTitle);
-                        
-                        filterByTagOrTeam(mNavFilterType, tagDetailsBundle, false, true);
-                    }
-                    
-                    break;
-                }
+    
+            if (cursor.getCount() > 0) {
+        
+                // Set height for list items
+                LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        (int) getResources().getDimension(R.dimen._48dp));
+        
+                switch (itemType) {
+                    case TAG_LIST_LOADER: {
+                        // Iterate over cursor to populate
                 
-                case TEAM_LIST_LOADER: {
-                    // Iterate over cursor to populate
+                        int idColIndex = cursor.getColumnIndex("_id");
+                        int nameColIndex = cursor.getColumnIndex(DoneListContract.TagEntry.COLUMN_NAME_NAME);
+                
+                        // When loader is already initialised (recreate activity on finished/rotated), 
+                        // cursor is beyond last (from previous iteration). 
+                        // Move it to first before starting.
+                        cursor.moveToFirst();
+                
+                        do {
+                            // Set item id
+                            View view = getLayoutInflater().inflate(R.layout.nav_list_row_layout, null);
+                            view.setId(cursor.getInt(idColIndex));
+                            view.setLayoutParams(layoutParams);
+                            view.setOnClickListener(navTagsClickListener);
                     
-                    int idColIndex = cursor.getColumnIndex("_id");
-                    int nameColIndex = cursor.getColumnIndex(DoneListContract.TeamEntry.COLUMN_NAME_NAME);
-                    int urlColIndex = cursor.getColumnIndex(DoneListContract.TeamEntry.COLUMN_NAME_URL);
+                            // Set image resource for tag icon
+                            ImageView tagIconImageView = (ImageView) view.findViewById(R.id.nav_team_color_patch);
+                            BitmapDrawable settingsIcon = (BitmapDrawable) ContextCompat.getDrawable(getApplicationContext(), R.drawable.ic_label_black_24dp).mutate();
+                            settingsIcon.setAlpha(0x8A);
+                            if (tagIconImageView != null)
+                                tagIconImageView.setImageDrawable(settingsIcon);
                     
-                    // When loader is already initialised (recreate activity on finished/rotated), 
-                    // cursor is beyond last (from previous iteration). 
-                    // Move it to first before starting.
-                    cursor.moveToFirst();
+                            // Set tag name
+                            TextView tagNameTextView = (TextView) view.findViewById(R.id.team_name_text_view);
+                            tagNameTextView.setText(cursor.getString(nameColIndex));
                     
-                    do {
-                        // Set item id
-                        View view = getLayoutInflater().inflate(R.layout.nav_list_row_layout, null);
-                        view.setId(cursor.getInt(idColIndex));
-                        view.setLayoutParams(layoutParams);
-                        view.setOnClickListener(navTeamsClickListener);
-                        
-                        // Set team colour
-                        int teamColor = Utils.findTeam(getApplicationContext(), cursor.getString(urlColIndex));
-                        
-                        ImageView teamSpace = (ImageView) view.findViewById(R.id.nav_team_color_patch);
-                        
-                        GradientDrawable teamCircle = (GradientDrawable) teamSpace.getDrawable().mutate();
-                        teamCircle.setColor(ContextCompat.getColor(getApplicationContext(), Utils.colorArray[teamColor == -1 ? 0 : teamColor % Utils.colorArray.length]));
-                        
-                        // Set team name
-                        TextView teamNameTextView = (TextView) view.findViewById(R.id.team_name_text_view);
-                        teamNameTextView.setText(cursor.getString(nameColIndex));
-                        
-                        linearLayout.addView(view);
-                    } while (cursor.moveToNext());
+                            linearLayout.addView(view);
                     
-                    if (mNavFilterType == Utils.NAV_LAYOUT_TEAMS) {
-                        Bundle teamDetailsBundle = new Bundle();
-                        teamDetailsBundle.putInt(DoneListContract.TagEntry.COLUMN_NAME_ID, mNavSelectedId);
-                        teamDetailsBundle.putString(DoneListContract.TagEntry.COLUMN_NAME_NAME, mFilterTitle);
-                        teamDetailsBundle.putString(DoneListContract.TeamEntry.COLUMN_NAME_URL, mNavFilterString);
-                        
-                        filterByTagOrTeam(mNavFilterType, teamDetailsBundle, false, true);
+                        } while (cursor.moveToNext());
+                
+                        if (mNavFilterType == Utils.NAV_LAYOUT_TAGS) {
+                            Bundle tagDetailsBundle = new Bundle();
+                            tagDetailsBundle.putInt(DoneListContract.TagEntry.COLUMN_NAME_ID, mNavSelectedId);
+                            tagDetailsBundle.putString(DoneListContract.TagEntry.COLUMN_NAME_NAME, mFilterTitle);
+                    
+                            filterByTagOrTeam(mNavFilterType, tagDetailsBundle, false, true);
+                        }
+                
+                        break;
                     }
+            
+                    case TEAM_LIST_LOADER: {
+                        // Iterate over cursor to populate
+                
+                        int idColIndex = cursor.getColumnIndex("_id");
+                        int nameColIndex = cursor.getColumnIndex(DoneListContract.TeamEntry.COLUMN_NAME_NAME);
+                        int urlColIndex = cursor.getColumnIndex(DoneListContract.TeamEntry.COLUMN_NAME_URL);
+                
+                        // When loader is already initialised (recreate activity on finished/rotated), 
+                        // cursor is beyond last (from previous iteration). 
+                        // Move it to first before starting.
+                        cursor.moveToFirst();
+                
+                        do {
+                            // Set item id
+                            View view = getLayoutInflater().inflate(R.layout.nav_list_row_layout, null);
+                            view.setId(cursor.getInt(idColIndex));
+                            view.setLayoutParams(layoutParams);
+                            view.setOnClickListener(navTeamsClickListener);
                     
-                    break;
+                            // Set team colour
+                            int teamColor = Utils.findTeam(getApplicationContext(), cursor.getString(urlColIndex));
+                    
+                            ImageView teamSpace = (ImageView) view.findViewById(R.id.nav_team_color_patch);
+                    
+                            GradientDrawable teamCircle = (GradientDrawable) teamSpace.getDrawable().mutate();
+                            teamCircle.setColor(ContextCompat.getColor(getApplicationContext(), Utils.colorArray[teamColor == -1 ? 0 : teamColor % Utils.colorArray.length]));
+                    
+                            // Set team name
+                            TextView teamNameTextView = (TextView) view.findViewById(R.id.team_name_text_view);
+                            teamNameTextView.setText(cursor.getString(nameColIndex));
+                    
+                            linearLayout.addView(view);
+                        } while (cursor.moveToNext());
+                
+                        if (mNavFilterType == Utils.NAV_LAYOUT_TEAMS) {
+                            Bundle teamDetailsBundle = new Bundle();
+                            teamDetailsBundle.putInt(DoneListContract.TagEntry.COLUMN_NAME_ID, mNavSelectedId);
+                            teamDetailsBundle.putString(DoneListContract.TagEntry.COLUMN_NAME_NAME, mFilterTitle);
+                            teamDetailsBundle.putString(DoneListContract.TeamEntry.COLUMN_NAME_URL, mNavFilterString);
+                    
+                            filterByTagOrTeam(mNavFilterType, teamDetailsBundle, false, true);
+                        }
+                
+                        break;
+                    }
                 }
             }
         } else
