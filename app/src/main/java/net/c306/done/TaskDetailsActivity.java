@@ -272,7 +272,7 @@ public class TaskDetailsActivity
                                 
                                 Log.v(LOG_TAG, deletedCount + " task deleted. \n Id: " + mTaskIdList[mCurrentTaskIndex]);
     
-                                Utils.sendEvent(mTracker, "Action", "Task Deleted - Details", String.valueOf(1));
+                                Utils.sendEvent(mTracker, Utils.ANALYTICS_CATEGORY_ACTION, "Task Deleted - Details", String.valueOf(1));
     
                                 Intent dataIntent = new Intent();
                                 dataIntent.putExtra(Utils.INTENT_COUNT, deletedCount);
@@ -296,7 +296,7 @@ public class TaskDetailsActivity
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         // If task edited successfully
         if (requestCode == Utils.NEW_DONE_ACTIVITY_IDENTIFIER && resultCode == RESULT_OK) {
-            Utils.sendEvent(mTracker, "Action", "Task Edited - Details");
+            Utils.sendEvent(mTracker, Utils.ANALYTICS_CATEGORY_ACTION, "Task Edited - Details");
         
             // Show snackbar
             if (mSnackbar != null && mSnackbar.isShown())

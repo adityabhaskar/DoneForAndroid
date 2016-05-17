@@ -45,7 +45,7 @@ public class NewDoneActivity extends AppCompatActivity {
     private SimpleDateFormat userDateFormat = (SimpleDateFormat) SimpleDateFormat.getDateInstance();
     private SimpleDateFormat idtDateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.UK);
     
-    private long mId;
+    private long mId = -1;
     private String mDoneDate = idtDateFormat.format(new Date());
     private String mFormattedDoneDate = userDateFormat.format(new Date());
     private String mTeam;
@@ -59,74 +59,104 @@ public class NewDoneActivity extends AppCompatActivity {
         
         setContentView(R.layout.activity_new_done);
     
-        Intent sender = getIntent();
-        mId = sender.getLongExtra(DoneListContract.DoneEntry.COLUMN_NAME_ID, -1);
-    
-        // If intent was called from a team filtered state, set that team, else default team
-        if (sender.hasExtra(Utils.KEY_NAV_FILTER_TYPE) && sender.getIntExtra(Utils.KEY_NAV_FILTER_TYPE, Utils.NAV_LAYOUT_ALL) == Utils.NAV_LAYOUT_TEAMS)
-            mTeam = sender.getStringExtra(Utils.KEY_NAV_FILTER);
-        else
-            mTeam = Utils.getDefaultTeam(NewDoneActivity.this);
-    
         // Populate teams from database into team selector
         populateTeamPicker();
     
         // Setup tag suggestions
         setupTagSuggestions();
+    
+        // Analytics Obtain the shared Tracker instance.
+        AnalyticsApplication application = (AnalyticsApplication) getApplication();
+        mTracker = application.getDefaultTracker();
+        Utils.sendScreen(mTracker, getClass().getSimpleName());
+    
+        Intent starterIntent = getIntent();
+        mId = starterIntent.getLongExtra(DoneListContract.DoneEntry.COLUMN_NAME_ID, -1);
         
         if (mId > -1)
             populateForEdit();
+
         else {
-            // Populate task text from saved data, if available
-            String[] state = Utils.getNewTaskActivityState(this);
     
-            if (state.length > 0) {
-                MultiAutoCompleteTextView taskTextEditText = (MultiAutoCompleteTextView) findViewById(R.id.task_text_edit_text);
-                if (taskTextEditText != null) {
-                    taskTextEditText.setText(state[0]);
-                    taskTextEditText.setSelection(taskTextEditText.getText().length());
+            // Set default team
+            mTeam = Utils.getDefaultTeam(NewDoneActivity.this);
+    
+            String action = starterIntent.getAction();
+            String type = starterIntent.getType();
+    
+            // If started from intent shared by another activity
+            if (Intent.ACTION_SEND.equals(action) && type != null && "text/plain".equals(type)) {
+                Utils.sendEvent(mTracker, Utils.ANALYTICS_CATEGORY_ACTION, "Create task - external intent");
+        
+                // Handle text being sent
+                String taskText = starterIntent.getStringExtra(Intent.EXTRA_TEXT);
+                if (taskText != null && !taskText.isEmpty()) {
+                    MultiAutoCompleteTextView taskTextEditText = (MultiAutoCompleteTextView) findViewById(R.id.task_text_edit_text);
+                    if (taskTextEditText != null) {
+                        taskText = taskText.trim();
+                        taskTextEditText.setText(taskText);
+                        taskTextEditText.setSelection(taskText.length());
+                    }
                 }
         
-                // Get currentTeam from state
-                mTeam = state[1];
+            } else {
+                // Started with create or edit from our own activity
         
-                // Get currentDate from state
-                if (state.length >= 3 && state[2] != null && !state[2].equals("")) {
-                    String[] dateParts = state[2].split("\\-");
-    
-                    Calendar c = Calendar.getInstance();
-                    c.set(
-                            Integer.parseInt(dateParts[0]),
-                            Integer.parseInt(dateParts[1]) - 1,
-                            Integer.parseInt(dateParts[2])
-                    );
-                    mFormattedDoneDate = userDateFormat.format(c.getTime());
-                }
-            } else
-                Log.i(LOG_TAG, "No previous saved state or team intent data found.");
+                // Get stored state
+                String[] state = Utils.getNewTaskActivityState(this);
+        
+                // If stored state found, get task text, team and date
+                if (state.length > 0) {
+                    MultiAutoCompleteTextView taskTextEditText = (MultiAutoCompleteTextView) findViewById(R.id.task_text_edit_text);
+                    if (taskTextEditText != null) {
+                        taskTextEditText.setText(state[0]);
+                        taskTextEditText.setSelection(taskTextEditText.getText().length());
+                    }
             
+                    // Get currentTeam from state
+                    mTeam = state[1];
+            
+                    // Get currentDate from state
+                    if (state.length >= 3 && state[2] != null && !state[2].equals("")) {
+                        String[] dateParts = state[2].split("\\-");
+                
+                        Calendar c = Calendar.getInstance();
+                        c.set(
+                                Integer.parseInt(dateParts[0]),
+                                Integer.parseInt(dateParts[1]) - 1,
+                                Integer.parseInt(dateParts[2])
+                        );
+                        mFormattedDoneDate = userDateFormat.format(c.getTime());
+                    }
+                } else
+                    Log.i(LOG_TAG, "No previous saved state or team intent data found.");
+        
+                // If intent was called from a team filtered state, set that team, else default/stored-state team
+                if (starterIntent.hasExtra(Utils.KEY_NAV_FILTER_TYPE) && starterIntent.getIntExtra(Utils.KEY_NAV_FILTER_TYPE, Utils.NAV_LAYOUT_ALL) == Utils.NAV_LAYOUT_TEAMS)
+                    mTeam = starterIntent.getStringExtra(Utils.KEY_NAV_FILTER);
+        
+            }
+    
+            // Set team in UI
             EditText teamEditText = (EditText) findViewById(R.id.team_picker);
             if (teamEditText != null) {
                 String teamName = teamNames.get(teamURLs.indexOf(mTeam));
                 teamEditText.setText(teamName);
             }
     
+            // Set date in UI
             EditText doneDateText = (EditText) findViewById(R.id.done_date_text);
             if (doneDateText != null)
                 doneDateText.setText(mFormattedDoneDate);
-            
+    
         }
     
-        // Analytics Obtain the shared Tracker instance.
-        AnalyticsApplication application = (AnalyticsApplication) getApplication();
-        mTracker = application.getDefaultTracker();
     }
     
     @Override
     protected void onResume() {
         super.onResume();
         
-        Utils.sendScreen(mTracker, getClass().getSimpleName());
     }
     
     public void openDatePicker(View view) {

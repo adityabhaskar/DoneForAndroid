@@ -181,6 +181,8 @@ public class Utils {
     public static final int NAV_LAYOUT_TAGS = 2;
     public static final int NAV_LAYOUT_ALL = 3;
     
+    // For Analytics
+    public static final String ANALYTICS_CATEGORY_ACTION = "Action";
     
     public static final int colorArray[] = {
             R.color.team1,
@@ -705,7 +707,7 @@ public class Utils {
             return;
         
         if (category == null || category.isEmpty())
-            category = "Action";
+            category = Utils.ANALYTICS_CATEGORY_ACTION;
         
         HitBuilders.EventBuilder analyticsEvent = new HitBuilders.EventBuilder()
                 .setCategory(category)

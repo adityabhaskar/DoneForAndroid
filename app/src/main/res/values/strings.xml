@@ -149,7 +149,7 @@
     <string name="all_tasks">All tasks</string>
     <string name="teams_header">Teams</string>
     <string name="tags_header">Tags</string>
-    <string name="tags_placeholder">Coming Soon</string>
+    <string name="tags_empty">No tags found</string>
     <string name="team_color_description">Team color</string>
 
     <!-- User visible strings from code -->

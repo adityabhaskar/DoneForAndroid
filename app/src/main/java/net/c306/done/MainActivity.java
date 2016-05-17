@@ -522,7 +522,7 @@ public class MainActivity
             // Set text for Settings TextView
             TextView tagsPlaceholderTextView = (TextView) tagsPlaceholderView.findViewById(R.id.team_name_text_view);
             if (tagsPlaceholderTextView != null)
-                tagsPlaceholderTextView.setText(R.string.tags_placeholder);
+                tagsPlaceholderTextView.setText(R.string.tags_empty);
             
             // Set image resource for settings icon
             ImageView tagsPlaceholderImageView = (ImageView) tagsPlaceholderView.findViewById(R.id.nav_team_color_patch);
@@ -714,7 +714,7 @@ public class MainActivity
                         Log.v(LOG_TAG, "Logging out...");
                         
                         // Track event in analytics
-                        Utils.sendEvent(mTracker, "Action", "Logout");
+                        Utils.sendEvent(mTracker, Utils.ANALYTICS_CATEGORY_ACTION, "Logout");
                         
                         // Remove alarm & any notifications
                         Utils.cancelNotificationAlarm(MainActivity.this);
@@ -776,7 +776,7 @@ public class MainActivity
         Log.v(LOG_TAG, "Delete selected items: " + ids.length);
     
         // Log event in analytics
-        Utils.sendEvent(mTracker, "Action", "Task Deleted - MainActivity", String.valueOf(ids.length));
+        Utils.sendEvent(mTracker, Utils.ANALYTICS_CATEGORY_ACTION, "Task Deleted - MainActivity", String.valueOf(ids.length));
         
         // Delete selected ids from database, then from server, finishing with updating tasks from server on success
         int deletedCount = new DoneActions(getApplicationContext()).delete(ids);
@@ -1126,7 +1126,7 @@ public class MainActivity
     public boolean onMenuItemActionExpand(MenuItem item) {
         if (item.getItemId() == R.id.action_search) {
             Log.i(LOG_TAG, "Search expanded");
-            Utils.sendEvent(mTracker, "Action", "Search");
+            Utils.sendEvent(mTracker, Utils.ANALYTICS_CATEGORY_ACTION, "Search");
         }
         return true;
     }
@@ -1142,7 +1142,7 @@ public class MainActivity
     @Override
     public void onRefresh() {
         // Track event in analytics
-        Utils.sendEvent(mTracker, "Action", "PullToRefresh");
+        Utils.sendEvent(mTracker, Utils.ANALYTICS_CATEGORY_ACTION, "PullToRefresh");
         
         IDTSyncAdapter.syncImmediately(this);
     }
@@ -1303,7 +1303,7 @@ public class MainActivity
                 Log.v(LOG_TAG, "Edit selected item");
     
                 // Log event in analytics
-                Utils.sendEvent(mTracker, "Action", "Edit Item Clicked on MainActivity");
+                Utils.sendEvent(mTracker, Utils.ANALYTICS_CATEGORY_ACTION, "Edit Item Clicked on MainActivity");
                 
                 // Action picked, so close the CAB
                 mode.finish();
@@ -1339,7 +1339,7 @@ public class MainActivity
             }
         
             case R.id.nav_tags_empty: {
-                Utils.sendEvent(mTracker, "Action", "Empty Tags Clicked");
+                Utils.sendEvent(mTracker, Utils.ANALYTICS_CATEGORY_ACTION, "Empty Tags Clicked");
                 Log.i(LOG_TAG, "Tags empty placeholder clicked");
                 break;
             }

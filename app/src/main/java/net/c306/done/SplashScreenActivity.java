@@ -102,7 +102,7 @@ public class SplashScreenActivity extends AppCompatActivity {
                     // Setup sync
                     IDTSyncAdapter.initializeSyncAdapter(getApplicationContext());
     
-                    Utils.sendEvent(mTracker, "Action", "Login Successful");
+                    Utils.sendEvent(mTracker, Utils.ANALYTICS_CATEGORY_ACTION, "Login Successful");
                     
                     Intent mainActivity = new Intent(SplashScreenActivity.this, MainActivity.class);
                     mainActivity.putExtra(
