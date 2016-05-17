@@ -24,10 +24,11 @@
             app:hintTextAppearance="@style/TextAppearance.AppCompat">
 
             <MultiAutoCompleteTextView
-                android:id="@+id/done_edit_text"
+                android:id="@+id/task_text_edit_text"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="@dimen/activity_vertical_margin"
+                android:completionThreshold="1"
                 android:hint="@string/new_done_hint"
                 android:inputType="textCapSentences|textMultiLine"
                 android:textCursorDrawable="@null"/>

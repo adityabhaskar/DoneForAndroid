@@ -8,10 +8,14 @@ import android.os.Bundle;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
+import android.text.SpannableString;
+import android.text.Spanned;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.ArrayAdapter;
 import android.widget.DatePicker;
 import android.widget.EditText;
 import android.widget.MultiAutoCompleteTextView;
@@ -33,9 +37,10 @@ import java.util.Locale;
 public class NewDoneActivity extends AppCompatActivity {
     
     private final String LOG_TAG = Utils.LOG_TAG + this.getClass().getSimpleName();
-    Bundle mPreEditBundle = new Bundle();
-    List<String> teamNames = new ArrayList<>();
-    List<String> teamURLs = new ArrayList<>();
+    private Bundle mPreEditBundle = new Bundle();
+    private List<String> teamNames = new ArrayList<>();
+    private List<String> teamURLs = new ArrayList<>();
+    
     private Tracker mTracker;
     private SimpleDateFormat userDateFormat = (SimpleDateFormat) SimpleDateFormat.getDateInstance();
     private SimpleDateFormat idtDateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.UK);
@@ -62,8 +67,12 @@ public class NewDoneActivity extends AppCompatActivity {
             mTeam = sender.getStringExtra(Utils.KEY_NAV_FILTER);
         else
             mTeam = Utils.getDefaultTeam(NewDoneActivity.this);
-        
+    
+        // Populate teams from database into team selector
         populateTeamPicker();
+    
+        // Setup tag suggestions
+        setupTagSuggestions();
         
         if (mId > -1)
             populateForEdit();
@@ -72,7 +81,7 @@ public class NewDoneActivity extends AppCompatActivity {
             String[] state = Utils.getNewTaskActivityState(this);
     
             if (state.length > 0) {
-                MultiAutoCompleteTextView taskTextEditText = (MultiAutoCompleteTextView) findViewById(R.id.done_edit_text);
+                MultiAutoCompleteTextView taskTextEditText = (MultiAutoCompleteTextView) findViewById(R.id.task_text_edit_text);
                 if (taskTextEditText != null) {
                     taskTextEditText.setText(state[0]);
                     taskTextEditText.setSelection(taskTextEditText.getText().length());
@@ -94,7 +103,7 @@ public class NewDoneActivity extends AppCompatActivity {
                     mFormattedDoneDate = userDateFormat.format(c.getTime());
                 }
             } else
-                Log.i(LOG_TAG, "No saved state or intent data found.");
+                Log.i(LOG_TAG, "No previous saved state or team intent data found.");
             
             EditText teamEditText = (EditText) findViewById(R.id.team_picker);
             if (teamEditText != null) {
@@ -225,7 +234,6 @@ public class NewDoneActivity extends AppCompatActivity {
                 .show();
     }
     
-    
     /**
      * Fetch teams from database and populate into arrays.
      * Arrays are used to populate picker dialog
@@ -257,7 +265,6 @@ public class NewDoneActivity extends AppCompatActivity {
         } else
             Log.w(LOG_TAG, "Team cursor returned empty");
     }
-    
     
     private void populateForEdit() {
         
@@ -291,7 +298,7 @@ public class NewDoneActivity extends AppCompatActivity {
                 // Set text
                 String rawText = cursor.getString(cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT));
                 mPreEditBundle.putString(DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT, rawText);
-                MultiAutoCompleteTextView taskTextEditText = (MultiAutoCompleteTextView) findViewById(R.id.done_edit_text);
+                MultiAutoCompleteTextView taskTextEditText = (MultiAutoCompleteTextView) findViewById(R.id.task_text_edit_text);
                 if (taskTextEditText != null) {
                     taskTextEditText.setText(rawText);
                     // Set cursor at end of text
@@ -346,6 +353,105 @@ public class NewDoneActivity extends AppCompatActivity {
         }
     }
     
+    /**
+     * Fetch tags from database and populate into an ArrayAdapter to suggest
+     * while entering task text.
+     */
+    private void setupTagSuggestions() {
+        
+        MultiAutoCompleteTextView taskTextEditText = (MultiAutoCompleteTextView) findViewById(R.id.task_text_edit_text);
+        if (taskTextEditText == null)
+            return;
+        
+        // Retrieve all tags from database
+        Cursor cursor = getContentResolver().query(
+                DoneListContract.TagEntry.CONTENT_URI,
+                new String[]{
+                        DoneListContract.TagEntry.COLUMN_NAME_ID,
+                        DoneListContract.TagEntry.COLUMN_NAME_NAME
+                },
+                null,
+                null,
+                null
+        );
+        
+        // Copy tags from cursor to local array
+        if (cursor != null) {
+            String[] tagNames = new String[cursor.getCount()];
+            int nameColIndex = cursor.getColumnIndex(DoneListContract.TagEntry.COLUMN_NAME_NAME);
+            int i = 0;
+            
+            while (cursor.moveToNext()) {
+                tagNames[i++] = cursor.getString(nameColIndex);
+            }
+            
+            cursor.close();
+            
+            if (tagNames != null && tagNames.length > 0) {
+                
+                // Create arrayAdapter and assign it to task edit text
+                ArrayAdapter tagsAdapter = new ArrayAdapter(this, android.R.layout.simple_list_item_1, tagNames);
+                
+                taskTextEditText.setAdapter(tagsAdapter);
+                
+                // Create custom tokenizer - to suggest tags on '#'
+                taskTextEditText.setTokenizer(new MultiAutoCompleteTextView.Tokenizer() {
+                    private char suggestStarter = '#';
+                    
+                    @Override
+                    public int findTokenStart(CharSequence text, int cursor) {
+                        int i = cursor;
+                        
+                        while (i > 0 && text.charAt(i - 1) != suggestStarter) {
+                            i--;
+                        }
+                        while (i < cursor && text.charAt(i) == ' ') {
+                            i++;
+                        }
+                        return i;
+                    }
+                    
+                    @Override
+                    public int findTokenEnd(CharSequence text, int cursor) {
+                        int i = cursor;
+                        int len = text.length();
+                        
+                        while (i < len) {
+                            if (text.charAt(i) == ' ') {
+                                return i;
+                            } else {
+                                i++;
+                            }
+                        }
+                        return len;
+                    }
+                    
+                    @Override
+                    public CharSequence terminateToken(CharSequence text) {
+                        int i = text.length();
+                        
+                        while (i > 0 && text.charAt(i - 1) == ' ') {
+                            i--;
+                        }
+                        
+                        if (i > 0 && text.charAt(i - 1) == ',') {
+                            return text;
+                        } else {
+                            if (text instanceof Spanned) {
+                                SpannableString sp = new SpannableString(text + " ");
+                                TextUtils.copySpansFrom((Spanned) text, 0, text.length(),
+                                        Object.class, sp, 0);
+                                return sp;
+                            } else {
+                                return text + " ";
+                            }
+                        }
+                    }
+                });
+            }
+        }
+    }
+    
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
@@ -385,7 +491,7 @@ public class NewDoneActivity extends AppCompatActivity {
     }
     
     private void saveActivityState() {
-        MultiAutoCompleteTextView taskTextEditText = (MultiAutoCompleteTextView) findViewById(R.id.done_edit_text);
+        MultiAutoCompleteTextView taskTextEditText = (MultiAutoCompleteTextView) findViewById(R.id.task_text_edit_text);
         if (taskTextEditText != null) {
             String taskText = taskTextEditText.getText().toString();
         
@@ -397,8 +503,8 @@ public class NewDoneActivity extends AppCompatActivity {
                         mDoneDate
                 };
                 Utils.setNewTaskActivityState(this, state);
-            
-                Log.v(LOG_TAG, "Saved: " + state[0] + ", " + state[1]);
+    
+                //Log.i(LOG_TAG, "Saved: " + state[0] + ", " + state[1]);
             } else
                 Utils.clearNewTaskActivityState(this);
         }
@@ -406,17 +512,56 @@ public class NewDoneActivity extends AppCompatActivity {
     
     @Override
     public void onBackPressed() {
-        super.onBackPressed();
+        // If new task, save state
         if (mId == -1)
             saveActivityState();
+    
+        else {
+            // If editing, and changes made, prompt about discarding changes
+            MultiAutoCompleteTextView taskTextEditText = (MultiAutoCompleteTextView) findViewById(R.id.task_text_edit_text);
+            if (taskTextEditText != null) {
+            
+                String taskText = taskTextEditText.getText().toString().trim();
+            
+                String preEditTaskText = mPreEditBundle.getString(DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT);
+                if (preEditTaskText != null)
+                    preEditTaskText = preEditTaskText.trim();
+            
+                if (!taskText.equals(preEditTaskText)) {
+                    AlertDialog.Builder builder = new AlertDialog.Builder(this);
+                
+                    builder.setTitle(getString(R.string.edit_discard_changes_dialog_title))
+                            .setPositiveButton(getString(R.string.edit_discard_changes_dialog_discard_button), new DialogInterface.OnClickListener() {
+                                public void onClick(DialogInterface dialog, int id) {
+                                    setResult(RESULT_CANCELED);
+                                    finish();
+                                }
+                            })
+                            .setNegativeButton(getString(R.string.edit_discard_changes_dialog_cancel_button), new DialogInterface.OnClickListener() {
+                                public void onClick(DialogInterface dialog, int id) {
+                                    // User clicked Cancel button
+                                    // Do nothing :)
+                                }
+                            })
+                            .create()
+                            .show();
+                    return;
+                }
+            }
+        }
+    
+        super.onBackPressed();
     }
     
     private void onSaveClicked() {
-        MultiAutoCompleteTextView taskTextEditText = (MultiAutoCompleteTextView) findViewById(R.id.done_edit_text);
-        String taskText = taskTextEditText.getText().toString();
+        MultiAutoCompleteTextView taskTextEditText = (MultiAutoCompleteTextView) findViewById(R.id.task_text_edit_text);
+        if (taskTextEditText == null) {
+            Log.e(LOG_TAG, "onSaveClicked: Task textview is null!");
+            return;
+        }
+        String taskText = taskTextEditText.getText().toString().trim();
     
-        if (taskText.isEmpty() && taskTextEditText != null)
-        
+        if (taskText.isEmpty())
             taskTextEditText.setError(getString(R.string.task_edit_text_empty_error));
     
         else {
@@ -424,8 +569,11 @@ public class NewDoneActivity extends AppCompatActivity {
             
             if (mId > -1) {
                 // Case: Edit this done
+                String preEditTaskText = mPreEditBundle.getString(DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT);
+                if (preEditTaskText != null)
+                    preEditTaskText = preEditTaskText.trim();
     
-                if (taskText.equals(mPreEditBundle.getString(DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT)) &&
+                if (taskText.equals(preEditTaskText) &&
                         mTeam.equals(mPreEditBundle.getString(DoneListContract.DoneEntry.COLUMN_NAME_TEAM)) &&
                         mDoneDate.equals(mPreEditBundle.getString(DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE))
                         ) {

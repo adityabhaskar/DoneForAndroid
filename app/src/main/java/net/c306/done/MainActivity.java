@@ -704,10 +704,10 @@ public class MainActivity
     public void onLogout(MenuItem item) {
         
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        
-        builder.setTitle("Are you sure?")
-                .setMessage("All local data will be deleted.")
-                .setPositiveButton("Logout", new DialogInterface.OnClickListener() {
+    
+        builder.setTitle(getString(R.string.logout_dialog_title))
+                .setMessage(getString(R.string.logout_dialog_message))
+                .setPositiveButton(getString(R.string.logout_dialog_logout_button), new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int id) {
                         Context context = getApplicationContext();
                         // User confirmed Logout
@@ -744,7 +744,7 @@ public class MainActivity
                         finish();
                     }
                 })
-                .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                .setNegativeButton(getString(R.string.logout_dialog_cancel_button), new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int id) {
                         // User clicked Cancel button
                         // Do nothing :)
