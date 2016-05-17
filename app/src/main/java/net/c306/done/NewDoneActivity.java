@@ -14,6 +14,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.DatePicker;
 import android.widget.EditText;
+import android.widget.MultiAutoCompleteTextView;
 
 import com.google.android.gms.analytics.Tracker;
 import com.google.gson.Gson;
@@ -24,7 +25,6 @@ import net.c306.done.idonethis.DoneActions;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
@@ -56,8 +56,13 @@ public class NewDoneActivity extends AppCompatActivity {
     
         Intent sender = getIntent();
         mId = sender.getLongExtra(DoneListContract.DoneEntry.COLUMN_NAME_ID, -1);
-        mTeam = Utils.getDefaultTeam(NewDoneActivity.this);
     
+        // If intent was called from a team filtered state, set that team, else default team
+        if (sender.hasExtra(Utils.KEY_NAV_FILTER_TYPE) && sender.getIntExtra(Utils.KEY_NAV_FILTER_TYPE, Utils.NAV_LAYOUT_ALL) == Utils.NAV_LAYOUT_TEAMS)
+            mTeam = sender.getStringExtra(Utils.KEY_NAV_FILTER);
+        else
+            mTeam = Utils.getDefaultTeam(NewDoneActivity.this);
+        
         populateTeamPicker();
         
         if (mId > -1)
@@ -67,11 +72,10 @@ public class NewDoneActivity extends AppCompatActivity {
             String[] state = Utils.getNewTaskActivityState(this);
     
             if (state.length > 0) {
-                Log.v(LOG_TAG, "Founds saved items: " + Arrays.toString(state));
-                EditText editText = (EditText) findViewById(R.id.done_edit_text);
-                if (editText != null) {
-                    editText.setText(state[0]);
-                    editText.setSelection(editText.getText().length());
+                MultiAutoCompleteTextView taskTextEditText = (MultiAutoCompleteTextView) findViewById(R.id.done_edit_text);
+                if (taskTextEditText != null) {
+                    taskTextEditText.setText(state[0]);
+                    taskTextEditText.setSelection(taskTextEditText.getText().length());
                 }
         
                 // Get currentTeam from state
@@ -90,8 +94,8 @@ public class NewDoneActivity extends AppCompatActivity {
                     mFormattedDoneDate = userDateFormat.format(c.getTime());
                 }
             } else
-                Log.i(LOG_TAG, "No saved state found.");
-    
+                Log.i(LOG_TAG, "No saved state or intent data found.");
+            
             EditText teamEditText = (EditText) findViewById(R.id.team_picker);
             if (teamEditText != null) {
                 String teamName = teamNames.get(teamURLs.indexOf(mTeam));
@@ -108,7 +112,6 @@ public class NewDoneActivity extends AppCompatActivity {
         AnalyticsApplication application = (AnalyticsApplication) getApplication();
         mTracker = application.getDefaultTracker();
     }
-    
     
     @Override
     protected void onResume() {
@@ -200,7 +203,6 @@ public class NewDoneActivity extends AppCompatActivity {
                 .show();
     }
     
-    
     public void openTeamPicker(View view) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
     
@@ -289,11 +291,11 @@ public class NewDoneActivity extends AppCompatActivity {
                 // Set text
                 String rawText = cursor.getString(cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT));
                 mPreEditBundle.putString(DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT, rawText);
-                EditText editText = (EditText) findViewById(R.id.done_edit_text);
-                if (editText != null) {
-                    editText.setText(rawText);
+                MultiAutoCompleteTextView taskTextEditText = (MultiAutoCompleteTextView) findViewById(R.id.done_edit_text);
+                if (taskTextEditText != null) {
+                    taskTextEditText.setText(rawText);
                     // Set cursor at end of text
-                    editText.setSelection(editText.getText().length());
+                    taskTextEditText.setSelection(taskTextEditText.getText().length());
                 }
                 
                 // Set team
@@ -383,9 +385,9 @@ public class NewDoneActivity extends AppCompatActivity {
     }
     
     private void saveActivityState() {
-        EditText doneEditText = (EditText) findViewById(R.id.done_edit_text);
-        if (doneEditText != null) {
-            String taskText = doneEditText.getText().toString();
+        MultiAutoCompleteTextView taskTextEditText = (MultiAutoCompleteTextView) findViewById(R.id.done_edit_text);
+        if (taskTextEditText != null) {
+            String taskText = taskTextEditText.getText().toString();
         
             if (!taskText.equals("")) {
             
@@ -410,12 +412,12 @@ public class NewDoneActivity extends AppCompatActivity {
     }
     
     private void onSaveClicked() {
-        EditText doneEditText = (EditText) findViewById(R.id.done_edit_text);
-        String taskText = doneEditText.getText().toString();
+        MultiAutoCompleteTextView taskTextEditText = (MultiAutoCompleteTextView) findViewById(R.id.done_edit_text);
+        String taskText = taskTextEditText.getText().toString();
     
-        if (taskText.isEmpty() && doneEditText != null)
-    
-            doneEditText.setError(getString(R.string.task_edit_text_empty_error));
+        if (taskText.isEmpty() && taskTextEditText != null)
+        
+            taskTextEditText.setError(getString(R.string.task_edit_text_empty_error));
     
         else {
             // Edit or Add done based on if mId > -1

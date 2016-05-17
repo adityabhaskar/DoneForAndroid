@@ -694,6 +694,10 @@ public class MainActivity
     
     public void toNewDone(View view) {
         Intent newDoneIntent = new Intent(MainActivity.this, NewDoneActivity.class);
+        if (mNavFilterType == Utils.NAV_LAYOUT_TEAMS) {
+            newDoneIntent.putExtra(Utils.KEY_NAV_FILTER_TYPE, mNavFilterType);
+            newDoneIntent.putExtra(Utils.KEY_NAV_FILTER, mNavFilterString);
+        }
         startActivityForResult(newDoneIntent, Utils.NEW_DONE_ACTIVITY_IDENTIFIER);
     }
     
