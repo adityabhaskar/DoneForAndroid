@@ -8,12 +8,22 @@
         android:orderInCategory="95"
         android:title="@string/edit_task"
         app:showAsAction="always"/>
+
+    <item
+        android:id="@+id/action_share"
+        android:orderInCategory="100"
+        android:title="@string/share_task"
+        app:actionProviderClass="android.support.v7.widget.ShareActionProvider"
+        app:showAsAction="ifRoom"/>
+    <!--android:icon="@drawable/ic_share_white_24dp"/>-->
+
     <item
         android:id="@+id/action_delete"
         android:icon="@drawable/ic_delete_white_24dp"
         android:orderInCategory="100"
         android:title="@string/delete_task"
         app:showAsAction="ifRoom"/>
+
     <item
         android:id="@+id/action_settings"
         android:orderInCategory="100"

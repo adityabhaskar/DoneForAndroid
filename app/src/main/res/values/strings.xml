@@ -51,7 +51,7 @@
 
     <!-- Strings related to Settings -->
 
-    <!-- Example General settings -->
+    <!-- General settings -->
     <string name="pref_header_general">General</string>
 
     <string name="pref_title_default_team">Default Team</string>
@@ -142,6 +142,7 @@
     <string name="pref_title_ringtone">Notification sound</string>
     <string name="pref_ringtone_silent">Silent</string>
 
+    <!-- END SETTINGS STRINGS -->
 
     <!-- Strings for Navigation drawer -->
     <string name="navigation_drawer_open">Open navigation drawer</string>
@@ -167,5 +168,11 @@
     <string name="edit_discard_changes_dialog_title">Discard changes?</string>
     <string name="edit_discard_changes_dialog_discard_button">Discard</string>
     <string name="edit_discard_changes_dialog_cancel_button">Cancel</string>
+
+    <!-- User visibile strings in code from Task Details -->
+    <string name="share_task">Share</string>
+    <string name="_yesterday">Yesterday</string>
+    <string name="_today">Today</string>
+    <string name="share_string_completed">Completed</string>
 
 </resources>

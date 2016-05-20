@@ -45,7 +45,11 @@ public class TaskDetailsFragment extends Fragment {
     
     private long mTaskId; // Used to fetch & display task details
     private OnFragmentInteractionListener mListener;
+    private Context mContext;
+    
     private boolean mIsOwner = false;
+    
+    private String mShareString = null;
     
     public TaskDetailsFragment() {
         // Required empty public constructor
@@ -72,7 +76,36 @@ public class TaskDetailsFragment extends Fragment {
         if (getArguments() != null) {
             mTaskId = getArguments().getLong(Utils.KEY_SELECTED_TASK_ID);
         }
+        mContext = getContext().getApplicationContext();
+    }
+    
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+        View view = inflater.inflate(R.layout.fragment_task_details, container, false);
         
+        Bundle taskDetails = getTaskDetails();
+        if (taskDetails != null)
+            populateCard(taskDetails, view);
+        
+        // Inflate the layout for this fragment
+        return view;
+    }
+    
+    @Override
+    public void onAttach(Context context) {
+        super.onAttach(context);
+        if (context instanceof OnFragmentInteractionListener) {
+            mListener = (OnFragmentInteractionListener) context;
+        } else {
+            throw new RuntimeException(context.toString()
+                    + " must implement OnFragmentInteractionListener");
+        }
+    }
+    
+    @Override
+    public void onDetach() {
+        super.onDetach();
+        mListener = null;
     }
     
     @Nullable
@@ -87,7 +120,7 @@ public class TaskDetailsFragment extends Fragment {
                 "." + DoneListContract.TeamEntry.COLUMN_NAME_URL);
         
         Cursor cursor = qb.query(
-                DoneListDbHelper.getInstance(getContext()).getReadableDatabase(),
+                DoneListDbHelper.getInstance(mContext).getReadableDatabase(),
                 new String[]{
                         DoneListContract.DoneEntry.TABLE_NAME + "." + DoneListContract.DoneEntry.COLUMN_NAME_MARKEDUP_TEXT + " as " + DoneListContract.DoneEntry.COLUMN_NAME_MARKEDUP_TEXT,
                         DoneListContract.DoneEntry.TABLE_NAME + "." + DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE + " as " + DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE,
@@ -147,67 +180,74 @@ public class TaskDetailsFragment extends Fragment {
         if (view == null)
             view = getView();
     
-        // Format text with HTML
-        TextView taskTextTextView = (TextView) view.findViewById(R.id.task_text);
-        String taskText = taskDetails.getString(DoneListContract.DoneEntry.COLUMN_NAME_MARKEDUP_TEXT);
-        if (taskTextTextView != null && taskText != null) {
-            Spannable rawTextWithUnderlines = (Spannable) Html.fromHtml(taskText);
-            SpannableString formattedText = new SpannableString(formatForTextView(rawTextWithUnderlines));
-        
-            taskTextTextView.setText(formattedText);
-        }
-        
-        
-        // Set task date
-        TextView taskDate = (TextView) view.findViewById(R.id.task_done_date);
-        if (taskDate != null) {
-            // Format date for locale
-            String dateString = taskDetails.getString(DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE);
-            String[] dateParts = dateString.split("\\-");
-        
-            SimpleDateFormat idtDateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.UK);
-            SimpleDateFormat userDateFormat = (SimpleDateFormat) DateFormat.getDateInstance(DateFormat.DEFAULT);
-        
-            Calendar c = Calendar.getInstance();
-            c.setTime(new Date());
-            c.add(Calendar.DATE, -1);
-            String yesterday = idtDateFormat.format(c.getTime());
-        
-            String today = idtDateFormat.format(new Date());
-        
-            if (dateString.equals(yesterday))
-                dateString = "Yesterday";
-            else if (dateString.equals(today))
-                dateString = "Today";
-            else {
-                c.set(
-                        Integer.parseInt(dateParts[0]),
-                        Integer.parseInt(dateParts[1]) - 1,
-                        Integer.parseInt(dateParts[2])
-                );
-                dateString = userDateFormat.format(c.getTime());
-            }
-        
-            taskDate.setText(dateString);
-        }
-        
+        mShareString = mContext.getString(R.string.share_string_completed);
+    
         // Set task owner
         TextView taskOwnerTextView = (TextView) view.findViewById(R.id.task_owner);
         if (taskOwnerTextView != null) {
             // Set grey drawable icon
-            BitmapDrawable ownerIcon = (BitmapDrawable) ContextCompat.getDrawable(getContext(), R.drawable.ic_person_black_24dp).mutate();
+            BitmapDrawable ownerIcon = (BitmapDrawable) ContextCompat.getDrawable(mContext, R.drawable.ic_person_black_24dp).mutate();
             ownerIcon.setAlpha(0x8A);
             taskOwnerTextView.setCompoundDrawablesWithIntrinsicBounds(ownerIcon, null, null, null);
         
             String taskOwner = taskDetails.getString(DoneListContract.DoneEntry.COLUMN_NAME_OWNER);
         
             taskOwnerTextView.setText(taskOwner);
-    
+        
             if (taskOwner != null)
-                mIsOwner = taskOwner.equals(Utils.getUsername(getContext()));
+                mIsOwner = taskOwner.equals(Utils.getUsername(mContext));
+        
+            if (!mIsOwner)
+                mShareString += " by " + taskOwner;
+        }
     
-            if (mListener != null)
-                mListener.setOwnerMenu(mIsOwner);
+    
+        // Set task date
+        TextView taskDate = (TextView) view.findViewById(R.id.task_done_date);
+        if (taskDate != null) {
+            // Format date for locale
+            String dateString = taskDetails.getString(DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE);
+            String[] dateParts = dateString.split("\\-");
+    
+            SimpleDateFormat idtDateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.UK);
+            SimpleDateFormat userDateFormat = (SimpleDateFormat) DateFormat.getDateInstance(DateFormat.DEFAULT);
+    
+            Calendar c = Calendar.getInstance();
+            c.setTime(new Date());
+            c.add(Calendar.DATE, -1);
+            String yesterday = idtDateFormat.format(c.getTime());
+    
+            String today = idtDateFormat.format(new Date());
+    
+            if (dateString.equals(yesterday)) {
+                dateString = mContext.getString(R.string._yesterday);
+                mShareString += " " + dateString;
+            } else if (dateString.equals(today)) {
+                dateString = mContext.getString(R.string._today);
+                mShareString += " " + dateString;
+            } else {
+                c.set(
+                        Integer.parseInt(dateParts[0]),
+                        Integer.parseInt(dateParts[1]) - 1,
+                        Integer.parseInt(dateParts[2])
+                );
+                dateString = userDateFormat.format(c.getTime());
+                mShareString += " on " + dateString;
+            }
+    
+            taskDate.setText(dateString);
+        }
+    
+        // Set task text
+        TextView taskTextTextView = (TextView) view.findViewById(R.id.task_text);
+        String taskText = taskDetails.getString(DoneListContract.DoneEntry.COLUMN_NAME_MARKEDUP_TEXT);
+        if (taskTextTextView != null && taskText != null) {
+            // Format text with HTML
+            Spannable rawTextWithUnderlines = (Spannable) Html.fromHtml(taskText);
+            SpannableString formattedText = new SpannableString(formatForTextView(rawTextWithUnderlines));
+        
+            taskTextTextView.setText(formattedText);
+            mShareString += ": " + Html.fromHtml(formattedText.toString());
         }
         
         
@@ -215,7 +255,7 @@ public class TaskDetailsFragment extends Fragment {
         TextView taskLikes = (TextView) view.findViewById(R.id.task_likes);
         if (taskLikes != null) {
             // Set grey drawable icon
-            BitmapDrawable likesIcon = (BitmapDrawable) ContextCompat.getDrawable(getContext(), R.drawable.ic_thumb_up_black_24dp).mutate();
+            BitmapDrawable likesIcon = (BitmapDrawable) ContextCompat.getDrawable(mContext, R.drawable.ic_thumb_up_black_24dp).mutate();
             likesIcon.setAlpha(0x8A);
             taskLikes.setCompoundDrawablesWithIntrinsicBounds(likesIcon, null, null, null);
             
@@ -230,7 +270,7 @@ public class TaskDetailsFragment extends Fragment {
         TextView taskComments = (TextView) view.findViewById(R.id.task_comments);
         if (taskComments != null) {
             // Set grey drawable icon
-            BitmapDrawable commentsIcon = (BitmapDrawable) ContextCompat.getDrawable(getContext(), R.drawable.ic_mode_comment_black_24dp).mutate();
+            BitmapDrawable commentsIcon = (BitmapDrawable) ContextCompat.getDrawable(mContext, R.drawable.ic_mode_comment_black_24dp).mutate();
             commentsIcon.setAlpha(0x8A);
             taskComments.setCompoundDrawablesWithIntrinsicBounds(commentsIcon, null, null, null);
             
@@ -246,8 +286,8 @@ public class TaskDetailsFragment extends Fragment {
             // Set team colour
             int teamColor = Utils.findTeam(getActivity().getApplicationContext(),
                     taskDetails.getString(DoneListContract.TeamEntry.COLUMN_NAME_URL));
-            
-            GradientDrawable teamCircle = (GradientDrawable) ContextCompat.getDrawable(getContext(), R.drawable.task_details_team_circle).mutate();
+    
+            GradientDrawable teamCircle = (GradientDrawable) ContextCompat.getDrawable(mContext, R.drawable.task_details_team_circle).mutate();
             teamCircle.setColor(ContextCompat.getColor(getActivity().getApplicationContext(), Utils.colorArray[teamColor == -1 ? 0 : teamColor % Utils.colorArray.length]));
             teamCircle.setBounds(0, 0, 48, 48);
             taskTeam.setCompoundDrawables(teamCircle, null, null, null);
@@ -255,36 +295,6 @@ public class TaskDetailsFragment extends Fragment {
             taskTeam.setText(taskDetails.getString(DoneListContract.TeamEntry.COLUMN_NAME_NAME));
         }
         
-    }
-    
-    @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
-        View view = inflater.inflate(R.layout.fragment_task_details, container, false);
-        
-        Bundle taskDetails = getTaskDetails();
-        if (taskDetails != null)
-            populateCard(taskDetails, view);
-        
-        // Inflate the layout for this fragment
-        return view;
-    }
-    
-    @Override
-    public void onAttach(Context context) {
-        super.onAttach(context);
-        if (context instanceof OnFragmentInteractionListener) {
-            mListener = (OnFragmentInteractionListener) context;
-        } else {
-            throw new RuntimeException(context.toString()
-                    + " must implement OnFragmentInteractionListener");
-        }
-    }
-    
-    @Override
-    public void onDetach() {
-        super.onDetach();
-        mListener = null;
     }
     
     public void showByTeam(View view) {
@@ -319,6 +329,14 @@ public class TaskDetailsFragment extends Fragment {
         return mIsOwner;
     }
     
+    public String getShareString() {
+        return mShareString;
+    }
+    
+    public boolean isOwner() {
+        return mIsOwner;
+    }
+    
     /**
      * This interface must be implemented by activities that contain this
      * fragment to allow an interaction in this fragment to be communicated
@@ -331,6 +349,8 @@ public class TaskDetailsFragment extends Fragment {
      */
     public interface OnFragmentInteractionListener {
         void setOwnerMenu(boolean isOwner);
+    
+        void setShareText(String shareText);
     }
     
     private class URLSpanNoUnderline extends URLSpan {
@@ -343,7 +363,7 @@ public class TaskDetailsFragment extends Fragment {
             super.updateDrawState(ds);
             ds.setUnderlineText(false);
             //ds.setFakeBoldText(true);
-            ds.setColor(ContextCompat.getColor(getContext(), R.color.link_colour));
+            ds.setColor(ContextCompat.getColor(mContext, R.color.link_colour));
         }
     }
     

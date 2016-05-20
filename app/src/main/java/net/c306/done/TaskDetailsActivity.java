@@ -9,9 +9,11 @@ import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentPagerAdapter;
 import android.support.v4.app.FragmentStatePagerAdapter;
+import android.support.v4.view.MenuItemCompat;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.ShareActionProvider;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.Menu;
@@ -35,7 +37,6 @@ public class TaskDetailsActivity
     private String mSearchFilter = null;                // Search phrase to filter
     private String mNavFilter = null;                   // Team or tag filter query string
     private int mNavFilterType = Utils.NAV_LAYOUT_ALL;  // Nav filter type - team, tag, or all 
-    private String mFilterTitle = null;                  // Title string - team name, #tag or search phrase
     
     private boolean mIsOwner = false;                   // Is user owner of mId task
     
@@ -48,6 +49,8 @@ public class TaskDetailsActivity
     private SectionsPagerAdapter mSectionsPagerAdapter; // Adapter to provide views for view pager
     
     private ViewPager mViewPager;                       // View pager to display task details in
+    private ShareActionProvider mShareActionProvider;   // Share spinner to share tasks with intents
+    private String mShareString = null;
     
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -64,7 +67,8 @@ public class TaskDetailsActivity
         mSearchFilter = receivedData.getStringExtra(Utils.KEY_SEARCH_FILTER);
         mNavFilter = receivedData.getStringExtra(Utils.KEY_NAV_FILTER);
         mNavFilterType = receivedData.getIntExtra(Utils.KEY_NAV_FILTER_TYPE, mNavFilterType);
-        mFilterTitle = receivedData.getStringExtra(Utils.KEY_FILTER_TITLE);
+    
+        String mFilterTitle = receivedData.getStringExtra(Utils.KEY_FILTER_TITLE);                   // Title string - team name, #tag or search phrase
         
         // Get saved instance state if recreating
         if (savedInstanceState != null && !savedInstanceState.isEmpty()) {
@@ -211,6 +215,19 @@ public class TaskDetailsActivity
         }
     }
     
+    // Call to update the share intent
+    private void setShareIntent(String shareText) {
+        Intent sendIntent = new Intent();
+        sendIntent.setAction(Intent.ACTION_SEND);
+        sendIntent.putExtra(Intent.EXTRA_TEXT, shareText);
+        sendIntent.setType("text/plain");
+        //Log.i(LOG_TAG, "setShareText: Set intent with " + shareText);
+        
+        if (mShareActionProvider != null) {
+            mShareActionProvider.setShareIntent(sendIntent);
+        }
+    }
+    
     @Override
     protected void onSaveInstanceState(Bundle outState) {
         if (mCurrentTaskIndex != -1)
@@ -226,11 +243,27 @@ public class TaskDetailsActivity
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.menu_task_details, menu);
     
+        if (mShareString == null) {
+            TaskDetailsFragment taskDetailsFragment = mSectionsPagerAdapter.getFragment(mCurrentTaskIndex);
+            if (taskDetailsFragment != null) {
+                mIsOwner = taskDetailsFragment.isOwner();
+                mShareString = taskDetailsFragment.getShareString();
+            }
+        }
+        
         // If user not owner, don't show edit & delete actions 
         if (!mIsOwner) {
             menu.findItem(R.id.action_edit).setVisible(false);
             menu.findItem(R.id.action_delete).setVisible(false);
         }
+    
+        // Locate MenuItem with ShareActionProvider
+        MenuItem item = menu.findItem(R.id.action_share);
+    
+        // Fetch and store ShareActionProvider
+        mShareActionProvider = (ShareActionProvider) MenuItemCompat.getActionProvider(item);
+        if (mShareString != null)
+            setShareIntent(mShareString);
         
         return true;
     }
@@ -322,15 +355,6 @@ public class TaskDetailsActivity
     }
     
     @Override
-    public void setOwnerMenu(boolean isOwner) {
-        boolean prevIsOwner = mIsOwner;
-        mIsOwner = isOwner;
-    
-        if (mIsOwner != prevIsOwner)
-            invalidateOptionsMenu();
-    }
-    
-    @Override
     public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
         
     }
@@ -338,11 +362,43 @@ public class TaskDetailsActivity
     @Override
     public void onPageSelected(int position) {
         mCurrentTaskIndex = position;
+    
+        // Get currently visible fragment (which was edited, and get it's isOwner and shareString)
+        TaskDetailsFragment taskDetailsFragment = mSectionsPagerAdapter.getFragment(mCurrentTaskIndex);
+        if (taskDetailsFragment != null) {
+            boolean previousOwner = mIsOwner;
+            mIsOwner = taskDetailsFragment.isOwner();
+            mShareString = taskDetailsFragment.getShareString();
+        
+            setShareIntent(mShareString);
+        
+            if (mIsOwner != previousOwner)
+                invalidateOptionsMenu();
+        }
     }
     
     @Override
     public void onPageScrollStateChanged(int state) {
-        
+    
+    }
+    
+    @Override
+    public void setOwnerMenu(boolean isOwner) {
+        //boolean prevIsOwner = mIsOwner;
+        //mIsOwner = isOwner;
+        //
+        //if (mIsOwner != prevIsOwner)
+        //    invalidateOptionsMenu();
+    }
+    
+    @Override
+    public void setShareText(String shareText) {
+        //Intent sendIntent = new Intent();
+        //sendIntent.setAction(Intent.ACTION_SEND);
+        //sendIntent.putExtra(Intent.EXTRA_TEXT, shareText);
+        //sendIntent.setType("text/plain");
+        //setShareIntent(sendIntent);
+        //Log.i(LOG_TAG, "setShareText: Set intent with " + shareText);
     }
     
     /**
