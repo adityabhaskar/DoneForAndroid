@@ -9,11 +9,9 @@ import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentPagerAdapter;
 import android.support.v4.app.FragmentStatePagerAdapter;
-import android.support.v4.view.MenuItemCompat;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.ShareActionProvider;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.Menu;
@@ -49,8 +47,7 @@ public class TaskDetailsActivity
     private SectionsPagerAdapter mSectionsPagerAdapter; // Adapter to provide views for view pager
     
     private ViewPager mViewPager;                       // View pager to display task details in
-    private ShareActionProvider mShareActionProvider;   // Share spinner to share tasks with intents
-    private String mShareString = null;
+    private String mShareString = null;                 
     
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -215,19 +212,6 @@ public class TaskDetailsActivity
         }
     }
     
-    // Call to update the share intent
-    private void setShareIntent(String shareText) {
-        Intent sendIntent = new Intent();
-        sendIntent.setAction(Intent.ACTION_SEND);
-        sendIntent.putExtra(Intent.EXTRA_TEXT, shareText);
-        sendIntent.setType("text/plain");
-        //Log.i(LOG_TAG, "setShareText: Set intent with " + shareText);
-        
-        if (mShareActionProvider != null) {
-            mShareActionProvider.setShareIntent(sendIntent);
-        }
-    }
-    
     @Override
     protected void onSaveInstanceState(Bundle outState) {
         if (mCurrentTaskIndex != -1)
@@ -256,23 +240,12 @@ public class TaskDetailsActivity
             menu.findItem(R.id.action_edit).setVisible(false);
             menu.findItem(R.id.action_delete).setVisible(false);
         }
-    
-        // Locate MenuItem with ShareActionProvider
-        MenuItem item = menu.findItem(R.id.action_share);
-    
-        // Fetch and store ShareActionProvider
-        mShareActionProvider = (ShareActionProvider) MenuItemCompat.getActionProvider(item);
-        if (mShareString != null)
-            setShareIntent(mShareString);
         
         return true;
     }
     
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
         
         switch (id) {
@@ -280,6 +253,24 @@ public class TaskDetailsActivity
             case R.id.action_settings: {
                 Intent settingsIntent = new Intent(TaskDetailsActivity.this, SettingsActivity.class);
                 startActivity(settingsIntent);
+                return true;
+            }
+    
+            case R.id.action_share: {
+                if (mShareString == null) {
+                    // get share string from fragment
+                    TaskDetailsFragment taskDetailsFragment = mSectionsPagerAdapter.getFragment(mCurrentTaskIndex);
+                    if (taskDetailsFragment != null) {
+                        mIsOwner = taskDetailsFragment.isOwner();
+                        mShareString = taskDetailsFragment.getShareString();
+                    }
+                }
+        
+                Intent sendIntent = new Intent();
+                sendIntent.setAction(Intent.ACTION_SEND);
+                sendIntent.putExtra(Intent.EXTRA_TEXT, mShareString);
+                sendIntent.setType("text/plain");
+                startActivity(Intent.createChooser(sendIntent, getResources().getText(R.string.title_share_with)));
                 return true;
             }
             
@@ -340,11 +331,10 @@ public class TaskDetailsActivity
                     Snackbar.LENGTH_SHORT);
             mSnackbar.setAction("Action", null).show();
     
-    
             // TODO: 16/05/16 Ask the adapter to remove all items and recreate - team/tag/text changes may have rendered current filtered list incorrect 
             // Update view
             mSectionsPagerAdapter.notifyDataSetChanged();
-        
+    
             // Get currently visible fragment (which was edited, and ask it to refresh its contents)
             TaskDetailsFragment taskDetailsFragment = mSectionsPagerAdapter.getFragment(mCurrentTaskIndex);
             if (taskDetailsFragment != null)
@@ -369,9 +359,7 @@ public class TaskDetailsActivity
             boolean previousOwner = mIsOwner;
             mIsOwner = taskDetailsFragment.isOwner();
             mShareString = taskDetailsFragment.getShareString();
-        
-            setShareIntent(mShareString);
-        
+    
             if (mIsOwner != previousOwner)
                 invalidateOptionsMenu();
         }
@@ -384,21 +372,10 @@ public class TaskDetailsActivity
     
     @Override
     public void setOwnerMenu(boolean isOwner) {
-        //boolean prevIsOwner = mIsOwner;
-        //mIsOwner = isOwner;
-        //
-        //if (mIsOwner != prevIsOwner)
-        //    invalidateOptionsMenu();
     }
     
     @Override
     public void setShareText(String shareText) {
-        //Intent sendIntent = new Intent();
-        //sendIntent.setAction(Intent.ACTION_SEND);
-        //sendIntent.putExtra(Intent.EXTRA_TEXT, shareText);
-        //sendIntent.setType("text/plain");
-        //setShareIntent(sendIntent);
-        //Log.i(LOG_TAG, "setShareText: Set intent with " + shareText);
     }
     
     /**

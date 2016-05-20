@@ -174,5 +174,6 @@
     <string name="_yesterday">Yesterday</string>
     <string name="_today">Today</string>
     <string name="share_string_completed">Completed</string>
+    <string name="title_share_with">Share task</string>
 
 </resources>
