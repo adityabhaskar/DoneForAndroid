@@ -34,7 +34,7 @@ public class PostEditedDoneTask extends AsyncTask<Void, Void, Integer> {
     private String mAuthToken;
     
     public PostEditedDoneTask(Context c) {
-        mContext = c;
+        mContext = c.getApplicationContext();
     }
     
     @Override

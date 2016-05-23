@@ -26,7 +26,7 @@ public class DeleteDonesTask extends AsyncTask<Void, Void, Integer> {
     private String mAuthToken;
     
     public DeleteDonesTask(Context c) {
-        mContext = c;
+        mContext = c.getApplicationContext();
     }
     
     @Override

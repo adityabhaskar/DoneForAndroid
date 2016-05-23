@@ -21,9 +21,15 @@ public class NotificationsBroadcastReceiver extends BroadcastReceiver {
         Log.v(LOG_TAG, "Action: " + intent.getAction());
     
         if (intent.getAction().equals("android.intent.action.BOOT_COMPLETED")) {
-            // 1. From Boot completed - re-set the alarm here
+            // 1a. From Boot completed - re-set the alarm here
+            Log.i(LOG_TAG, "onReceive: Device restarted");
             Utils.setNotificationAlarm(context, null);
-        
+    
+        } else if (intent.getAction().equals("android.intent.action.MY_PACKAGE_REPLACED")) {
+            // 1b. From Application updated - re-set the alarm here
+            Log.i(LOG_TAG, "onReceive: App updated");
+            Utils.setNotificationAlarm(context, null);
+            
         } else
             // 2. From NotificationAlarm
         

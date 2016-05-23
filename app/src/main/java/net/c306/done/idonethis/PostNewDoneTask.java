@@ -39,7 +39,7 @@ public class PostNewDoneTask extends AsyncTask<Void, Void, Integer> {
     private String mAuthToken;
     
     public PostNewDoneTask(Context c){
-        mContext = c;
+        mContext = c.getApplicationContext();
     }
     
     @Override

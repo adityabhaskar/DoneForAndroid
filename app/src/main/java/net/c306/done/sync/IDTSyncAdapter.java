@@ -52,6 +52,8 @@ public class IDTSyncAdapter extends AbstractThreadedSyncAdapter {
         bundle.putBoolean(ContentResolver.SYNC_EXTRAS_EXPEDITED, true);
         bundle.putBoolean(ContentResolver.SYNC_EXTRAS_MANUAL, true);
         bundle.putBoolean(Utils.INTENT_EXTRA_FROM_DONE_DELETE_EDIT_TASKS, fetchTeams);
+    
+        context = context.getApplicationContext();
         
         Account syncAccount = IDTAccountManager.getSyncAccount(context);
         
@@ -62,7 +64,7 @@ public class IDTSyncAdapter extends AbstractThreadedSyncAdapter {
     }
     
     public static void syncImmediately(Context context) {
-        syncImmediately(context, false);
+        syncImmediately(context.getApplicationContext(), false);
     }
     
     public static void onAccountCreated(Account newAccount, Context context) {
@@ -75,13 +77,14 @@ public class IDTSyncAdapter extends AbstractThreadedSyncAdapter {
         /*
          * Finally, let's do a sync to get things started
          */
-        syncImmediately(context, false);
+        syncImmediately(context.getApplicationContext(), false);
     }
     
     /**
      * Helper method to schedule the sync adapter periodic execution
      */
     public static void configurePeriodicSync(Context context, int syncInterval) {
+        context = context.getApplicationContext();
         String authority = context.getString(R.string.content_authority);
         Account account = IDTAccountManager.getSyncAccount(context);
         
@@ -100,7 +103,7 @@ public class IDTSyncAdapter extends AbstractThreadedSyncAdapter {
     }
     
     public static void stopPeriodicSync(Context context) {
-        
+        context = context.getApplicationContext();
         Account account = IDTAccountManager.getSyncAccount(context);
         
         if (account == null) {
@@ -121,7 +124,8 @@ public class IDTSyncAdapter extends AbstractThreadedSyncAdapter {
     
     public static void initializeSyncAdapter(Context context) {
         Log.v(LOG_TAG, "Initialising sync adapter");
-    
+        context = context.getApplicationContext();
+        
         Account account = IDTAccountManager.getSyncAccount(context);
     
         if (account != null)
@@ -133,18 +137,19 @@ public class IDTSyncAdapter extends AbstractThreadedSyncAdapter {
     @Override
     public void onPerformSync(Account account, Bundle extras, String authority, ContentProviderClient provider, SyncResult syncResult) {
         Log.v(LOG_TAG, "onPerformSync Called.");
-        
-        String authToken = IDTAccountManager.getAuthToken(getContext());
+    
+        Context context = getContext().getApplicationContext();
+    
+        String authToken = IDTAccountManager.getAuthToken(context);
         
         if (authToken == null)
             return;
     
-        if (Utils.isTokenExpired(getContext())) {
+        if (Utils.isTokenExpired(context)) {
             // Launch refresh token task
-            new RefreshTokenTask(getContext()).execute();
+            new RefreshTokenTask(context).execute();
             return;
         }
-    
     
         boolean fromDoneDeleteEditTasks = extras.getBoolean(Utils.INTENT_EXTRA_FROM_DONE_DELETE_EDIT_TASKS, false);
         int teamCount = 0;
@@ -156,7 +161,7 @@ public class IDTSyncAdapter extends AbstractThreadedSyncAdapter {
             teamCount = fetchTeams(authToken);
     
             // 2. Check for unsent task actions - add, edit, delete
-            Cursor cursor = getContext().getContentResolver().query(
+            Cursor cursor = context.getContentResolver().query(
                     DoneListContract.DoneEntry.buildDoneListUri(),                  // URI
                     new String[]{DoneListContract.DoneEntry.COLUMN_NAME_ID},        // Projection
                     DoneListContract.DoneEntry.COLUMN_NAME_IS_LOCAL + " IS 'TRUE' OR " + // Selection
@@ -170,7 +175,7 @@ public class IDTSyncAdapter extends AbstractThreadedSyncAdapter {
                 if (cursor.getCount() > 0) {
                     Log.v(LOG_TAG, "Found " + cursor.getCount() + " unsent tasks, post them before fetching");
     
-                    new DeleteDonesTask(getContext()).execute();
+                    new DeleteDonesTask(context).execute();
     
                     cursor.close();
                     return;
@@ -186,7 +191,7 @@ public class IDTSyncAdapter extends AbstractThreadedSyncAdapter {
     private int fetchTasks(String authToken) {
         HttpURLConnection httpcon = null;
         BufferedReader br = null;
-        Context context = getContext();
+        Context context = getContext().getApplicationContext();
         
         Utils.sendMessage(context, Utils.SENDER_FETCH_TASKS, "Starting fetch... ", Utils.STATUS_TASK_STARTED, -1);
         
@@ -278,7 +283,7 @@ public class IDTSyncAdapter extends AbstractThreadedSyncAdapter {
         int resultStatus;
         String result = "";
         int teamCount = 0;
-        Context context = getContext();
+        Context context = getContext().getApplicationContext();
         
         Utils.sendMessage(context, Utils.SENDER_FETCH_TEAMS, "Starting fetch... ", Utils.STATUS_TASK_STARTED, -1);
         
@@ -438,19 +443,21 @@ public class IDTSyncAdapter extends AbstractThreadedSyncAdapter {
             ContentValues[] cvArray = new ContentValues[cVVector.size()];
             cVVector.toArray(cvArray);
     
+            Context context = getContext().getApplicationContext();
+            
             /**
             * To be used only till we can get all updates from server, including deletes
             * 
             * */
             // Delete non-local dones from local database, to be replaced by freshly retrieved ones 
             // There could be some local non-posted dones that were typed while sync was on
-            getContext().getContentResolver().delete(
+            context.getContentResolver().delete(
                     DoneListContract.DoneEntry.CONTENT_URI, // Table uri
                     DoneListContract.DoneEntry.COLUMN_NAME_IS_LOCAL + " IS 'FALSE'", // Selection
                     null); // Selection args
             
             // Add newly fetched entries to the server
-            getContext().getContentResolver().bulkInsert(DoneListContract.DoneEntry.CONTENT_URI, cvArray);
+            context.getContentResolver().bulkInsert(DoneListContract.DoneEntry.CONTENT_URI, cvArray);
             
         }
     
@@ -486,16 +493,18 @@ public class IDTSyncAdapter extends AbstractThreadedSyncAdapter {
         if (cVVector.size() > 0) {
             ContentValues[] cvArray = new ContentValues[cVVector.size()];
             cVVector.toArray(cvArray);
+    
+            Context context = getContext().getApplicationContext();
             
             // Delete previous tags from database 
             // There could be some local non-posted dones that were typed while sync was on
-            getContext().getContentResolver().delete(
+            context.getContentResolver().delete(
                     DoneListContract.TagEntry.CONTENT_URI, // Table uri
                     null,
                     null); // Selection args
             
             // Add newly fetched entries to the server
-            return getContext().getContentResolver().bulkInsert(DoneListContract.TagEntry.CONTENT_URI, cvArray);
+            return context.getContentResolver().bulkInsert(DoneListContract.TagEntry.CONTENT_URI, cvArray);
         } else
             return 0;
     }
@@ -519,7 +528,7 @@ public class IDTSyncAdapter extends AbstractThreadedSyncAdapter {
         String teamItemString;
         TeamItem teamItem;
         List<String> teams = new ArrayList<>();
-        Context context = getContext();
+        Context context = getContext().getApplicationContext();
         
         JSONObject masterObj = new JSONObject(teamsJsonStr);
         JSONArray teamsListArray = masterObj.getJSONArray("results");
