@@ -397,8 +397,7 @@ public class NewDoneActivity extends AppCompatActivity {
         Cursor cursor = getContentResolver().query(
                 DoneListContract.TagEntry.CONTENT_URI,
                 new String[]{
-                        DoneListContract.TagEntry.COLUMN_NAME_ID,
-                        DoneListContract.TagEntry.COLUMN_NAME_NAME
+                        "DISTINCT " + DoneListContract.TagEntry.COLUMN_NAME_NAME
                 },
                 null,
                 null,
@@ -416,8 +415,8 @@ public class NewDoneActivity extends AppCompatActivity {
             }
             
             cursor.close();
-            
-            if (tagNames != null && tagNames.length > 0) {
+    
+            if (tagNames.length > 0) {
                 
                 // Create arrayAdapter and assign it to task edit text
                 ArrayAdapter tagsAdapter = new ArrayAdapter(this, android.R.layout.simple_list_item_1, tagNames);
