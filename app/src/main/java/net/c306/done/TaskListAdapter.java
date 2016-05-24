@@ -64,8 +64,12 @@ public class TaskListAdapter extends ResourceCursorAdapter {
         Spannable rawTextWithUnderlines = (Spannable) Html.fromHtml(cursor.getString(cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_MARKEDUP_TEXT)));
         SpannableString formattedText = new SpannableString(formatForTextView(rawTextWithUnderlines));
         rawTextTextView.setText(formattedText);
-        
-        if ("TRUE".equals(cursor.getString(cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_IS_LOCAL))))
+    
+        String isEdited = cursor.getString(cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_EDITED_FIELDS));
+        String isLocal = cursor.getString(cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_IS_LOCAL));
+    
+        // If task is locally created or edited, set text colour to secondary_text
+        if ("TRUE".equals(isLocal) || (isEdited != null && !isEdited.trim().isEmpty()))
             rawTextTextView.setTextColor(ContextCompat.getColor(mContext, R.color.secondary_text));
         else
             rawTextTextView.setTextColor(ContextCompat.getColor(mContext, R.color.primary_text));

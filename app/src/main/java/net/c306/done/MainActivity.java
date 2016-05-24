@@ -74,7 +74,10 @@ public class MainActivity
     private static final int TASK_LIST_LOADER = 0;
     private static final int TEAM_LIST_LOADER = 1;
     private static final int TAG_LIST_LOADER = 2;
-    private final String LOG_TAG = Utils.LOG_TAG + this.getClass().getSimpleName();
+    
+    private final String ANALYTICS_TAG = this.getClass().getSimpleName();
+    private final String LOG_TAG = Utils.LOG_TAG + ANALYTICS_TAG;
+    
     private ActionBarDrawerToggle mNavDrawerToggle;      // Toggle for nav drawer
     private Snackbar mSnackbar;                 // Snackbar to show messages
     private Tracker mTracker;                   // Google Analytics tracker
@@ -340,7 +343,7 @@ public class MainActivity
         }
         
         // Log screen open in Analytics
-        Utils.sendScreen(mTracker, getClass().getSimpleName());
+        Utils.sendScreen(mTracker, ANALYTICS_TAG);
     }
     
     @Override
@@ -570,6 +573,133 @@ public class MainActivity
     }
     
     /**
+     * Populate linear layouts in nav drawer with teams and tags
+     *
+     * @param cursor   database cursor to tags or teams
+     * @param itemType identifier for tags or teams - Utils.NAV_LAYOUT_TEAMS or Utils.NAV_LAYOUT_TAGS
+     */
+    private void populateLayoutFromCursor(Cursor cursor, int itemType) {
+        // Get linear layout to populate
+        LinearLayout linearLayout = (LinearLayout) findViewById(idToLayoutMap.get(itemType));
+    
+        if (linearLayout != null && cursor != null) {
+            // Clear out previous data in linear layout
+            linearLayout.removeAllViews();
+        
+            if (cursor.getCount() > 0) {
+            
+                // Set height for list items
+                LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        (int) getResources().getDimension(R.dimen._48dp));
+            
+                switch (itemType) {
+                    case TAG_LIST_LOADER: {
+                        // Iterate over cursor to populate
+                    
+                        int idColIndex = cursor.getColumnIndex("_id");
+                        int nameColIndex = cursor.getColumnIndex(DoneListContract.TagEntry.COLUMN_NAME_NAME);
+                    
+                        // When loader is already initialised (recreate activity on finished/rotated), 
+                        // cursor is beyond last (from previous iteration). 
+                        // Move it to first before starting.
+                        cursor.moveToFirst();
+                    
+                        do {
+                            // Set item id
+                            View view = getLayoutInflater().inflate(R.layout.nav_list_row_layout, null);
+                            view.setId(cursor.getInt(idColIndex));
+                            view.setLayoutParams(layoutParams);
+                            view.setOnClickListener(navTagsClickListener);
+                        
+                            // Set image resource for tag icon
+                            ImageView tagIconImageView = (ImageView) view.findViewById(R.id.nav_team_color_patch);
+                            BitmapDrawable settingsIcon = (BitmapDrawable) ContextCompat.getDrawable(getApplicationContext(), R.drawable.ic_label_black_24dp).mutate();
+                            settingsIcon.setAlpha(0x8A);
+                            if (tagIconImageView != null)
+                                tagIconImageView.setImageDrawable(settingsIcon);
+                        
+                            // Set tag name
+                            TextView tagNameTextView = (TextView) view.findViewById(R.id.team_name_text_view);
+                            tagNameTextView.setText(cursor.getString(nameColIndex));
+                        
+                            linearLayout.addView(view);
+                        
+                        } while (cursor.moveToNext());
+                    
+                        if (mNavFilterType == Utils.NAV_LAYOUT_TAGS) {
+                            Bundle tagDetailsBundle = new Bundle();
+                            tagDetailsBundle.putInt(DoneListContract.TagEntry.COLUMN_NAME_ID, mNavSelectedId);
+                            tagDetailsBundle.putString(DoneListContract.TagEntry.COLUMN_NAME_NAME, mFilterTitle);
+                        
+                            filterByTagOrTeam(mNavFilterType, tagDetailsBundle, false, true);
+                        }
+                    
+                        break;
+                    }
+                
+                    case TEAM_LIST_LOADER: {
+                        // Iterate over cursor to populate
+                    
+                        int idColIndex = cursor.getColumnIndex("_id");
+                        int nameColIndex = cursor.getColumnIndex(DoneListContract.TeamEntry.COLUMN_NAME_NAME);
+                        int urlColIndex = cursor.getColumnIndex(DoneListContract.TeamEntry.COLUMN_NAME_URL);
+                    
+                        // When loader is already initialised (recreate activity on finished/rotated), 
+                        // cursor is beyond last (from previous iteration). 
+                        // Move it to first before starting.
+                        cursor.moveToFirst();
+                    
+                        do {
+                            // Set item id
+                            View view = getLayoutInflater().inflate(R.layout.nav_list_row_layout, null);
+                            view.setId(cursor.getInt(idColIndex));
+                            view.setLayoutParams(layoutParams);
+                            view.setOnClickListener(navTeamsClickListener);
+                        
+                            // Set team colour
+                            int teamColor = Utils.findTeam(getApplicationContext(), cursor.getString(urlColIndex));
+                        
+                            ImageView teamSpace = (ImageView) view.findViewById(R.id.nav_team_color_patch);
+                        
+                            GradientDrawable teamCircle = (GradientDrawable) teamSpace.getDrawable().mutate();
+                            teamCircle.setColor(ContextCompat.getColor(getApplicationContext(), Utils.colorArray[teamColor == -1 ? 0 : teamColor % Utils.colorArray.length]));
+                        
+                            // Set team name
+                            TextView teamNameTextView = (TextView) view.findViewById(R.id.team_name_text_view);
+                            teamNameTextView.setText(cursor.getString(nameColIndex));
+                        
+                            linearLayout.addView(view);
+                        } while (cursor.moveToNext());
+                    
+                        if (mNavFilterType == Utils.NAV_LAYOUT_TEAMS) {
+                            Bundle teamDetailsBundle = new Bundle();
+                            teamDetailsBundle.putInt(DoneListContract.TagEntry.COLUMN_NAME_ID, mNavSelectedId);
+                            teamDetailsBundle.putString(DoneListContract.TagEntry.COLUMN_NAME_NAME, mFilterTitle);
+                            teamDetailsBundle.putString(DoneListContract.TeamEntry.COLUMN_NAME_URL, mNavFilterString);
+                        
+                            filterByTagOrTeam(mNavFilterType, teamDetailsBundle, false, true);
+                        }
+                    
+                        break;
+                    }
+                }
+            }
+        } else
+            Log.w(LOG_TAG, "Either layout, or cursor are null");
+    }
+    
+    private void clearLayout(int itemType) {
+        // Get linear layout to populate
+        LinearLayout linearLayout = (LinearLayout) findViewById(idToLayoutMap.get(itemType));
+        
+        if (linearLayout != null) {
+            // Clear out previous data in linear layout
+            linearLayout.removeAllViews();
+        }
+    }
+    
+    /**
      * filters task list (and highlights selected nav drawer item)
      *
      * @param filterType             Tag or Team filter. Value from Utils.NAV_LAYOUT_TEAMS or Utils.NAV_LAYOUT_TAGS
@@ -714,7 +844,7 @@ public class MainActivity
                         Log.v(LOG_TAG, "Logging out...");
                         
                         // Track event in analytics
-                        Utils.sendEvent(mTracker, Utils.ANALYTICS_CATEGORY_ACTION, "Logout");
+                        Utils.sendEvent(mTracker, Utils.ANALYTICS_CATEGORY_ACTION, ANALYTICS_TAG + Utils.ANALYTICS_ACTION_LOGOUT);
                         
                         // Remove alarm & any notifications
                         Utils.cancelNotificationAlarm(MainActivity.this);
@@ -776,7 +906,7 @@ public class MainActivity
         Log.v(LOG_TAG, "Delete selected items: " + ids.length);
     
         // Log event in analytics
-        Utils.sendEvent(mTracker, Utils.ANALYTICS_CATEGORY_ACTION, "Task Deleted - MainActivity", String.valueOf(ids.length));
+        Utils.sendEvent(mTracker, Utils.ANALYTICS_CATEGORY_ACTION, ANALYTICS_TAG + Utils.ANALYTICS_ACTION_TASK_DELETED, String.valueOf(ids.length));
         
         // Delete selected ids from database, then from server, finishing with updating tasks from server on success
         int deletedCount = new DoneActions(getApplicationContext()).delete(ids);
@@ -954,133 +1084,6 @@ public class MainActivity
         }
     }
     
-    /**
-     * Populate linear layouts in nav drawer with teams and tags
-     *
-     * @param cursor   database cursor to tags or teams
-     * @param itemType identifier for tags or teams - Utils.NAV_LAYOUT_TEAMS or Utils.NAV_LAYOUT_TAGS
-     */
-    private void populateLayoutFromCursor(Cursor cursor, int itemType) {
-        // Get linear layout to populate
-        LinearLayout linearLayout = (LinearLayout) findViewById(idToLayoutMap.get(itemType));
-        
-        if (linearLayout != null && cursor != null) {
-            // Clear out previous data in linear layout
-            linearLayout.removeAllViews();
-    
-            if (cursor.getCount() > 0) {
-        
-                // Set height for list items
-                LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                        (int) getResources().getDimension(R.dimen._48dp));
-        
-                switch (itemType) {
-                    case TAG_LIST_LOADER: {
-                        // Iterate over cursor to populate
-                
-                        int idColIndex = cursor.getColumnIndex("_id");
-                        int nameColIndex = cursor.getColumnIndex(DoneListContract.TagEntry.COLUMN_NAME_NAME);
-                
-                        // When loader is already initialised (recreate activity on finished/rotated), 
-                        // cursor is beyond last (from previous iteration). 
-                        // Move it to first before starting.
-                        cursor.moveToFirst();
-                
-                        do {
-                            // Set item id
-                            View view = getLayoutInflater().inflate(R.layout.nav_list_row_layout, null);
-                            view.setId(cursor.getInt(idColIndex));
-                            view.setLayoutParams(layoutParams);
-                            view.setOnClickListener(navTagsClickListener);
-                    
-                            // Set image resource for tag icon
-                            ImageView tagIconImageView = (ImageView) view.findViewById(R.id.nav_team_color_patch);
-                            BitmapDrawable settingsIcon = (BitmapDrawable) ContextCompat.getDrawable(getApplicationContext(), R.drawable.ic_label_black_24dp).mutate();
-                            settingsIcon.setAlpha(0x8A);
-                            if (tagIconImageView != null)
-                                tagIconImageView.setImageDrawable(settingsIcon);
-                    
-                            // Set tag name
-                            TextView tagNameTextView = (TextView) view.findViewById(R.id.team_name_text_view);
-                            tagNameTextView.setText(cursor.getString(nameColIndex));
-                    
-                            linearLayout.addView(view);
-                    
-                        } while (cursor.moveToNext());
-                
-                        if (mNavFilterType == Utils.NAV_LAYOUT_TAGS) {
-                            Bundle tagDetailsBundle = new Bundle();
-                            tagDetailsBundle.putInt(DoneListContract.TagEntry.COLUMN_NAME_ID, mNavSelectedId);
-                            tagDetailsBundle.putString(DoneListContract.TagEntry.COLUMN_NAME_NAME, mFilterTitle);
-                    
-                            filterByTagOrTeam(mNavFilterType, tagDetailsBundle, false, true);
-                        }
-                
-                        break;
-                    }
-            
-                    case TEAM_LIST_LOADER: {
-                        // Iterate over cursor to populate
-                
-                        int idColIndex = cursor.getColumnIndex("_id");
-                        int nameColIndex = cursor.getColumnIndex(DoneListContract.TeamEntry.COLUMN_NAME_NAME);
-                        int urlColIndex = cursor.getColumnIndex(DoneListContract.TeamEntry.COLUMN_NAME_URL);
-                
-                        // When loader is already initialised (recreate activity on finished/rotated), 
-                        // cursor is beyond last (from previous iteration). 
-                        // Move it to first before starting.
-                        cursor.moveToFirst();
-                
-                        do {
-                            // Set item id
-                            View view = getLayoutInflater().inflate(R.layout.nav_list_row_layout, null);
-                            view.setId(cursor.getInt(idColIndex));
-                            view.setLayoutParams(layoutParams);
-                            view.setOnClickListener(navTeamsClickListener);
-                    
-                            // Set team colour
-                            int teamColor = Utils.findTeam(getApplicationContext(), cursor.getString(urlColIndex));
-                    
-                            ImageView teamSpace = (ImageView) view.findViewById(R.id.nav_team_color_patch);
-                    
-                            GradientDrawable teamCircle = (GradientDrawable) teamSpace.getDrawable().mutate();
-                            teamCircle.setColor(ContextCompat.getColor(getApplicationContext(), Utils.colorArray[teamColor == -1 ? 0 : teamColor % Utils.colorArray.length]));
-                    
-                            // Set team name
-                            TextView teamNameTextView = (TextView) view.findViewById(R.id.team_name_text_view);
-                            teamNameTextView.setText(cursor.getString(nameColIndex));
-                    
-                            linearLayout.addView(view);
-                        } while (cursor.moveToNext());
-                
-                        if (mNavFilterType == Utils.NAV_LAYOUT_TEAMS) {
-                            Bundle teamDetailsBundle = new Bundle();
-                            teamDetailsBundle.putInt(DoneListContract.TagEntry.COLUMN_NAME_ID, mNavSelectedId);
-                            teamDetailsBundle.putString(DoneListContract.TagEntry.COLUMN_NAME_NAME, mFilterTitle);
-                            teamDetailsBundle.putString(DoneListContract.TeamEntry.COLUMN_NAME_URL, mNavFilterString);
-                    
-                            filterByTagOrTeam(mNavFilterType, teamDetailsBundle, false, true);
-                        }
-                
-                        break;
-                    }
-                }
-            }
-        } else
-            Log.w(LOG_TAG, "Either layout, or cursor are null");
-    }
-    
-    private void clearLayout(int itemType) {
-        // Get linear layout to populate
-        LinearLayout linearLayout = (LinearLayout) findViewById(idToLayoutMap.get(itemType));
-        
-        if (linearLayout != null) {
-            // Clear out previous data in linear layout
-            linearLayout.removeAllViews();
-        }
-    }
-    
     @Override
     public void onLoaderReset(Loader<Cursor> loader) {
         switch (loader.getId()) {
@@ -1126,7 +1129,7 @@ public class MainActivity
     public boolean onMenuItemActionExpand(MenuItem item) {
         if (item.getItemId() == R.id.action_search) {
             Log.i(LOG_TAG, "Search expanded");
-            Utils.sendEvent(mTracker, Utils.ANALYTICS_CATEGORY_ACTION, "Search");
+            Utils.sendEvent(mTracker, Utils.ANALYTICS_CATEGORY_ACTION, ANALYTICS_TAG + Utils.ANALYTICS_ACTION_SEARCH);
         }
         return true;
     }
@@ -1142,7 +1145,7 @@ public class MainActivity
     @Override
     public void onRefresh() {
         // Track event in analytics
-        Utils.sendEvent(mTracker, Utils.ANALYTICS_CATEGORY_ACTION, "PullToRefresh");
+        Utils.sendEvent(mTracker, Utils.ANALYTICS_CATEGORY_ACTION, ANALYTICS_TAG + Utils.ANALYTICS_ACTION_PULL_TO_REFRESH);
         
         IDTSyncAdapter.syncImmediately(this);
     }
@@ -1303,7 +1306,7 @@ public class MainActivity
                 Log.v(LOG_TAG, "Edit selected item");
     
                 // Log event in analytics
-                Utils.sendEvent(mTracker, Utils.ANALYTICS_CATEGORY_ACTION, "Edit Item Clicked on MainActivity");
+                Utils.sendEvent(mTracker, Utils.ANALYTICS_CATEGORY_ACTION, ANALYTICS_TAG + Utils.ANALYTICS_ACTION_OPEN_EDIT);
                 
                 // Action picked, so close the CAB
                 mode.finish();
@@ -1328,7 +1331,7 @@ public class MainActivity
             case R.id.nav_drawer_all_tasks: {
                 mFilterTitle = null;
                 filterByTagOrTeam(Utils.NAV_LAYOUT_ALL, null, false, false);
-                
+                Utils.sendEvent(mTracker, Utils.ANALYTICS_CATEGORY_ACTION, ANALYTICS_TAG + Utils.ANALYTICS_ACTION_FILTER_ALL);
                 break;
             }
             
@@ -1339,7 +1342,7 @@ public class MainActivity
             }
         
             case R.id.nav_tags_empty: {
-                Utils.sendEvent(mTracker, Utils.ANALYTICS_CATEGORY_ACTION, "Empty Tags Clicked");
+                Utils.sendEvent(mTracker, Utils.ANALYTICS_CATEGORY_ACTION, ANALYTICS_TAG + Utils.ANALYTICS_ACTION_EMPTY_TAGS);
                 Log.i(LOG_TAG, "Tags empty placeholder clicked");
                 break;
             }
@@ -1381,6 +1384,7 @@ public class MainActivity
                 cursor.close();
                 
                 filterByTagOrTeam(Utils.NAV_LAYOUT_TAGS, tagDetailsBundle, false, false);
+                Utils.sendEvent(mTracker, Utils.ANALYTICS_CATEGORY_ACTION, ANALYTICS_TAG + Utils.ANALYTICS_ACTION_FILTER_TAG);
                 
             } else
                 Log.w(LOG_TAG, "NavTeamsClickListener.onClick: No such team found!");
@@ -1423,6 +1427,8 @@ public class MainActivity
                 cursor.close();
                 
                 filterByTagOrTeam(Utils.NAV_LAYOUT_TEAMS, teamDetailsBundle, false, false);
+                Utils.sendEvent(mTracker, Utils.ANALYTICS_CATEGORY_ACTION, ANALYTICS_TAG + Utils.ANALYTICS_ACTION_FILTER_TEAM);
+                
             } else
                 Log.w(LOG_TAG, "NavTeamsClickListener.onClick: No such team found!");
         }

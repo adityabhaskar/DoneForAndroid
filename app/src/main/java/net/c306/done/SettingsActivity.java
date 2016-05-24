@@ -225,9 +225,9 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
                 int syncFrequency = Integer.parseInt(
                         sharedPreferences.getString(key, String.valueOf(Utils.SYNC_DEFAULT_INTERVAL))
                 );
-            
+    
                 Log.v(LOG_TAG, key + " changed to: " + syncFrequency);
-            
+    
                 if (syncFrequency > 0)
                     IDTSyncAdapter.configurePeriodicSync(getApplicationContext(), syncFrequency);
                 else

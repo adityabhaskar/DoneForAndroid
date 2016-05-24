@@ -24,9 +24,11 @@ public class DeleteDonesTask extends AsyncTask<Void, Void, Integer> {
     // Holds application context, passed in constructor
     private Context mContext;
     private String mAuthToken;
+    private boolean mFromDoneActions;
     
-    public DeleteDonesTask(Context c) {
+    public DeleteDonesTask(Context c, boolean fromDoneActions) {
         mContext = c.getApplicationContext();
+        mFromDoneActions = fromDoneActions;
     }
     
     @Override
@@ -81,10 +83,10 @@ public class DeleteDonesTask extends AsyncTask<Void, Void, Integer> {
     
         if (cursor != null) {
     
-            Log.v(LOG_TAG, "Got " + cursor.getCount() + " pending dones to delete on server");
-    
             if (cursor.getCount() > 0) {
-        
+    
+                Log.v(LOG_TAG, "doInBackground: Got " + cursor.getCount() + " pending dones to delete on server");
+                
                 int resultStatus;
                 int columnIndexID = cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_ID);
         
@@ -162,7 +164,12 @@ public class DeleteDonesTask extends AsyncTask<Void, Void, Integer> {
                         }
                     }
                 }
+            } else {
+                Log.i(LOG_TAG, "doInBackground: No deleted tasks to be removed from server");
+                return 0;
             }
+    
+    
             cursor.close();
     
             if (deletedDonesList.size() > 0) {
@@ -192,7 +199,7 @@ public class DeleteDonesTask extends AsyncTask<Void, Void, Integer> {
             Utils.sendMessage(mContext, Utils.SENDER_DELETE_TASK, "Deleted " + deletedCount + " tasks on server", Utils.STATUS_TASK_SUCCESSFUL, deletedCount);
         
             // If no error, call next chained task
-            new PostEditedDoneTask(mContext).execute();
+            new PostEditedDoneTask(mContext, mFromDoneActions).execute();
         }
     }
 }

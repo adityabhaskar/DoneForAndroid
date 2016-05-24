@@ -36,7 +36,9 @@ import java.util.Locale;
 
 public class NewDoneActivity extends AppCompatActivity {
     
-    private final String LOG_TAG = Utils.LOG_TAG + this.getClass().getSimpleName();
+    private final String ANALYTICS_TAG = this.getClass().getSimpleName();
+    private final String LOG_TAG = Utils.LOG_TAG + ANALYTICS_TAG;
+    
     private Bundle mPreEditBundle = new Bundle();
     private List<String> teamNames = new ArrayList<>();
     private List<String> teamURLs = new ArrayList<>();
@@ -68,7 +70,7 @@ public class NewDoneActivity extends AppCompatActivity {
         // Analytics Obtain the shared Tracker instance.
         AnalyticsApplication application = (AnalyticsApplication) getApplication();
         mTracker = application.getDefaultTracker();
-        Utils.sendScreen(mTracker, getClass().getSimpleName());
+        Utils.sendScreen(mTracker, ANALYTICS_TAG);
     
         Intent starterIntent = getIntent();
         mId = starterIntent.getLongExtra(DoneListContract.DoneEntry.COLUMN_NAME_ID, -1);
@@ -86,7 +88,7 @@ public class NewDoneActivity extends AppCompatActivity {
     
             // If started from intent shared by another activity
             if (Intent.ACTION_SEND.equals(action) && type != null && "text/plain".equals(type)) {
-                Utils.sendEvent(mTracker, Utils.ANALYTICS_CATEGORY_ACTION, "Create task - external intent");
+                Utils.sendEvent(mTracker, Utils.ANALYTICS_CATEGORY_ACTION, ANALYTICS_TAG + Utils.ANALYTICS_ACTION_CREATE_TASK_FROM_INTENT);
         
                 // Handle text being sent
                 String taskText = starterIntent.getStringExtra(Intent.EXTRA_TEXT);

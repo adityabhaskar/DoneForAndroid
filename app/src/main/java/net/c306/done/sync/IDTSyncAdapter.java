@@ -44,15 +44,17 @@ public class IDTSyncAdapter extends AbstractThreadedSyncAdapter {
     
     /**
      * Helper method to have the sync adapter sync immediately
-     *
      * @param context The context used to access the account service
+     * @param fetchTeams Flag indicating whether or not to fetch teams - true only when coming from idt AsyncTasks, or database.onUpgrade
+     * @param fromDoneActions Flag indicating if called from DoneActions - don't call update in that case.
      */
-    public static void syncImmediately(Context context, boolean fetchTeams) {
+    public static void syncImmediately(Context context, boolean fetchTeams, boolean fromDoneActions) {
         Bundle bundle = new Bundle();
         bundle.putBoolean(ContentResolver.SYNC_EXTRAS_EXPEDITED, true);
         bundle.putBoolean(ContentResolver.SYNC_EXTRAS_MANUAL, true);
         bundle.putBoolean(Utils.INTENT_EXTRA_FROM_DONE_DELETE_EDIT_TASKS, fetchTeams);
-    
+        bundle.putBoolean(Utils.INTENT_EXTRA_FROM_DONE_ACTIONS, fromDoneActions);
+        
         context = context.getApplicationContext();
         
         Account syncAccount = IDTAccountManager.getSyncAccount(context);
@@ -64,7 +66,7 @@ public class IDTSyncAdapter extends AbstractThreadedSyncAdapter {
     }
     
     public static void syncImmediately(Context context) {
-        syncImmediately(context.getApplicationContext(), false);
+        syncImmediately(context.getApplicationContext(), false, false);
     }
     
     public static void onAccountCreated(Account newAccount, Context context) {
@@ -77,7 +79,7 @@ public class IDTSyncAdapter extends AbstractThreadedSyncAdapter {
         /*
          * Finally, let's do a sync to get things started
          */
-        syncImmediately(context.getApplicationContext(), false);
+        syncImmediately(context.getApplicationContext(), false, false);
     }
     
     /**
@@ -118,7 +120,6 @@ public class IDTSyncAdapter extends AbstractThreadedSyncAdapter {
                 authority,
                 new Bundle()
         );
-        ContentResolver.setIsSyncable(account, authority, Utils.SYNC_NOT_SYNCABLE);
         ContentResolver.setSyncAutomatically(account, authority, false);
     }
     
@@ -132,6 +133,49 @@ public class IDTSyncAdapter extends AbstractThreadedSyncAdapter {
             IDTSyncAdapter.configurePeriodicSync(context, Utils.getSyncInterval(context));
         else
             Log.w(LOG_TAG, "No sync account found");
+    }
+    
+    /**
+     * Save parsed #tags to database in table tags
+     *
+     * @param context
+     * @param tagsList       An ArrayList of DoneItem.DoneTags
+     * @param deleteExisting
+     * @return number of tags saved to database
+     */
+    public static int saveTagsToDatabase(Context context, List<DoneItem.DoneTags> tagsList, boolean deleteExisting) {
+        // TODO: 23/05/16 Add team field 
+        int tagCount = tagsList.size();
+        Vector<ContentValues> cVVector = new Vector<>(tagCount);
+        
+        for (DoneItem.DoneTags tag : tagsList) {
+            ContentValues tagValues = new ContentValues();
+            
+            tagValues.put(DoneListContract.TagEntry.COLUMN_NAME_ID, tag.id);
+            tagValues.put(DoneListContract.TagEntry.COLUMN_NAME_NAME, tag.name);
+            cVVector.add(tagValues);
+            
+        }
+        
+        Log.v(LOG_TAG, "Tags found " + cVVector.size());
+        
+        // add tags to database
+        if (cVVector.size() > 0) {
+            ContentValues[] cvArray = new ContentValues[cVVector.size()];
+            cVVector.toArray(cvArray);
+            
+            // Delete previous tags from database 
+            // There could be some local non-posted dones that were typed while sync was on
+            if (deleteExisting)
+                context.getContentResolver().delete(
+                        DoneListContract.TagEntry.CONTENT_URI, // Table uri
+                        null,
+                        null); // Selection args
+            
+            // Add newly fetched entries to the server
+            return context.getContentResolver().bulkInsert(DoneListContract.TagEntry.CONTENT_URI, cvArray);
+        } else
+            return 0;
     }
     
     @Override
@@ -152,15 +196,12 @@ public class IDTSyncAdapter extends AbstractThreadedSyncAdapter {
         }
     
         boolean fromDoneDeleteEditTasks = extras.getBoolean(Utils.INTENT_EXTRA_FROM_DONE_DELETE_EDIT_TASKS, false);
+        boolean fromDoneActions = extras.getBoolean(Utils.INTENT_EXTRA_FROM_DONE_ACTIONS, false);
         int teamCount = 0;
     
-        // Check to prevent cyclicity
-        if (!fromDoneDeleteEditTasks) {
-    
-            // 1. Refresh team list
-            teamCount = fetchTeams(authToken);
-    
-            // 2. Check for unsent task actions - add, edit, delete
+        if (fromDoneActions) {
+        
+            // Check for unsent task actions - add, edit, delete
             Cursor cursor = context.getContentResolver().query(
                     DoneListContract.DoneEntry.buildDoneListUri(),                  // URI
                     new String[]{DoneListContract.DoneEntry.COLUMN_NAME_ID},        // Projection
@@ -170,22 +211,53 @@ public class IDTSyncAdapter extends AbstractThreadedSyncAdapter {
                     null, // Selection Args
                     null  // Sort Order
             );
-    
+        
             if (cursor != null) {
                 if (cursor.getCount() > 0) {
                     Log.v(LOG_TAG, "Found " + cursor.getCount() + " unsent tasks, post them before fetching");
     
-                    new DeleteDonesTask(context).execute();
-    
-                    cursor.close();
-                    return;
+                    new DeleteDonesTask(context, true).execute();
+                }
+                cursor.close();
+            }
+        
+            // No other actions (sync team/tasks) required, so return
+        
+        } else {
+        
+            // Check to prevent cyclicity
+            if (!fromDoneDeleteEditTasks) {
+            
+                // 1. Refresh team list
+                teamCount = fetchTeams(authToken);
+            
+                // 2. Check for unsent task actions - add, edit, delete
+                Cursor cursor = context.getContentResolver().query(
+                        DoneListContract.DoneEntry.buildDoneListUri(),                  // URI
+                        new String[]{DoneListContract.DoneEntry.COLUMN_NAME_ID},        // Projection
+                        DoneListContract.DoneEntry.COLUMN_NAME_IS_LOCAL + " IS 'TRUE' OR " + // Selection
+                                DoneListContract.DoneEntry.COLUMN_NAME_IS_DELETED + " IS 'TRUE' OR " +
+                                DoneListContract.DoneEntry.COLUMN_NAME_EDITED_FIELDS + " IS NOT NULL",
+                        null, // Selection Args
+                        null  // Sort Order
+                );
+            
+                if (cursor != null) {
+                    if (cursor.getCount() > 0) {
+                        Log.v(LOG_TAG, "Found " + cursor.getCount() + " unsent tasks, post them before fetching");
+                    
+                        new DeleteDonesTask(context, false).execute();
+                    
+                        cursor.close();
+                        return;
+                    }
                 }
             }
-        }
         
-        // 3. Refresh task list
-        if (teamCount > -1)
-            fetchTasks(authToken);
+            // 3. Refresh task list
+            if (teamCount > -1)
+                fetchTasks(authToken);
+        }
     }
     
     private int fetchTasks(String authToken) {
@@ -371,7 +443,6 @@ public class IDTSyncAdapter extends AbstractThreadedSyncAdapter {
         return teamCount;
     }
     
-    
     /**
      * Take the String representing the complete forecast in JSON Format and
      * pull out the data we need to construct the Strings needed for the wireframes.
@@ -397,7 +468,6 @@ public class IDTSyncAdapter extends AbstractThreadedSyncAdapter {
         JSONObject masterObj = new JSONObject(forecastJsonStr);
         JSONArray donesListArray = masterObj.getJSONArray("results");
         
-        // Insert the new weather information into the database
         Vector<ContentValues> cVVector = new Vector<>(donesListArray.length());
         
         for (int i = 0; i < donesListArray.length(); i++) {
@@ -455,58 +525,16 @@ public class IDTSyncAdapter extends AbstractThreadedSyncAdapter {
                     DoneListContract.DoneEntry.CONTENT_URI, // Table uri
                     DoneListContract.DoneEntry.COLUMN_NAME_IS_LOCAL + " IS 'FALSE'", // Selection
                     null); // Selection args
-            
-            // Add newly fetched entries to the server
+    
+            // Add newly fetched entries to the database
             context.getContentResolver().bulkInsert(DoneListContract.DoneEntry.CONTENT_URI, cvArray);
             
         }
     
         if (allTagsArray.size() > 0)
-            saveTagsToDatabase(allTagsArray);
-        
+            saveTagsToDatabase(getContext().getApplicationContext(), allTagsArray, true);
+    
         return cVVector.size();
-    }
-    
-    /**
-     * Save parsed #tags to database in table tags
-     *
-     * @param tagsList An ArrayList of DoneItem.DoneTags
-     * @return number of tags saved to database
-     */
-    private int saveTagsToDatabase(List<DoneItem.DoneTags> tagsList) {
-        
-        int tagCount = tagsList.size();
-        Vector<ContentValues> cVVector = new Vector<>(tagCount);
-        
-        for (DoneItem.DoneTags tag : tagsList) {
-            ContentValues tagValues = new ContentValues();
-            
-            tagValues.put(DoneListContract.TagEntry.COLUMN_NAME_ID, tag.id);
-            tagValues.put(DoneListContract.TagEntry.COLUMN_NAME_NAME, tag.name);
-            cVVector.add(tagValues);
-            
-        }
-        
-        Log.v(LOG_TAG, "Tags found " + cVVector.size());
-        
-        // add tags to database
-        if (cVVector.size() > 0) {
-            ContentValues[] cvArray = new ContentValues[cVVector.size()];
-            cVVector.toArray(cvArray);
-    
-            Context context = getContext().getApplicationContext();
-            
-            // Delete previous tags from database 
-            // There could be some local non-posted dones that were typed while sync was on
-            context.getContentResolver().delete(
-                    DoneListContract.TagEntry.CONTENT_URI, // Table uri
-                    null,
-                    null); // Selection args
-            
-            // Add newly fetched entries to the server
-            return context.getContentResolver().bulkInsert(DoneListContract.TagEntry.CONTENT_URI, cvArray);
-        } else
-            return 0;
     }
     
     /**
@@ -533,7 +561,6 @@ public class IDTSyncAdapter extends AbstractThreadedSyncAdapter {
         JSONObject masterObj = new JSONObject(teamsJsonStr);
         JSONArray teamsListArray = masterObj.getJSONArray("results");
         
-        // Insert the new weather information into the database
         Vector<ContentValues> cVVector = new Vector<>(teamsListArray.length());
         
         for (int i = 0; i < teamsListArray.length(); i++) {

@@ -28,7 +28,9 @@ public class TaskDetailsActivity
         TaskDetailsFragment.OnFragmentInteractionListener,
         ViewPager.OnPageChangeListener {
     
-    private final String LOG_TAG = Utils.LOG_TAG + getClass().getSimpleName();
+    private final String ANALYTICS_TAG = this.getClass().getSimpleName();
+    private final String LOG_TAG = Utils.LOG_TAG + ANALYTICS_TAG;
+    
     private final String CURRENT_TASK_INDEX_KEY = "currentTaskIndex";
     
     private long mId;                                   // Current task's db id
@@ -103,7 +105,7 @@ public class TaskDetailsActivity
         mTracker = application.getDefaultTracker();
     
         // Log screen open in Analytics
-        Utils.sendScreen(mTracker, getClass().getSimpleName());
+        Utils.sendScreen(mTracker, ANALYTICS_TAG);
     }
     
     @Override
@@ -296,7 +298,7 @@ public class TaskDetailsActivity
                                 
                                 Log.v(LOG_TAG, deletedCount + " task deleted. \n Id: " + mTaskIdList[mCurrentTaskIndex]);
     
-                                Utils.sendEvent(mTracker, Utils.ANALYTICS_CATEGORY_ACTION, "Task Deleted - Details", String.valueOf(1));
+                                Utils.sendEvent(mTracker, Utils.ANALYTICS_CATEGORY_ACTION, ANALYTICS_TAG + Utils.ANALYTICS_ACTION_TASK_DELETED, String.valueOf(1));
     
                                 Intent dataIntent = new Intent();
                                 dataIntent.putExtra(Utils.INTENT_COUNT, deletedCount);
@@ -320,7 +322,7 @@ public class TaskDetailsActivity
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         // If task edited successfully
         if (requestCode == Utils.NEW_DONE_ACTIVITY_IDENTIFIER && resultCode == RESULT_OK) {
-            Utils.sendEvent(mTracker, Utils.ANALYTICS_CATEGORY_ACTION, "Task Edited - Details");
+            Utils.sendEvent(mTracker, Utils.ANALYTICS_CATEGORY_ACTION, ANALYTICS_TAG + Utils.ANALYTICS_ACTION_TASK_EDITED);
         
             // Show snackbar
             if (mSnackbar != null && mSnackbar.isShown())

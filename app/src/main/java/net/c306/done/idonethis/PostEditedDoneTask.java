@@ -4,6 +4,7 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.os.AsyncTask;
+import android.text.Html;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -12,6 +13,9 @@ import com.google.gson.Gson;
 import net.c306.done.Utils;
 import net.c306.done.db.DoneListContract;
 import net.c306.done.sync.IDTAccountManager;
+import net.c306.done.sync.IDTSyncAdapter;
+
+import org.json.JSONException;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -22,7 +26,9 @@ import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Vector;
 
 
 public class PostEditedDoneTask extends AsyncTask<Void, Void, Integer> {
@@ -32,9 +38,11 @@ public class PostEditedDoneTask extends AsyncTask<Void, Void, Integer> {
     private Context mContext;
     private Gson gson = new Gson();
     private String mAuthToken;
+    private boolean mFromDoneActions;
     
-    public PostEditedDoneTask(Context c) {
+    public PostEditedDoneTask(Context c, boolean fromDoneActions) {
         mContext = c.getApplicationContext();
+        mFromDoneActions = fromDoneActions;
     }
     
     @Override
@@ -95,9 +103,9 @@ public class PostEditedDoneTask extends AsyncTask<Void, Void, Integer> {
         
         if (cursor != null) {
     
-            Log.v(LOG_TAG, "Got " + cursor.getCount() + " pending dones to post to server");
-    
             if (cursor.getCount() > 0) {
+        
+                Log.v(LOG_TAG, "doInBackground: Got " + cursor.getCount() + " pending edited tasks to post to server");
                 
                 int resultStatus;
                 int columnIndexID = cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_ID);
@@ -178,8 +186,8 @@ public class PostEditedDoneTask extends AsyncTask<Void, Void, Integer> {
                         while ((line = br.readLine()) != null) {
                             sb.append(line).append("\n");
                         }
-                        
-                        result += sb.toString() + "\n";
+    
+                        result += sb.toString();
                         
                     } catch (Exception e) {
                         result = e.getMessage();
@@ -197,25 +205,32 @@ public class PostEditedDoneTask extends AsyncTask<Void, Void, Integer> {
                         }
                     }
                 }
-    
-                if (patchedDonesList.size() > 0) {
-                    // Set edited_fields to null for ids in sentDonesList
-                    ContentValues updateValues = new ContentValues();
-                    updateValues.putNull(DoneListContract.DoneEntry.COLUMN_NAME_EDITED_FIELDS);
-        
-                    String patchedDonesIdString = TextUtils.join(",", patchedDonesList);
-        
-                    mContext.getContentResolver().update(
-                            DoneListContract.DoneEntry.CONTENT_URI,
-                            updateValues,
-                            DoneListContract.DoneEntry.COLUMN_NAME_ID + " IN (" + patchedDonesIdString + ")",
-                            null
-                    );
-                }
+            } else {
+                Log.i(LOG_TAG, "doInBackground: No edited tasks to be posted to server");
+                return 0;
             }
             
             cursor.close();
-            
+    
+            if (patchedDonesList.size() > 0) {
+        
+                Log.i(LOG_TAG, "doInBackground: Deleteing sent tasks' local copies");
+                String patchedDonesIdString = TextUtils.join(",", patchedDonesList);
+        
+                // Delete tasks with ids in sentDonesList
+                mContext.getContentResolver().delete(
+                        DoneListContract.DoneEntry.CONTENT_URI,
+                        DoneListContract.DoneEntry.COLUMN_NAME_ID + " IN (" + patchedDonesIdString + ")",
+                        null
+                );
+        
+                // Insert tasks in received list
+                try {
+                    patchedTaskCount = parseAndUpdateTasks(result);
+                } catch (JSONException e) {
+                    Log.e(LOG_TAG, "doInBackground: Error parsing task", e);
+                }
+            }
         }
     
         if (patchedTaskCount > -1)
@@ -235,10 +250,90 @@ public class PostEditedDoneTask extends AsyncTask<Void, Void, Integer> {
             Utils.sendMessage(mContext, Utils.SENDER_EDIT_TASK, "Sent " + patchedCount + " tasks.", Utils.STATUS_TASK_SUCCESSFUL, patchedCount);
     
             // No errors, so call next chained task
-            new PostNewDoneTask(mContext).execute();
+            new PostNewDoneTask(mContext, mFromDoneActions).execute();
         }
     }
     
+    /**
+     * Parse return strings for task details, and save them in database
+     *
+     * @param resultString newline separated list of json-encoded task strings
+     * @return number of tasks parsed and saved to database
+     * @throws JSONException
+     */
+    private int parseAndUpdateTasks(String resultString) throws JSONException {
+        String[] taskStrings = resultString.split("\n");
+        
+        if (taskStrings.length > 0) {
+            
+            Gson gson = new Gson();
+            IDTSyncAdapter.DoneItem doneItem;
+            
+            List<IDTSyncAdapter.DoneItem.DoneTags> allTagsArray = new ArrayList<>();
+            List<String> taskTagsArray = new ArrayList<>();
+            
+            Vector<ContentValues> cVVector = new Vector<>();
+            
+            for (String taskString : taskStrings) {
+                if (taskString.trim().isEmpty())
+                    continue;
+                
+                doneItem = gson.fromJson(taskString, IDTSyncAdapter.DoneItem.class);
+                
+                ContentValues doneItemValues = new ContentValues();
+                
+                doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_ID, doneItem.id);
+                doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_CREATED, doneItem.created);
+                doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_UPDATED, doneItem.updated);
+                doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_MARKEDUP_TEXT, doneItem.markedup_text);
+                doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE, doneItem.done_date);
+                doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_OWNER, doneItem.owner);
+                doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_TEAM_SHORT_NAME, doneItem.team_short_name);
+                //doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_TAGS, gson.toJson(doneItem.tags, DoneItem.DoneTags[].class));
+                doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_LIKES, "");
+                doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_COMMENTS, "");
+                doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_META_DATA, gson.toJson(doneItem.meta_data, IDTSyncAdapter.DoneItem.DoneMeta.class));
+                doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_IS_GOAL, doneItem.is_goal);
+                doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_GOAL_COMPLETED, doneItem.goal_completed);
+                doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_URL, doneItem.url);
+                doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_TEAM, doneItem.team);
+                doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT, Html.fromHtml(doneItem.raw_text).toString());
+                doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_PERMALINK, doneItem.permalink);
+                doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_IS_LOCAL, doneItem.is_local);
+                
+                taskTagsArray.clear();
+                
+                for (int j = 0; j < doneItem.tags.length; j++) {
+                    taskTagsArray.add(DoneListContract.TagEntry.TAG_ID_PRE + doneItem.tags[j].id + DoneListContract.TagEntry.TAG_ID_POST);
+                }
+                
+                doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_TAGS, gson.toJson(taskTagsArray.toArray(), String[].class));
+                
+                allTagsArray.addAll(Arrays.asList(doneItem.tags));
+                
+                cVVector.add(doneItemValues);
+            }
+            
+            Log.v(LOG_TAG, "parseAndUpdateTasks: Parsed " + cVVector.size() + " tasks");
+            
+            // add tasks to database
+            if (cVVector.size() > 0) {
+                ContentValues[] cvArray = new ContentValues[cVVector.size()];
+                cVVector.toArray(cvArray);
+                
+                // Add newly fetched entries to the database
+                mContext.getContentResolver().bulkInsert(DoneListContract.DoneEntry.CONTENT_URI, cvArray);
+            }
+            
+            if (allTagsArray.size() > 0)
+                IDTSyncAdapter.saveTagsToDatabase(mContext, allTagsArray, false);
+            
+            return cVVector.size();
+        }
+        
+        Log.i(LOG_TAG, "parseAndUpdateTasks: No tasks found in result string");
+        return 0;
+    }
     
     public class EditedTaskClass {
         private transient final String dateFormat = "yyyy-MM-dd";

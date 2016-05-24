@@ -57,12 +57,6 @@ public class DoneListDbHelper extends SQLiteOpenHelper {
                 // Main Fields
                 DoneListContract.TagEntry.COLUMN_NAME_ID + " INTEGER NOT NULL UNIQUE PRIMARY KEY, " +
                 DoneListContract.TagEntry.COLUMN_NAME_NAME + " TEXT NOT NULL " +
-                //DoneListContract.TagEntry.COLUMN_NAME_URL + " TEXT NOT NULL UNIQUE, " +
-                //DoneListContract.TagEntry.COLUMN_NAME_SHORT_NAME + " TEXT NOT NULL, " +
-                //DoneListContract.TagEntry.COLUMN_NAME_DONES + " TEXT, " +
-                //DoneListContract.TagEntry.COLUMN_NAME_IS_PERSONAL + " TEXT NOT NULL DEFAULT 'FALSE', " +
-                //DoneListContract.TagEntry.COLUMN_NAME_DONE_COUNT + " INTEGER, " +
-                //DoneListContract.TagEntry.COLUMN_NAME_PERMALINK + " TEXT " +
                 ")";
     
         db.execSQL(SQL_CREATE_TABLE_TAGS);
@@ -134,7 +128,7 @@ public class DoneListDbHelper extends SQLiteOpenHelper {
     
         // Re-fetch data on table upgrade - old data just got cleared :(  
         if (mContext != null)
-            IDTSyncAdapter.syncImmediately(mContext.getApplicationContext(), true);
+            IDTSyncAdapter.syncImmediately(mContext.getApplicationContext(), true, false);
         else
             Log.e(LOG_TAG, "onUpgrade: No Context available");
     }

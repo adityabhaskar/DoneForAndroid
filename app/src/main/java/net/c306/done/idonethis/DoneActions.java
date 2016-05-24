@@ -64,7 +64,7 @@ public class DoneActions {
         newDoneValues.put(DoneListContract.DoneEntry.COLUMN_NAME_UPDATED, idtDateFormat.format(new Date()));
         mContext.getContentResolver().insert(DoneListContract.DoneEntry.CONTENT_URI, newDoneValues);
     
-        IDTSyncAdapter.syncImmediately(mContext);
+        IDTSyncAdapter.syncImmediately(mContext, false, true);
         return true;
     }
     
@@ -112,7 +112,7 @@ public class DoneActions {
         );
     
         // Submit to server, update local database from server
-        IDTSyncAdapter.syncImmediately(mContext);
+        IDTSyncAdapter.syncImmediately(mContext, false, true);
     
         return true;
     }
@@ -194,7 +194,7 @@ public class DoneActions {
     
         // If >0 non-Local tasks deleted, delete on server, update local database from server
         if (rowsMarkedAsDeleted - rowsDeleted > 0)
-            IDTSyncAdapter.syncImmediately(mContext);
+            IDTSyncAdapter.syncImmediately(mContext, false, true);
     
     
         // For any, if owner was not the same as user, show error toast

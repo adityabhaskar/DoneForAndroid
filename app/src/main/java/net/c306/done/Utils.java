@@ -88,6 +88,7 @@ public class Utils {
     // Intent & extra identifiers
     public static final String INTENT_FROM_ACTIVITY_IDENTIFIER = "fromActivity";
     public static final String INTENT_EXTRA_FROM_DONE_DELETE_EDIT_TASKS = "fromDoneDeleteOrEditTasks";
+    public static final String INTENT_EXTRA_FROM_DONE_ACTIONS = "fromDoneActions";
     public static final String INTENT_EXTRA_FETCH_TEAMS = "fetchTeams";
     public static final String DONE_LOCAL_BROADCAST_LISTENER_INTENT = "net.c306.done.mainActivityListenerIntent";
     public static final String NOTIFICAION_ALARM_INTENT = "net.c306.done.notificationAlarms";
@@ -183,6 +184,19 @@ public class Utils {
     
     // For Analytics
     public static final String ANALYTICS_CATEGORY_ACTION = "Action";
+    public static final String ANALYTICS_ACTION_TASK_DELETED = ".TasksDeleted";
+    public static final String ANALYTICS_ACTION_TASK_EDITED = ".TasksEdited";
+    public static final String ANALYTICS_ACTION_OPEN_EDIT = ".OpenEdit";
+    public static final String ANALYTICS_ACTION_EMPTY_TAGS = ".EmptyTags";
+    public static final String ANALYTICS_ACTION_LOGOUT = ".Logout";
+    public static final String ANALYTICS_ACTION_SEARCH = ".SearchExpanded";
+    public static final String ANALYTICS_ACTION_PULL_TO_REFRESH = ".PullToRefresh";
+    public static final String ANALYTICS_ACTION_CREATE_TASK_FROM_INTENT = ".CreateTaskFromIntent";
+    public static final String ANALYTICS_ACTION_LOGIN_SUCCESSFUL = ".LoginSuccessful";
+    public static final String ANALYTICS_ACTION_FILTER_ALL = ".FilterAll";
+    public static final String ANALYTICS_ACTION_FILTER_TEAM = ".FilterTeam";
+    public static final String ANALYTICS_ACTION_FILTER_TAG = ".FilterTag";
+    
     
     public static final int colorArray[] = {
             R.color.team1,

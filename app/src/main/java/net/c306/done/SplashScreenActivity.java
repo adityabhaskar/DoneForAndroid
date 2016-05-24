@@ -16,7 +16,8 @@ import net.c306.done.sync.IDTSyncAdapter;
 
 public class SplashScreenActivity extends AppCompatActivity {
     
-    private final String LOG_TAG = Utils.LOG_TAG + getClass().getSimpleName();
+    private final String ANALYTICS_TAG = this.getClass().getSimpleName();
+    private final String LOG_TAG = Utils.LOG_TAG + ANALYTICS_TAG;
     private Snackbar mSnackbar;
     private Tracker mTracker = null;
     
@@ -59,8 +60,8 @@ public class SplashScreenActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        
-        Utils.sendScreen(mTracker, getClass().getSimpleName());
+    
+        Utils.sendScreen(mTracker, ANALYTICS_TAG);
     }
     
     public void openLoginActivity(View view) {
@@ -102,7 +103,7 @@ public class SplashScreenActivity extends AppCompatActivity {
                     // Setup sync
                     IDTSyncAdapter.initializeSyncAdapter(getApplicationContext());
     
-                    Utils.sendEvent(mTracker, Utils.ANALYTICS_CATEGORY_ACTION, "Login Successful");
+                    Utils.sendEvent(mTracker, Utils.ANALYTICS_CATEGORY_ACTION, ANALYTICS_TAG + Utils.ANALYTICS_ACTION_LOGIN_SUCCESSFUL);
                     
                     Intent mainActivity = new Intent(SplashScreenActivity.this, MainActivity.class);
                     mainActivity.putExtra(
