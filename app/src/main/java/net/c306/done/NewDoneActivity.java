@@ -413,7 +413,7 @@ public class NewDoneActivity extends AppCompatActivity {
             int i = 0;
             
             while (cursor.moveToNext()) {
-                tagNames[i++] = cursor.getString(nameColIndex);
+                tagNames[i++] = "#" + cursor.getString(nameColIndex);
             }
             
             cursor.close();
@@ -427,7 +427,7 @@ public class NewDoneActivity extends AppCompatActivity {
                 
                 // Create custom tokenizer - to suggest tags on '#'
                 taskTextEditText.setTokenizer(new MultiAutoCompleteTextView.Tokenizer() {
-                    private char suggestStarter = '#';
+                    private char suggestStarter = ' ';
                     
                     @Override
                     public int findTokenStart(CharSequence text, int cursor) {
