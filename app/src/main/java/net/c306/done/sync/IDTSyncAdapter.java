@@ -636,6 +636,8 @@ public class IDTSyncAdapter extends AbstractThreadedSyncAdapter {
         public String team;
         public String permalink;
         public String is_local = "FALSE";
+        public String is_deleted = "FALSE";
+        public String edited_fields;
         
         public class DoneTags {
             public int id;
