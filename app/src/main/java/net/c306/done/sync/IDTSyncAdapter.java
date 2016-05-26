@@ -47,13 +47,15 @@ public class IDTSyncAdapter extends AbstractThreadedSyncAdapter {
      * @param context The context used to access the account service
      * @param fetchTeams Flag indicating whether or not to fetch teams - true only when coming from idt AsyncTasks, or database.onUpgrade
      * @param fromDoneActions Flag indicating if called from DoneActions - don't call update in that case.
+     * @param fromNotificationAlarm Flag indicating if called from NotificationAlarmReceiver - if true, show notification after sync
      */
-    public static void syncImmediately(Context context, boolean fetchTeams, boolean fromDoneActions) {
+    public static void syncImmediately(Context context, boolean fetchTeams, boolean fromDoneActions, boolean fromNotificationAlarm) {
         Bundle bundle = new Bundle();
         bundle.putBoolean(ContentResolver.SYNC_EXTRAS_EXPEDITED, true);
         bundle.putBoolean(ContentResolver.SYNC_EXTRAS_MANUAL, true);
         bundle.putBoolean(Utils.INTENT_EXTRA_FROM_DONE_DELETE_EDIT_TASKS, fetchTeams);
         bundle.putBoolean(Utils.INTENT_EXTRA_FROM_DONE_ACTIONS, fromDoneActions);
+        bundle.putBoolean(Utils.INTENT_EXTRA_FROM_NOTIFICATION_ALARM, fromNotificationAlarm);
         
         context = context.getApplicationContext();
         
@@ -66,7 +68,7 @@ public class IDTSyncAdapter extends AbstractThreadedSyncAdapter {
     }
     
     public static void syncImmediately(Context context) {
-        syncImmediately(context.getApplicationContext(), false, false);
+        syncImmediately(context.getApplicationContext(), false, false, false);
     }
     
     public static void onAccountCreated(Account newAccount, Context context) {
@@ -79,7 +81,7 @@ public class IDTSyncAdapter extends AbstractThreadedSyncAdapter {
         /*
          * Finally, let's do a sync to get things started
          */
-        syncImmediately(context.getApplicationContext(), false, false);
+        syncImmediately(context.getApplicationContext(), false, false, false);
     }
     
     /**
@@ -258,6 +260,10 @@ public class IDTSyncAdapter extends AbstractThreadedSyncAdapter {
             // 3. Refresh task list
             if (teamCount > -1)
                 fetchTasks(authToken);
+        
+            if (extras.containsKey(Utils.INTENT_EXTRA_FROM_NOTIFICATION_ALARM) && extras.getBoolean(Utils.INTENT_EXTRA_FROM_NOTIFICATION_ALARM, false)) {
+                Utils.showNotification(context);
+            }
         }
     }
     

@@ -89,6 +89,7 @@ public class Utils {
     public static final String INTENT_FROM_ACTIVITY_IDENTIFIER = "fromActivity";
     public static final String INTENT_EXTRA_FROM_DONE_DELETE_EDIT_TASKS = "fromDoneDeleteOrEditTasks";
     public static final String INTENT_EXTRA_FROM_DONE_ACTIONS = "fromDoneActions";
+    public static final String INTENT_EXTRA_FROM_NOTIFICATION_ALARM = "fromNotificationAlarm";
     public static final String INTENT_EXTRA_FETCH_TEAMS = "fetchTeams";
     public static final String DONE_LOCAL_BROADCAST_LISTENER_INTENT = "net.c306.done.mainActivityListenerIntent";
     public static final String NOTIFICAION_ALARM_INTENT = "net.c306.done.notificationAlarms";
@@ -485,7 +486,7 @@ public class Utils {
                 PackageManager.DONT_KILL_APP);
     }
     
-    public static void showNotification(Context context, Intent intent) {
+    public static void showNotification(Context context) {
         /*
         * Create notification builder
         * */

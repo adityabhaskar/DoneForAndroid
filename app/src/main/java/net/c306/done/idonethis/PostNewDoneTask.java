@@ -249,7 +249,7 @@ public class PostNewDoneTask extends AsyncTask<Void, Void, Integer> {
             
             // Update local doneList from server iff not from DoneActions, or if sync set to manual
             if (!mFromDoneActions || Utils.getSyncInterval(mContext) == -1)
-                IDTSyncAdapter.syncImmediately(mContext, true, false);
+                IDTSyncAdapter.syncImmediately(mContext, true, false, false);
         }
     }
     

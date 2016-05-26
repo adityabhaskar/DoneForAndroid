@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.util.Log;
 
 import net.c306.done.Utils;
+import net.c306.done.sync.IDTSyncAdapter;
 
 import java.util.Calendar;
 import java.util.Set;
@@ -16,10 +17,10 @@ public class NotificationsBroadcastReceiver extends BroadcastReceiver {
     
     @Override
     public void onReceive(Context context, Intent intent) {
-        Log.v(LOG_TAG, "Received Notification Alarm");
-        Log.v(LOG_TAG, "Intent Extra: " + (intent.hasExtra(Utils.INTENT_ACTION) ? intent.getIntExtra(Utils.INTENT_ACTION, -1) : "none"));
-        Log.v(LOG_TAG, "Action: " + intent.getAction());
-    
+        //Log.v(LOG_TAG, "Received Notification Alarm");
+        //Log.v(LOG_TAG, "Intent Extra: " + (intent.hasExtra(Utils.INTENT_ACTION) ? intent.getIntExtra(Utils.INTENT_ACTION, -1) : "none"));
+        //Log.v(LOG_TAG, "Action: " + intent.getAction());
+        
         if (intent.getAction().equals("android.intent.action.BOOT_COMPLETED")) {
             // 1a. From Boot completed - re-set the alarm here
             Log.i(LOG_TAG, "onReceive: Device restarted");
@@ -42,7 +43,7 @@ public class NotificationsBroadcastReceiver extends BroadcastReceiver {
             // 2b. From alarm called - show notification if allowed
     
             if (showNotificationToday(context))
-                Utils.showNotification(context, intent);
+                IDTSyncAdapter.syncImmediately(context, false, false, true);
             else
                 Log.v(LOG_TAG, "User doesn't want any notifications today.");
     
@@ -59,8 +60,6 @@ public class NotificationsBroadcastReceiver extends BroadcastReceiver {
         
         // If day is 0, i.e. Sunday, set it to 7
         today = today == 0 ? 7 : today;
-        
-        Log.v(Utils.LOG_TAG, "day: " + today);
         
         return notificationDays.contains(String.valueOf(today));
     }

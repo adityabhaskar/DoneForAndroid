@@ -141,7 +141,7 @@ public class DoneListDbHelper extends SQLiteOpenHelper {
     
         // Re-fetch data on table upgrade - old data just got cleared :(  
         if (mContext != null)
-            IDTSyncAdapter.syncImmediately(mContext.getApplicationContext(), true, false);
+            IDTSyncAdapter.syncImmediately(mContext.getApplicationContext(), true, false, false);
         else
             Log.e(LOG_TAG, "onUpgrade: No Context available");
     }
