@@ -189,14 +189,14 @@ public class TaskDetailsFragment extends Fragment {
             BitmapDrawable ownerIcon = (BitmapDrawable) ContextCompat.getDrawable(mContext, R.drawable.ic_person_black_24dp).mutate();
             ownerIcon.setAlpha(0x8A);
             taskOwnerTextView.setCompoundDrawablesWithIntrinsicBounds(ownerIcon, null, null, null);
-        
+    
             String taskOwner = taskDetails.getString(DoneListContract.DoneEntry.COLUMN_NAME_OWNER);
-        
+    
             taskOwnerTextView.setText(taskOwner);
-        
+    
             if (taskOwner != null)
                 mIsOwner = taskOwner.equals(Utils.getUsername(mContext));
-        
+    
             if (!mIsOwner)
                 mShareString += " by " + taskOwner;
         }

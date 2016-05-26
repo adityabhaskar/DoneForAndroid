@@ -11,7 +11,7 @@ import net.c306.done.sync.IDTSyncAdapter;
 public class DoneListDbHelper extends SQLiteOpenHelper {
     
     // If you change the database schema, you must increment the database version.
-    public static final int DATABASE_VERSION = 14;
+    public static final int DATABASE_VERSION = 15;
     public static final String DATABASE_NAME = "DoneList.db";
     private static DoneListDbHelper sInstance;
     private final String LOG_TAG = Utils.LOG_TAG + this.getClass().getSimpleName();
@@ -34,34 +34,12 @@ public class DoneListDbHelper extends SQLiteOpenHelper {
     }
     
     public void onCreate(SQLiteDatabase db) {
-        // Create teams table 
-        final String SQL_CREATE_TABLE_TEAMS = "CREATE TABLE " + DoneListContract.TeamEntry.TABLE_NAME +
-                "(" +
-                // Main Fields
-                DoneListContract.TeamEntry.COLUMN_NAME_ID + " INTEGER NOT NULL UNIQUE PRIMARY KEY, " +
-                DoneListContract.TeamEntry.COLUMN_NAME_URL + " TEXT NOT NULL UNIQUE, " +
-                DoneListContract.TeamEntry.COLUMN_NAME_NAME + " TEXT NOT NULL, " +
-                DoneListContract.TeamEntry.COLUMN_NAME_SHORT_NAME + " TEXT NOT NULL, " +
-                DoneListContract.TeamEntry.COLUMN_NAME_DONES + " TEXT, " +
-                DoneListContract.TeamEntry.COLUMN_NAME_IS_PERSONAL + " TEXT NOT NULL DEFAULT 'FALSE', " +
-                DoneListContract.TeamEntry.COLUMN_NAME_DONE_COUNT + " INTEGER, " +
-                DoneListContract.TeamEntry.COLUMN_NAME_PERMALINK + " TEXT " +
-                ")";
+        createTeamsTable(db);
+        createTagsTable(db);
+        createTasksTable(db);
+    }
     
-        db.execSQL(SQL_CREATE_TABLE_TEAMS);
-    
-    
-        // Create tags table 
-        final String SQL_CREATE_TABLE_TAGS = "CREATE TABLE " + DoneListContract.TagEntry.TABLE_NAME +
-                "(" +
-                // Main Fields
-                DoneListContract.TagEntry.COLUMN_NAME_ID + " INTEGER NOT NULL UNIQUE PRIMARY KEY, " +
-                DoneListContract.TagEntry.COLUMN_NAME_NAME + " TEXT NOT NULL " +
-                ")";
-    
-        db.execSQL(SQL_CREATE_TABLE_TAGS);
-        
-        
+    private void createTasksTable(SQLiteDatabase db) {
         // Create dones table 
         final String SQL_CREATE_TABLE_DONES = "CREATE TABLE " + DoneListContract.DoneEntry.TABLE_NAME +
                 "(" +
@@ -97,6 +75,37 @@ public class DoneListDbHelper extends SQLiteOpenHelper {
         db.execSQL(SQL_CREATE_TABLE_DONES);
     }
     
+    private void createTagsTable(SQLiteDatabase db) {
+        // Create tags table 
+        final String SQL_CREATE_TABLE_TAGS = "CREATE TABLE " + DoneListContract.TagEntry.TABLE_NAME +
+                "(" +
+                // Main Fields
+                DoneListContract.TagEntry.COLUMN_NAME_ID + " INTEGER NOT NULL UNIQUE PRIMARY KEY, " +
+                DoneListContract.TagEntry.COLUMN_NAME_NAME + " TEXT NOT NULL, " +
+                DoneListContract.TagEntry.COLUMN_NAME_TEAM + " TEXT NOT NULL " +
+                ")";
+        
+        db.execSQL(SQL_CREATE_TABLE_TAGS);
+    }
+    
+    private void createTeamsTable(SQLiteDatabase db) {
+        // Create teams table 
+        final String SQL_CREATE_TABLE_TEAMS = "CREATE TABLE " + DoneListContract.TeamEntry.TABLE_NAME +
+                "(" +
+                // Main Fields
+                DoneListContract.TeamEntry.COLUMN_NAME_ID + " INTEGER NOT NULL UNIQUE PRIMARY KEY, " +
+                DoneListContract.TeamEntry.COLUMN_NAME_URL + " TEXT NOT NULL UNIQUE, " +
+                DoneListContract.TeamEntry.COLUMN_NAME_NAME + " TEXT NOT NULL, " +
+                DoneListContract.TeamEntry.COLUMN_NAME_SHORT_NAME + " TEXT NOT NULL, " +
+                DoneListContract.TeamEntry.COLUMN_NAME_DONES + " TEXT, " +
+                DoneListContract.TeamEntry.COLUMN_NAME_IS_PERSONAL + " TEXT NOT NULL DEFAULT 'FALSE', " +
+                DoneListContract.TeamEntry.COLUMN_NAME_DONE_COUNT + " INTEGER, " +
+                DoneListContract.TeamEntry.COLUMN_NAME_PERMALINK + " TEXT " +
+                ")";
+        
+        db.execSQL(SQL_CREATE_TABLE_TEAMS);
+    }
+    
     @Override
     public void onOpen(SQLiteDatabase db) {
         super.onOpen(db);
@@ -121,10 +130,14 @@ public class DoneListDbHelper extends SQLiteOpenHelper {
         db.execSQL("DROP TABLE IF EXISTS " + DoneListContract.DoneEntry.TABLE_NAME);
         onCreate(db);
 */
-        db.execSQL("DROP TABLE IF EXISTS " + DoneListContract.TeamEntry.TABLE_NAME);
-        db.execSQL("DROP TABLE IF EXISTS " + DoneListContract.TagEntry.TABLE_NAME);
-        db.execSQL("DROP TABLE IF EXISTS " + DoneListContract.DoneEntry.TABLE_NAME);
-        onCreate(db);
+        if (oldVersion == 14 && newVersion == 15) {
+            db.execSQL("ALTER TABLE " + DoneListContract.TagEntry.TABLE_NAME + " ADD COLUMN " + DoneListContract.TagEntry.COLUMN_NAME_TEAM + " TEXT NOT NULL DEFAULT ''");
+        } else {
+            db.execSQL("DROP TABLE IF EXISTS " + DoneListContract.TeamEntry.TABLE_NAME);
+            db.execSQL("DROP TABLE IF EXISTS " + DoneListContract.TagEntry.TABLE_NAME);
+            db.execSQL("DROP TABLE IF EXISTS " + DoneListContract.DoneEntry.TABLE_NAME);
+            onCreate(db);
+        }
     
         // Re-fetch data on table upgrade - old data just got cleared :(  
         if (mContext != null)

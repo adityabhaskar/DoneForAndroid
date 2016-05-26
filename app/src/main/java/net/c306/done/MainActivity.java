@@ -10,6 +10,7 @@ import android.content.IntentFilter;
 import android.content.Loader;
 import android.content.res.Configuration;
 import android.database.Cursor;
+import android.graphics.PorterDuff;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
@@ -587,7 +588,7 @@ public class MainActivity
             linearLayout.removeAllViews();
         
             if (cursor.getCount() > 0) {
-            
+                
                 // Set height for list items
                 LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT,
@@ -596,42 +597,58 @@ public class MainActivity
                 switch (itemType) {
                     case TAG_LIST_LOADER: {
                         // Iterate over cursor to populate
-                    
+    
                         int idColIndex = cursor.getColumnIndex("_id");
                         int nameColIndex = cursor.getColumnIndex(DoneListContract.TagEntry.COLUMN_NAME_NAME);
-                    
+                        int teamColIndex = cursor.getColumnIndex(DoneListContract.TagEntry.COLUMN_NAME_TEAM);
+                        
                         // When loader is already initialised (recreate activity on finished/rotated), 
                         // cursor is beyond last (from previous iteration). 
                         // Move it to first before starting.
                         cursor.moveToFirst();
-                    
+    
                         do {
                             // Set item id
                             View view = getLayoutInflater().inflate(R.layout.nav_list_row_layout, null);
                             view.setId(cursor.getInt(idColIndex));
                             view.setLayoutParams(layoutParams);
                             view.setOnClickListener(navTagsClickListener);
-                        
+        
                             // Set image resource for tag icon
                             ImageView tagIconImageView = (ImageView) view.findViewById(R.id.nav_team_color_patch);
-                            BitmapDrawable settingsIcon = (BitmapDrawable) ContextCompat.getDrawable(getApplicationContext(), R.drawable.ic_label_black_24dp).mutate();
-                            settingsIcon.setAlpha(0x8A);
+        
+                            int teamColor = Utils.findTeam(getApplicationContext(), cursor.getString(teamColIndex));
+                            teamColor = ContextCompat.getColor(this, Utils.colorArray[teamColor == -1 ? 0 : teamColor % Utils.colorArray.length]);
+        
+                            BitmapDrawable tagIcon = (BitmapDrawable) ContextCompat.getDrawable(getApplicationContext(), R.drawable.ic_label_white_24dp).mutate();
+                            tagIcon.setColorFilter(teamColor, PorterDuff.Mode.MULTIPLY);
+                            tagIcon.setAlpha(0x8A);
+                            
                             if (tagIconImageView != null)
-                                tagIconImageView.setImageDrawable(settingsIcon);
-                        
+                                tagIconImageView.setImageDrawable(tagIcon);
+                            
                             // Set tag name
                             TextView tagNameTextView = (TextView) view.findViewById(R.id.team_name_text_view);
                             tagNameTextView.setText(cursor.getString(nameColIndex));
-                        
+        
                             linearLayout.addView(view);
-                        
+        
                         } while (cursor.moveToNext());
-                    
+    
+                        // Show/hide tags placeholder view based on # of tags in database
+                        View tagsPlaceholderView = findViewById(R.id.nav_tags_empty);
+                        if (tagsPlaceholderView != null) {
+                            if (cursor.getCount() > 0)
+                                tagsPlaceholderView.setVisibility(View.GONE);
+                            else
+                                tagsPlaceholderView.setVisibility(View.VISIBLE);
+                        }
+                        
                         if (mNavFilterType == Utils.NAV_LAYOUT_TAGS) {
                             Bundle tagDetailsBundle = new Bundle();
                             tagDetailsBundle.putInt(DoneListContract.TagEntry.COLUMN_NAME_ID, mNavSelectedId);
                             tagDetailsBundle.putString(DoneListContract.TagEntry.COLUMN_NAME_NAME, mFilterTitle);
-                        
+    
                             filterByTagOrTeam(mNavFilterType, tagDetailsBundle, false, true);
                         }
                     
@@ -809,8 +826,14 @@ public class MainActivity
             default:
                 Log.w(LOG_TAG, "filterByTagOrTeam: Unidentified filterType: " + filterType);
         }
+    
+        if (mNavFilterType == Utils.NAV_LAYOUT_TEAMS || filterType == Utils.NAV_LAYOUT_TEAMS) {
+            mNavFilterType = filterType;
         
-        mNavFilterType = filterType;
+            // Tag list was filtered by some team, refilter it by new team
+            getLoaderManager().restartLoader(TAG_LIST_LOADER, null, this);
+        } else
+            mNavFilterType = filterType;
         
         // Restart loader to filter tasks, if not equals "init"
         if (!isInit && !changeNavHighlightOnly)
@@ -1040,13 +1063,23 @@ public class MainActivity
                 
                 String[] cursorProjectionString = new String[]{
                         DoneListContract.TagEntry.COLUMN_NAME_ID + " AS _id",
-                        DoneListContract.TagEntry.COLUMN_NAME_NAME
+                        DoneListContract.TagEntry.COLUMN_NAME_NAME,
+                        DoneListContract.TagEntry.COLUMN_NAME_TEAM
                 };
+    
+                String selection = null;
+    
+                if (mNavFilterType == Utils.NAV_LAYOUT_TEAMS) {
+                    selection = DoneListContract.TagEntry.COLUMN_NAME_TEAM +
+                            " IS '" +
+                            mNavFilterString +
+                            "'";
+                }
             
                 return new CursorLoader(this,
                         tagUri,
                         cursorProjectionString,
-                        null,
+                        selection,
                         null,
                         sortOrder);
             }

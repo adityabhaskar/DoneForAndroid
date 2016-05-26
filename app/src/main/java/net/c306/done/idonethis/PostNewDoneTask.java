@@ -308,6 +308,7 @@ public class PostNewDoneTask extends AsyncTask<Void, Void, Integer> {
         
                 for (int j = 0; j < doneItem.tags.length; j++) {
                     taskTagsArray.add(DoneListContract.TagEntry.TAG_ID_PRE + doneItem.tags[j].id + DoneListContract.TagEntry.TAG_ID_POST);
+                    doneItem.tags[j].team = doneItem.team;
                 }
         
                 doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_TAGS, gson.toJson(taskTagsArray.toArray(), String[].class));

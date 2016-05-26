@@ -64,9 +64,6 @@ public class NewDoneActivity extends AppCompatActivity {
         // Populate teams from database into team selector
         populateTeamPicker();
     
-        // Setup tag suggestions
-        setupTagSuggestions();
-    
         // Analytics Obtain the shared Tracker instance.
         AnalyticsApplication application = (AnalyticsApplication) getApplication();
         mTracker = application.getDefaultTracker();
@@ -153,6 +150,9 @@ public class NewDoneActivity extends AppCompatActivity {
     
         }
     
+        // Setup tag suggestions - done last to ensure correct team's tags are suggested
+        setupTagSuggestions();
+        
     }
     
     @Override
@@ -255,11 +255,15 @@ public class NewDoneActivity extends AppCompatActivity {
                         // of the selected item
                         
                         mTeam = teamURLs.get(which);
-                        
+    
+                        // Set team name in field
                         EditText teamEditText = (EditText) findViewById(R.id.team_picker);
                         if (teamEditText != null) {
                             teamEditText.setText(teamNames.get(which));
                         }
+    
+                        // Update suggest list to show only this team's tags
+                        setupTagSuggestions();
                     }
                 })
                 .setTitle(R.string.team_label)
@@ -394,15 +398,17 @@ public class NewDoneActivity extends AppCompatActivity {
         MultiAutoCompleteTextView taskTextEditText = (MultiAutoCompleteTextView) findViewById(R.id.task_text_edit_text);
         if (taskTextEditText == null)
             return;
-        
-        // Retrieve all tags from database
+    
+        // Retrieve tags from database, filtered for currently selected team
         Cursor cursor = getContentResolver().query(
                 DoneListContract.TagEntry.CONTENT_URI,
                 new String[]{
                         "DISTINCT " + DoneListContract.TagEntry.COLUMN_NAME_NAME
                 },
-                null,
-                null,
+                DoneListContract.TagEntry.COLUMN_NAME_TEAM + " IS ?",
+                new String[]{
+                        mTeam
+                },
                 null
         );
         

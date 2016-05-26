@@ -93,8 +93,14 @@
                         android:layout_height="@dimen/nav_list_item_height"/>
 
                     <!-- Divider -->
-                    <View style="@style/divider"/>
+                    <!--<View style="@style/divider"/>-->
 
+                    <!-- View to make sure last tag list element doesn't hide under Settings link -->
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="@dimen/_48dp"
+                        android:layout_marginBottom="@dimen/_8dp_half"
+                        android:layout_marginTop="@dimen/_8dp_half"/>
                 </LinearLayout>
             </ScrollView>
 
@@ -108,6 +114,7 @@
                 android:paddingBottom="@dimen/_8dp_half"
                 android:paddingTop="@dimen/_8dp_half">
 
+                <!-- WHEN ADDING MORE LIST ITEMS HERE, ADD EQUIVALENT 48DP MULTIPLES TO THE VIEW ABOVE -->
                 <include
                     android:id="@+id/nav_settings"
                     layout="@layout/nav_list_row_layout"

@@ -153,6 +153,7 @@ public class IDTSyncAdapter extends AbstractThreadedSyncAdapter {
             
             tagValues.put(DoneListContract.TagEntry.COLUMN_NAME_ID, tag.id);
             tagValues.put(DoneListContract.TagEntry.COLUMN_NAME_NAME, tag.name);
+            tagValues.put(DoneListContract.TagEntry.COLUMN_NAME_TEAM, tag.team);
             cVVector.add(tagValues);
             
         }
@@ -321,7 +322,7 @@ public class IDTSyncAdapter extends AbstractThreadedSyncAdapter {
                 result = null;
     
             } else if (resultStatus == HttpURLConnection.HTTP_OK)
-                fetchedTaskCount = getDoneListFromJson(result);
+                fetchedTaskCount = getTaskListFromJson(result);
     
     
         } catch (Exception e) {
@@ -450,7 +451,7 @@ public class IDTSyncAdapter extends AbstractThreadedSyncAdapter {
      * Fortunately parsing is easy:  constructor takes the JSON string and converts it
      * into an Object hierarchy for us.
      */
-    private int getDoneListFromJson(String forecastJsonStr) throws JSONException {
+    private int getTaskListFromJson(String forecastJsonStr) throws JSONException {
         
         // Now we have a String representing the complete forecast in JSON Format.
         // Fortunately parsing is easy:  constructor takes the JSON string and converts it
@@ -484,7 +485,6 @@ public class IDTSyncAdapter extends AbstractThreadedSyncAdapter {
             doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE, doneItem.done_date);
             doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_OWNER, doneItem.owner);
             doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_TEAM_SHORT_NAME, doneItem.team_short_name);
-            //doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_TAGS, gson.toJson(doneItem.tags, DoneItem.DoneTags[].class));
             doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_LIKES, "");
             doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_COMMENTS, "");
             doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_META_DATA, gson.toJson(doneItem.meta_data, DoneItem.DoneMeta.class));
@@ -499,6 +499,7 @@ public class IDTSyncAdapter extends AbstractThreadedSyncAdapter {
             taskTagsArray.clear();
             for (int j = 0; j < doneItem.tags.length; j++) {
                 taskTagsArray.add(DoneListContract.TagEntry.TAG_ID_PRE + doneItem.tags[j].id + DoneListContract.TagEntry.TAG_ID_POST);
+                doneItem.tags[j].team = doneItem.team;
             }
             allTagsArray.addAll(Arrays.asList(doneItem.tags));
             doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_TAGS, gson.toJson(taskTagsArray.toArray(), String[].class));
@@ -642,6 +643,7 @@ public class IDTSyncAdapter extends AbstractThreadedSyncAdapter {
         public class DoneTags {
             public int id;
             public String name;
+            public String team;
         }
         
         public class DoneMeta {

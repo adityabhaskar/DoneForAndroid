@@ -39,12 +39,7 @@ public class DoneListContract {
         
         public static final String COLUMN_NAME_ID = "tags_id";   // assign locally
         public static final String COLUMN_NAME_NAME = "tags_name";
-        //public static final String COLUMN_NAME_URL = "tags_url"; // unique on server - api url - same as dones.team
-        //public static final String COLUMN_NAME_SHORT_NAME = "tags_short_name";
-        //public static final String COLUMN_NAME_DONES = "tags_dones"; // api url to dones in tag
-        //public static final String COLUMN_NAME_IS_PERSONAL = "tags_is_personal";
-        //public static final String COLUMN_NAME_DONE_COUNT = "tags_done_count"; // total done count in tag, on server
-        //public static final String COLUMN_NAME_PERMALINK = "tags_permalink"; // url to web page
+        public static final String COLUMN_NAME_TEAM = "tags_team_url"; // url for team that the tag is associated with
         
         public static final Uri CONTENT_URI = BASE_CONTENT_URI.buildUpon().appendPath(PATH_TAGS).build();
         
