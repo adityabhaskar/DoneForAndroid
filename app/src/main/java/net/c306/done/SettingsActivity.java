@@ -11,6 +11,8 @@ import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.preference.CheckBoxPreference;
+import android.preference.EditTextPreference;
 import android.preference.ListPreference;
 import android.preference.MultiSelectListPreference;
 import android.preference.Preference;
@@ -142,6 +144,7 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
     };
     private final String LOG_TAG = Utils.LOG_TAG + this.getClass().getSimpleName();
     private Tracker mTracker;
+    private boolean mSyncList = false;              // Flag indicating that settings changed may impact task list, so sync it when exiting activity
     
     /**
      * Binds a preference's summary to its value. More specifically, when the
@@ -207,6 +210,14 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
                 .unregisterOnSharedPreferenceChangeListener(this);
     }
     
+    @Override
+    protected void onStop() {
+        if (mSyncList)
+            IDTSyncAdapter.syncImmediately(getApplicationContext());
+        
+        super.onStop();
+    }
+    
     /**
     * Implementing method to handle change in preferences, and test for valid authToken
     * */
@@ -214,7 +225,7 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
     public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
     
         switch (key) {
-        
+            
             case Utils.PREF_DEFAULT_TEAM: {
                 Log.v(LOG_TAG, key + " changed to: " + sharedPreferences.getString(key, ""));
                 // Nothing to do
@@ -278,7 +289,14 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
                 Utils.setNotificationAlarm(SettingsActivity.this, null);
                 break;
             }
-            
+        
+            case Utils.PREF_DAYS_TO_FETCH:
+            case Utils.PREF_COUNT_TO_FETCH: {
+                mSyncList = true;
+                break;
+            }
+        
+        
             default:
                 Log.w(LOG_TAG, "Unidentified pref change: " + key);
                 break;
@@ -327,29 +345,69 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
             
             setHasOptionsMenu(true);
     
-            setupTeamsSelector();
+            setupTeamsInSelector();
+    
+            String daysToFetch = Utils.getFetchValue(getActivity().getApplicationContext(), Utils.PREF_FETCH_BY_DAYS);
+            String countToFetch = Utils.getFetchValue(getActivity().getApplicationContext(), Utils.PREF_FETCH_BY_COUNT);
+    
+            updateFetchByDaysSummary(daysToFetch, countToFetch);
+    
+            EditTextPreference countToFetchPreference = (EditTextPreference) findPreference(Utils.PREF_COUNT_TO_FETCH);
+            countToFetchPreference.setSummary(countToFetch);
+    
+            ListPreference daysToFetchPreference = (ListPreference) findPreference(Utils.PREF_DAYS_TO_FETCH);
+            int index = daysToFetchPreference.findIndexOfValue(daysToFetch);
+            if (index >= 0)
+                daysToFetchPreference.setSummary(daysToFetchPreference.getEntries()[index]);
             
-            // Bind the summaries of EditText/List/Dialog/Ringtone preferences
-            // to their values. When their values change, their summaries are
-            // updated to reflect the new value, per the Android Design
-            // guidelines.
             bindPreferenceSummaryToValue(findPreference(Utils.PREF_DEFAULT_TEAM));
+            bindPreferenceSummaryToValue(findPreference(Utils.PREF_DEFAULT_VIEW));
             bindPreferenceSummaryToValue(findPreference(Utils.PREF_NOTIFICATION_SOUND));
             bindPreferenceSummaryToValue(findPreference(Utils.PREF_SNOOZE_DURATION));
             bindPreferenceSummaryToValue(findPreference(Utils.PREF_NOTIFICATION_DAYS));
             bindPreferenceSummaryToValue(findPreference(Utils.PREF_SYNC_FREQUENCY));
+            bindPreferenceSummaryToValue(findPreference(Utils.PREF_SYNC_FREQUENCY));
+    
+            RadioPreferenceChangeListener radioPreferenceChangeListener = new RadioPreferenceChangeListener();
+    
+            findPreference(Utils.PREF_FETCH_BY_DAYS).setOnPreferenceChangeListener(radioPreferenceChangeListener);
+            findPreference(Utils.PREF_FETCH_BY_COUNT).setOnPreferenceChangeListener(radioPreferenceChangeListener);
+            findPreference(Utils.PREF_DAYS_TO_FETCH).setOnPreferenceChangeListener(radioPreferenceChangeListener);
+            findPreference(Utils.PREF_COUNT_TO_FETCH).setOnPreferenceChangeListener(radioPreferenceChangeListener);
+            
         }
     
-        private void setupTeamsSelector() {
+        private void updateFetchByDaysSummary(String daysToFetch, String countToFetch) {
+        
+            Preference fetchByDaysPreference = findPreference(Utils.PREF_FETCH_BY_DAYS);
+        
+            if (Integer.parseInt(daysToFetch) >= 999) {
+                fetchByDaysPreference.setSummary(
+                        getString(R.string.PREF_SUMMARY_FETCH_BY_DAYS_MAX)
+                                .replaceFirst("NUMCOUNT", countToFetch));
+            } else {
+                String fetchByDaysPreferenceSummary = getString(R.string.PREF_SUMMARY_FETCH_BY_DAYS)
+                        .replaceFirst("NUMDAYS", daysToFetch)
+                        .replaceFirst("NUMCOUNT", countToFetch);
+                fetchByDaysPreference.setSummary(fetchByDaysPreferenceSummary);
+            }
+        }
     
+        /**
+         *
+         */
+        private void setupTeamsInSelector() {
+            
             ListPreference defaultTeamListPreference = (ListPreference) findPreference(Utils.PREF_DEFAULT_TEAM);
-    
+            ListPreference defaultViewListPreference = (ListPreference) findPreference(Utils.PREF_DEFAULT_VIEW);
+            
             if (Utils.getAccessToken(getActivity().getApplicationContext()) != null &&
-                    defaultTeamListPreference != null) {
+                    defaultTeamListPreference != null && defaultViewListPreference != null) {
                 
                 // Fill up team names in listPreference in General Preferences
                 defaultTeamListPreference.setEnabled(true);
-        
+                defaultViewListPreference.setEnabled(true);
+                
                 Cursor cursor = getActivity().getContentResolver().query(
                         DoneListContract.TeamEntry.CONTENT_URI,
                         new String[]{
@@ -366,22 +424,36 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
                     
                     List<String> teamNames = new ArrayList<>();
                     List<String> teamURLs = new ArrayList<>();
-            
+                    List<String> viewNames = new ArrayList<>();
+                    List<String> viewURLs = new ArrayList<>();
+    
+                    viewNames.add(getString(R.string.all_tasks));
+                    viewURLs.add("");
+                    
                     int columnTeamName = cursor.getColumnIndex(DoneListContract.TeamEntry.COLUMN_NAME_NAME);
                     int columnTeamURL = cursor.getColumnIndex(DoneListContract.TeamEntry.COLUMN_NAME_URL);
-            
+    
                     while (cursor.moveToNext()) {
                         teamNames.add(cursor.getString(columnTeamName));
                         teamURLs.add(cursor.getString(columnTeamURL));
+                        viewNames.add(cursor.getString(columnTeamName));
+                        viewURLs.add(cursor.getString(columnTeamURL));
                     }
-            
+    
                     cursor.close();
-            
+    
                     defaultTeamListPreference.setEntries(teamNames.toArray(new String[teamNames.size()]));
                     defaultTeamListPreference.setEntryValues(teamURLs.toArray(new String[teamURLs.size()]));
+                    defaultViewListPreference.setEntries(viewNames.toArray(new String[viewNames.size()]));
+                    defaultViewListPreference.setEntryValues(viewURLs.toArray(new String[viewURLs.size()]));
+                    
                 } else {
+    
                     defaultTeamListPreference.setEntries(new String[]{});
                     defaultTeamListPreference.setEntryValues(new String[]{});
+                    defaultViewListPreference.setEntries(new String[]{getString(R.string.all_tasks)});
+                    defaultViewListPreference.setEntryValues(new String[]{""});
+                    
                 }
             } else
                 Log.w(Utils.LOG_TAG + getClass().getSimpleName(), "defaultTeamListPreference is null");
@@ -395,6 +467,77 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
                 return true;
             }
             return super.onOptionsItemSelected(item);
+        }
+    
+        private class RadioPreferenceChangeListener implements Preference.OnPreferenceChangeListener {
+            @Override
+            public boolean onPreferenceChange(Preference preference, Object newValue) {
+            
+                switch (preference.getKey()) {
+                    case Utils.PREF_FETCH_BY_COUNT: {
+                        CheckBoxPreference otherPreference = (CheckBoxPreference) findPreference(Utils.PREF_FETCH_BY_DAYS);
+                        CheckBoxPreference thisPreference = (CheckBoxPreference) preference;
+                        if (thisPreference.isChecked()) {
+                            otherPreference.setChecked(true);
+                        } else {
+                            otherPreference.setChecked(false);
+                        }
+                    
+                        break;
+                    }
+                
+                    case Utils.PREF_FETCH_BY_DAYS: {
+                        CheckBoxPreference otherPreference = (CheckBoxPreference) findPreference(Utils.PREF_FETCH_BY_COUNT);
+                        CheckBoxPreference thisPreference = (CheckBoxPreference) preference;
+                        if (thisPreference.isChecked()) {
+                            otherPreference.setChecked(true);
+                        } else {
+                            otherPreference.setChecked(false);
+                        }
+                    
+                        break;
+                    }
+                
+                    case Utils.PREF_DAYS_TO_FETCH: {
+                        ListPreference daysToFetchPreference = (ListPreference) preference;
+                        int index = daysToFetchPreference.findIndexOfValue((String) newValue);
+                        if (index >= 0)
+                            daysToFetchPreference.setSummary(daysToFetchPreference.getEntries()[index]);
+                    
+                        updateFetchByDaysSummary((String) newValue,
+                                Utils.getFetchValue(getActivity().getApplicationContext(), Utils.PREF_FETCH_BY_COUNT));
+                    
+                        break;
+                    }
+                
+                    case Utils.PREF_COUNT_TO_FETCH: {
+                        EditTextPreference countToFetchPreference = (EditTextPreference) preference;
+                        String newValueString = (String) newValue;
+                    
+                        if (Integer.parseInt((String) newValue) > Utils.MAX_PREF_VALUE_COUNT_TO_FETCH) {
+                            newValueString = "" + Utils.MAX_PREF_VALUE_COUNT_TO_FETCH;
+                            SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getActivity().getApplicationContext());
+                            SharedPreferences.Editor editor = preferences.edit();
+                            editor.putString(Utils.PREF_COUNT_TO_FETCH, newValueString);
+                            editor.commit();
+                        } else if (Integer.parseInt((String) newValue) < Utils.MIN_PREF_VALUE_COUNT_TO_FETCH) {
+                            newValueString = "" + Utils.MIN_PREF_VALUE_COUNT_TO_FETCH;
+                            SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getActivity().getApplicationContext());
+                            SharedPreferences.Editor editor = preferences.edit();
+                            editor.putString(Utils.PREF_COUNT_TO_FETCH, newValueString);
+                            editor.commit();
+                        }
+                        countToFetchPreference.setText(newValueString);
+                        countToFetchPreference.setSummary(newValueString);
+                    
+                        updateFetchByDaysSummary(Utils.getFetchValue(getActivity().getApplicationContext(), Utils.PREF_FETCH_BY_DAYS),
+                                newValueString);
+                    
+                        return false;
+                    }
+                }
+                return true;
+            }
         }
     }
     

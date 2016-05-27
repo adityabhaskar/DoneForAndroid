@@ -259,8 +259,14 @@ public class MainActivity
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
     
+        // Initialize global pseudo-constant variables
         idToLayoutMap.put(Utils.NAV_LAYOUT_TEAMS, R.id.nav_drawer_teams);
         idToLayoutMap.put(Utils.NAV_LAYOUT_TAGS, R.id.nav_drawer_tags);
+        mAllStateBundle.putInt(Utils.KEY_NAV_FILTER_TYPE, Utils.NAV_LAYOUT_ALL);
+        mAllStateBundle.putString(Utils.KEY_NAV_FILTER, null);
+        mAllStateBundle.putString(Utils.KEY_FILTER_TITLE, null);
+        mAllStateBundle.putInt(Utils.KEY_NAV_FILTER_ID, -1);
+    
     
         // Restore variables from saved state, if any
         if (savedInstanceState != null) {
@@ -278,14 +284,14 @@ public class MainActivity
             // Get filter type
             if (savedInstanceState.containsKey(Utils.KEY_NAV_FILTER_TYPE)) {
                 mNavFilterType = savedInstanceState.getInt(Utils.KEY_NAV_FILTER_TYPE);
-        
+    
                 // If filter type is All, no need to read other values
                 if (mNavFilterType != Utils.NAV_LAYOUT_ALL) {
-            
+    
                     // Get selected item's id
                     if (savedInstanceState.containsKey(NAV_SELECTED_ID_KEY))
                         mNavSelectedId = savedInstanceState.getInt(NAV_SELECTED_ID_KEY);
-            
+    
                     // Get selected item's filter string
                     if (savedInstanceState.containsKey(Utils.KEY_NAV_FILTER))
                         mNavFilterString = savedInstanceState.getString(Utils.KEY_NAV_FILTER);
@@ -304,6 +310,44 @@ public class MainActivity
         // Setup tasks listview
         setupTasksListView();
     
+        if (savedInstanceState == null) {
+            // Setup to show default view, as set up in preferences
+            String defaultTeam = Utils.getDefaultView(MainActivity.this);
+            if (defaultTeam != null && !defaultTeam.isEmpty()) {
+            
+                Bundle teamDetailsBundle = new Bundle();
+            
+                Cursor cursor = getContentResolver().query(
+                        DoneListContract.TeamEntry.CONTENT_URI,
+                        new String[]{
+                                DoneListContract.TeamEntry.COLUMN_NAME_ID,
+                                DoneListContract.TeamEntry.COLUMN_NAME_NAME,
+                                DoneListContract.TeamEntry.COLUMN_NAME_URL,
+                        },
+                        DoneListContract.TeamEntry.COLUMN_NAME_URL + " IS ?",
+                        new String[]{
+                                defaultTeam
+                        },
+                        null
+                );
+            
+                if (cursor != null) {
+                    cursor.moveToNext();
+                
+                    teamDetailsBundle.putInt(DoneListContract.TeamEntry.COLUMN_NAME_ID,
+                            cursor.getInt(cursor.getColumnIndex(DoneListContract.TeamEntry.COLUMN_NAME_ID)));
+                    teamDetailsBundle.putString(DoneListContract.TeamEntry.COLUMN_NAME_URL,
+                            cursor.getString(cursor.getColumnIndex(DoneListContract.TeamEntry.COLUMN_NAME_URL)));
+                    teamDetailsBundle.putString(DoneListContract.TeamEntry.COLUMN_NAME_NAME,
+                            cursor.getString(cursor.getColumnIndex(DoneListContract.TeamEntry.COLUMN_NAME_NAME)));
+                
+                    cursor.close();
+                
+                    filterByTagOrTeam(Utils.NAV_LAYOUT_TEAMS, teamDetailsBundle, false, false);
+                }
+            }
+        }
+        
         // Show snackbar if coming from successful login activity 
         Intent fromIntent = getIntent();
     
@@ -313,11 +357,6 @@ public class MainActivity
             mSnackbar = Snackbar.make(findViewById(R.id.fab), R.string.LOGIN_SUCCESSFUL, Snackbar.LENGTH_SHORT);
             mSnackbar.setAction("Dismiss", null).show();
         }
-    
-        mAllStateBundle.putInt(Utils.KEY_NAV_FILTER_TYPE, Utils.NAV_LAYOUT_ALL);
-        mAllStateBundle.putString(Utils.KEY_NAV_FILTER, null);
-        mAllStateBundle.putString(Utils.KEY_FILTER_TITLE, null);
-        mAllStateBundle.putInt(Utils.KEY_NAV_FILTER_ID, -1);
         
         // Setup default preferences, if not already set/changed
         PreferenceManager.setDefaultValues(MainActivity.this, R.xml.preferences, false);
@@ -1464,8 +1503,14 @@ public class MainActivity
             }
             
             case R.id.nav_settings: {
-                Intent settingsIntent = new Intent(MainActivity.this, SettingsActivity.class);
                 Utils.sendEvent(mTracker, Utils.ANALYTICS_CATEGORY_ACTION, ANALYTICS_TAG + Utils.ANALYTICS_ACTION_OPEN_SETTINGS, FROM_NAV_BAR);
+    
+                // Close drawer
+                DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
+                if (drawer != null)
+                    drawer.closeDrawer(GravityCompat.START);
+    
+                Intent settingsIntent = new Intent(MainActivity.this, SettingsActivity.class);
                 startActivity(settingsIntent);
                 break;
             }

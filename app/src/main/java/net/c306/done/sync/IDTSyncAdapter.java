@@ -28,9 +28,12 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.List;
+import java.util.Locale;
 import java.util.Vector;
 
 
@@ -279,10 +282,31 @@ public class IDTSyncAdapter extends AbstractThreadedSyncAdapter {
         
         // Contains server response (or error message)
         String result = "";
+    
+        String fetchUrl = Utils.IDT_DONE_URL + "?page_size=" + Utils.getFetchValue(context, Utils.PREF_FETCH_BY_COUNT);
+    
+        if (Utils.getFetchType(context).equals(Utils.PREF_FETCH_BY_DAYS)) {
+            int daysToFetch = Integer.parseInt(Utils.getFetchValue(context, Utils.PREF_FETCH_BY_DAYS));
+        
+            if (daysToFetch < 999) {
+            
+                String dateSince;
+            
+                Calendar calendar = Calendar.getInstance();
+                calendar.add(Calendar.DATE, -daysToFetch);
+            
+                SimpleDateFormat idtDateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.UK);
+                dateSince = idtDateFormat.format(calendar.getTime());
+            
+                fetchUrl += "&done_date_after=" + dateSince;
+            }
+        }
+    
+        //Log.i(LOG_TAG, "fetchTasks: url:\n" + fetchUrl);
         
         try {
             //Connect
-            httpcon = (HttpURLConnection) ((new URL(Utils.IDT_DONE_URL + "?page_size=" + Utils.TASKS_TO_FETCH).openConnection()));
+            httpcon = (HttpURLConnection) new URL(fetchUrl).openConnection();
             httpcon.setRequestProperty("Authorization", "Bearer " + authToken);
             httpcon.setRequestProperty("Content-Type", "application/json");
             httpcon.setRequestProperty("Accept", "application/json");

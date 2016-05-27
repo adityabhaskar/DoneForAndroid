@@ -6,6 +6,8 @@
     <!-- Should always have the same value as Utils.PREF_DEFAULT_TEAM-->
     <string name="DEFAULT_TEAM">defaultTeam</string>
 
+    <string name="DEFAULT_VIEW">defaultView</string>
+
     <string name="PREF_SYNC_ON_STARTUP">sync_on_startup</string>
     <bool name="DEFAULT_SYNC_ON_STARTUP">false</bool>
 
@@ -42,5 +44,11 @@
 
 
     <string name="owner_tag" translatable="false">owner_tag</string>
+
+
+    <string name="PREF_FETCH_BY_DAYS">fetch_by_days</string>
+    <string name="PREF_FETCH_BY_COUNT">fetch_by_count</string>
+    <string name="PREF_DAYS_TO_FETCH">days_to_fetch</string>
+    <string name="PREF_COUNT_TO_FETCH">count_to_fetch</string>
 
 </resources>

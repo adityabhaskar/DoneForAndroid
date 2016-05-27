@@ -121,11 +121,21 @@ public class Utils {
     public static final String PREF_SYNC_FREQUENCY = "sync_frequency"; // Same value as @R/constants/PREF_SYNC_FREQUENCY
     public static final String PREF_SNOOZE_DURATION = "snooze_duration"; // Same value as @R/constants/PREF_SNOOZE_DURATION
     public static final String PREF_DEFAULT_TEAM = "defaultTeam";
+    public static final String PREF_DEFAULT_VIEW = "defaultView";
     public static final String PREF_SYNC_ON_STARTUP = "sync_on_startup"; // Same value as @R/constants/PREF_SHOW_NOTIFICATION
     public static final String PREF_SHOW_NOTIFICATION = "show_notification"; // Same value as @R/constants/PREF_SHOW_NOTIFICATION
     public static final String PREF_NOTIFICATION_DAYS = "notification_days_of_week"; // Same value as @R/constants/PREF_NOTIFICATION_DAYS
     public static final String PREF_NOTIFICATION_TIME = "notification_time"; // Same value as @R/constants/PREF_NOTIFICATION_DAYS
     public static final String PREF_NOTIFICATION_SOUND = "notifications_new_message_ringtone";
+    public static final String PREF_FETCH_BY_DAYS = "fetch_by_days";
+    public static final String PREF_FETCH_BY_COUNT = "fetch_by_count";
+    public static final String PREF_DAYS_TO_FETCH = "days_to_fetch";
+    public static final String PREF_COUNT_TO_FETCH = "count_to_fetch";
+    
+    public static final int DEFAULT_PREF_VALUE_DAYS_TO_FETCH = 7;
+    public static final int DEFAULT_PREF_VALUE_COUNT_TO_FETCH = 100;
+    public static final int MAX_PREF_VALUE_COUNT_TO_FETCH = 250;
+    public static final int MIN_PREF_VALUE_COUNT_TO_FETCH = 1;
     
     // User Preferences file property names
     public static final String TEAMS = "teams";
@@ -227,6 +237,24 @@ public class Utils {
                 Utils.PREF_SYNC_FREQUENCY,
                 String.valueOf(Utils.SYNC_DEFAULT_INTERVAL)
         ));
+    }
+    
+    public static String getFetchType(Context c) {
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(c);
+        return prefs.getBoolean(Utils.PREF_FETCH_BY_DAYS, false) ? Utils.PREF_FETCH_BY_DAYS : Utils.PREF_FETCH_BY_COUNT;
+    }
+    
+    public static String getFetchValue(Context c, String fetchType) {
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(c);
+        
+        if (fetchType == null)
+            fetchType = prefs.getBoolean(Utils.PREF_FETCH_BY_DAYS, false) ? Utils.PREF_FETCH_BY_DAYS : Utils.PREF_FETCH_BY_COUNT;
+        
+        if (fetchType.equals(Utils.PREF_FETCH_BY_DAYS)) {
+            return prefs.getString(Utils.PREF_DAYS_TO_FETCH, Utils.DEFAULT_PREF_VALUE_DAYS_TO_FETCH + "");
+        } else {
+            return prefs.getString(Utils.PREF_COUNT_TO_FETCH, Utils.DEFAULT_PREF_VALUE_COUNT_TO_FETCH + "");
+        }
     }
     
     public static int getSnoozeDuration(Context c) {
@@ -347,6 +375,12 @@ public class Utils {
     public static String getUsername(Context c) {
         SharedPreferences prefs = c.getSharedPreferences(Utils.USER_DETAILS_PREFS_FILENAME, Context.MODE_PRIVATE);
         return prefs.getString(Utils.USERNAME, null);
+    }
+    
+    @Nullable
+    public static String getDefaultView(Context c) {
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(c);
+        return prefs.getString(Utils.PREF_DEFAULT_VIEW, null);
     }
     
     @Nullable
