@@ -127,8 +127,6 @@ public class Utils {
     public static final String PREF_NOTIFICATION_DAYS = "notification_days_of_week"; // Same value as @R/constants/PREF_NOTIFICATION_DAYS
     public static final String PREF_NOTIFICATION_TIME = "notification_time"; // Same value as @R/constants/PREF_NOTIFICATION_DAYS
     public static final String PREF_NOTIFICATION_SOUND = "notifications_new_message_ringtone";
-    public static final String PREF_FETCH_BY_DAYS = "fetch_by_days";
-    public static final String PREF_FETCH_BY_COUNT = "fetch_by_count";
     public static final String PREF_DAYS_TO_FETCH = "days_to_fetch";
     public static final String PREF_COUNT_TO_FETCH = "count_to_fetch";
     
@@ -239,18 +237,10 @@ public class Utils {
         ));
     }
     
-    public static String getFetchType(Context c) {
-        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(c);
-        return prefs.getBoolean(Utils.PREF_FETCH_BY_DAYS, false) ? Utils.PREF_FETCH_BY_DAYS : Utils.PREF_FETCH_BY_COUNT;
-    }
-    
     public static String getFetchValue(Context c, String fetchType) {
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(c);
-        
-        if (fetchType == null)
-            fetchType = prefs.getBoolean(Utils.PREF_FETCH_BY_DAYS, false) ? Utils.PREF_FETCH_BY_DAYS : Utils.PREF_FETCH_BY_COUNT;
-        
-        if (fetchType.equals(Utils.PREF_FETCH_BY_DAYS)) {
+    
+        if (fetchType.equals(Utils.PREF_DAYS_TO_FETCH)) {
             return prefs.getString(Utils.PREF_DAYS_TO_FETCH, Utils.DEFAULT_PREF_VALUE_DAYS_TO_FETCH + "");
         } else {
             return prefs.getString(Utils.PREF_COUNT_TO_FETCH, Utils.DEFAULT_PREF_VALUE_COUNT_TO_FETCH + "");

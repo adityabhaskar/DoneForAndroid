@@ -98,29 +98,15 @@
 
     <PreferenceCategory android:title="Others">
 
-        <CheckBoxPreference
-            android:defaultValue="true"
-            android:key="@string/PREF_FETCH_BY_COUNT"
-            android:summary="Fetch latest X tasks"
-            android:title="@string/PREF_TITLE_FETCH_BY_COUNT"/>
-
         <EditTextPreference
             android:defaultValue="100"
-            android:dependency="@string/PREF_FETCH_BY_COUNT"
             android:inputType="number"
             android:key="@string/PREF_COUNT_TO_FETCH"
             android:summary="@string/PREF_SUMMARY_COUNT_TO_FETCH"
             android:title="@string/PREF_TITLE_COUNT_TO_FETCH"/>
 
-        <CheckBoxPreference
-            android:defaultValue="false"
-            android:key="@string/PREF_FETCH_BY_DAYS"
-            android:summary="@string/PREF_SUMMARY_FETCH_BY_DAYS"
-            android:title="@string/PREF_TITLE_FETCH_BY_DAYS"/>
-
         <ListPreference
             android:defaultValue="@integer/DEFAULT_DAYS_TO_FETCH"
-            android:dependency="@string/PREF_FETCH_BY_DAYS"
             android:entries="@array/pref_days_to_fetch_titles"
             android:entryValues="@array/pref_days_to_fetch_values"
             android:key="@string/PREF_DAYS_TO_FETCH"

@@ -11,7 +11,6 @@ import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.preference.CheckBoxPreference;
 import android.preference.EditTextPreference;
 import android.preference.ListPreference;
 import android.preference.MultiSelectListPreference;
@@ -347,15 +346,16 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
     
             setupTeamsInSelector();
     
-            String daysToFetch = Utils.getFetchValue(getActivity().getApplicationContext(), Utils.PREF_FETCH_BY_DAYS);
-            String countToFetch = Utils.getFetchValue(getActivity().getApplicationContext(), Utils.PREF_FETCH_BY_COUNT);
-    
-            updateFetchByDaysSummary(daysToFetch, countToFetch);
-    
+            String daysToFetch = Utils.getFetchValue(getActivity().getApplicationContext(), Utils.PREF_DAYS_TO_FETCH);
+            String countToFetch = Utils.getFetchValue(getActivity().getApplicationContext(), Utils.PREF_COUNT_TO_FETCH);
+            
             EditTextPreference countToFetchPreference = (EditTextPreference) findPreference(Utils.PREF_COUNT_TO_FETCH);
             countToFetchPreference.setSummary(countToFetch);
     
             ListPreference daysToFetchPreference = (ListPreference) findPreference(Utils.PREF_DAYS_TO_FETCH);
+            String daysToFetchTitle = getString(R.string.PREF_TITLE_DAYS_TO_FETCH)
+                    .replaceFirst("NUMCOUNT", countToFetch);
+            daysToFetchPreference.setTitle(daysToFetchTitle);
             int index = daysToFetchPreference.findIndexOfValue(daysToFetch);
             if (index >= 0)
                 daysToFetchPreference.setSummary(daysToFetchPreference.getEntries()[index]);
@@ -366,35 +366,16 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
             bindPreferenceSummaryToValue(findPreference(Utils.PREF_SNOOZE_DURATION));
             bindPreferenceSummaryToValue(findPreference(Utils.PREF_NOTIFICATION_DAYS));
             bindPreferenceSummaryToValue(findPreference(Utils.PREF_SYNC_FREQUENCY));
-            bindPreferenceSummaryToValue(findPreference(Utils.PREF_SYNC_FREQUENCY));
     
-            RadioPreferenceChangeListener radioPreferenceChangeListener = new RadioPreferenceChangeListener();
+            TaskCountPreferenceChangeListener taskCountPreferenceChangeListener = new TaskCountPreferenceChangeListener();
     
-            findPreference(Utils.PREF_FETCH_BY_DAYS).setOnPreferenceChangeListener(radioPreferenceChangeListener);
-            findPreference(Utils.PREF_FETCH_BY_COUNT).setOnPreferenceChangeListener(radioPreferenceChangeListener);
-            findPreference(Utils.PREF_DAYS_TO_FETCH).setOnPreferenceChangeListener(radioPreferenceChangeListener);
-            findPreference(Utils.PREF_COUNT_TO_FETCH).setOnPreferenceChangeListener(radioPreferenceChangeListener);
+            findPreference(Utils.PREF_DAYS_TO_FETCH).setOnPreferenceChangeListener(taskCountPreferenceChangeListener);
+            findPreference(Utils.PREF_COUNT_TO_FETCH).setOnPreferenceChangeListener(taskCountPreferenceChangeListener);
             
         }
-    
-        private void updateFetchByDaysSummary(String daysToFetch, String countToFetch) {
         
-            Preference fetchByDaysPreference = findPreference(Utils.PREF_FETCH_BY_DAYS);
-        
-            if (Integer.parseInt(daysToFetch) >= 999) {
-                fetchByDaysPreference.setSummary(
-                        getString(R.string.PREF_SUMMARY_FETCH_BY_DAYS_MAX)
-                                .replaceFirst("NUMCOUNT", countToFetch));
-            } else {
-                String fetchByDaysPreferenceSummary = getString(R.string.PREF_SUMMARY_FETCH_BY_DAYS)
-                        .replaceFirst("NUMDAYS", daysToFetch)
-                        .replaceFirst("NUMCOUNT", countToFetch);
-                fetchByDaysPreference.setSummary(fetchByDaysPreferenceSummary);
-            }
-        }
-    
         /**
-         *
+         * 
          */
         private void setupTeamsInSelector() {
             
@@ -469,51 +450,24 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
             return super.onOptionsItemSelected(item);
         }
     
-        private class RadioPreferenceChangeListener implements Preference.OnPreferenceChangeListener {
+        private class TaskCountPreferenceChangeListener implements Preference.OnPreferenceChangeListener {
             @Override
             public boolean onPreferenceChange(Preference preference, Object newValue) {
-            
+    
                 switch (preference.getKey()) {
-                    case Utils.PREF_FETCH_BY_COUNT: {
-                        CheckBoxPreference otherPreference = (CheckBoxPreference) findPreference(Utils.PREF_FETCH_BY_DAYS);
-                        CheckBoxPreference thisPreference = (CheckBoxPreference) preference;
-                        if (thisPreference.isChecked()) {
-                            otherPreference.setChecked(true);
-                        } else {
-                            otherPreference.setChecked(false);
-                        }
-                    
-                        break;
-                    }
-                
-                    case Utils.PREF_FETCH_BY_DAYS: {
-                        CheckBoxPreference otherPreference = (CheckBoxPreference) findPreference(Utils.PREF_FETCH_BY_COUNT);
-                        CheckBoxPreference thisPreference = (CheckBoxPreference) preference;
-                        if (thisPreference.isChecked()) {
-                            otherPreference.setChecked(true);
-                        } else {
-                            otherPreference.setChecked(false);
-                        }
-                    
-                        break;
-                    }
-                
                     case Utils.PREF_DAYS_TO_FETCH: {
                         ListPreference daysToFetchPreference = (ListPreference) preference;
                         int index = daysToFetchPreference.findIndexOfValue((String) newValue);
                         if (index >= 0)
                             daysToFetchPreference.setSummary(daysToFetchPreference.getEntries()[index]);
-                    
-                        updateFetchByDaysSummary((String) newValue,
-                                Utils.getFetchValue(getActivity().getApplicationContext(), Utils.PREF_FETCH_BY_COUNT));
-                    
+            
                         break;
                     }
-                
+        
                     case Utils.PREF_COUNT_TO_FETCH: {
                         EditTextPreference countToFetchPreference = (EditTextPreference) preference;
                         String newValueString = (String) newValue;
-                    
+            
                         if (Integer.parseInt((String) newValue) > Utils.MAX_PREF_VALUE_COUNT_TO_FETCH) {
                             newValueString = "" + Utils.MAX_PREF_VALUE_COUNT_TO_FETCH;
                             SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getActivity().getApplicationContext());
@@ -529,10 +483,12 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
                         }
                         countToFetchPreference.setText(newValueString);
                         countToFetchPreference.setSummary(newValueString);
-                    
-                        updateFetchByDaysSummary(Utils.getFetchValue(getActivity().getApplicationContext(), Utils.PREF_FETCH_BY_DAYS),
-                                newValueString);
-                    
+            
+                        ListPreference daysToFetchPreference = (ListPreference) findPreference(Utils.PREF_DAYS_TO_FETCH);
+                        String daysToFetchTitle = getString(R.string.PREF_TITLE_DAYS_TO_FETCH)
+                                .replaceFirst("NUMCOUNT", newValueString);
+                        daysToFetchPreference.setTitle(daysToFetchTitle);
+                        
                         return false;
                     }
                 }

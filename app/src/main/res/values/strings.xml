@@ -179,16 +179,10 @@
     <string name="PREF_TITLE_DEFAULT_VIEW">Primary View</string>
     <string name="PREF_SUMMARY_DEFAULT_VIEW">First view to open the app in</string>
 
-    <string name="PREF_TITLE_COUNT_TO_FETCH">Max. number of tasks to sync</string>
+    <string name="PREF_TITLE_COUNT_TO_FETCH">Number of tasks to sync (max 250*)</string>
     <string name="PREF_SUMMARY_COUNT_TO_FETCH">Higher the number, more the data consumption</string>
 
-    <string name="PREF_TITLE_DAYS_TO_FETCH">Number of days to fetch</string>
-
-    <string name="PREF_TITLE_FETCH_BY_DAYS">Fetch by days</string>
-    <string name="PREF_SUMMARY_FETCH_BY_DAYS">Sync last NUMDAYS days\' tasks, up to max NUMCOUNT tasks</string>
-    <string name="PREF_SUMMARY_FETCH_BY_DAYS_MAX">Sync up to NUMCOUNT tasks</string>
-
-    <string name="PREF_TITLE_FETCH_BY_COUNT">Fetch by count</string>
+    <string name="PREF_TITLE_DAYS_TO_FETCH">Number of days to sync, capped at NUMCOUNT tasks</string>
 
     <string-array name="pref_days_to_fetch_titles">
         <item>1 week</item>

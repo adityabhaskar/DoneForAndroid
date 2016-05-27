@@ -283,26 +283,22 @@ public class IDTSyncAdapter extends AbstractThreadedSyncAdapter {
         // Contains server response (or error message)
         String result = "";
     
-        String fetchUrl = Utils.IDT_DONE_URL + "?page_size=" + Utils.getFetchValue(context, Utils.PREF_FETCH_BY_COUNT);
+        String fetchUrl = Utils.IDT_DONE_URL + "?page_size=" + Utils.getFetchValue(context, Utils.PREF_COUNT_TO_FETCH);
     
-        if (Utils.getFetchType(context).equals(Utils.PREF_FETCH_BY_DAYS)) {
-            int daysToFetch = Integer.parseInt(Utils.getFetchValue(context, Utils.PREF_FETCH_BY_DAYS));
+        int daysToFetch = Integer.parseInt(Utils.getFetchValue(context, Utils.PREF_DAYS_TO_FETCH));
+    
+        if (daysToFetch < 999) {
         
-            if (daysToFetch < 999) {
-            
-                String dateSince;
-            
-                Calendar calendar = Calendar.getInstance();
-                calendar.add(Calendar.DATE, -daysToFetch);
-            
-                SimpleDateFormat idtDateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.UK);
-                dateSince = idtDateFormat.format(calendar.getTime());
-            
-                fetchUrl += "&done_date_after=" + dateSince;
-            }
+            String dateSince;
+        
+            Calendar calendar = Calendar.getInstance();
+            calendar.add(Calendar.DATE, -daysToFetch);
+        
+            SimpleDateFormat idtDateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.UK);
+            dateSince = idtDateFormat.format(calendar.getTime());
+        
+            fetchUrl += "&done_date_after=" + dateSince;
         }
-    
-        //Log.i(LOG_TAG, "fetchTasks: url:\n" + fetchUrl);
         
         try {
             //Connect

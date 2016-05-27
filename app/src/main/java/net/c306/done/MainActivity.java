@@ -314,7 +314,7 @@ public class MainActivity
             // Setup to show default view, as set up in preferences
             String defaultTeam = Utils.getDefaultView(MainActivity.this);
             if (defaultTeam != null && !defaultTeam.isEmpty()) {
-            
+        
                 Bundle teamDetailsBundle = new Bundle();
             
                 Cursor cursor = getContentResolver().query(
