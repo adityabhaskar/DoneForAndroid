@@ -8,8 +8,8 @@ android {
         applicationId "net.c306.done"
         minSdkVersion 19
         targetSdkVersion 23
-        versionCode 48
-        versionName "0.9.9.0"
+        versionCode 49
+        versionName "1.0.0.0"
         vectorDrawables.useSupportLibrary false
         multiDexEnabled true
     }

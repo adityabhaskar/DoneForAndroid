@@ -177,6 +177,7 @@ public class Utils {
     public static final String KEY_SEARCH_FILTER = "search_filter_phrase";
     public static final String KEY_NAV_FILTER_TYPE = "nav_filter_type";
     public static final String KEY_NAV_FILTER = "nav_filter_query_string";
+    public static final String KEY_NAV_FILTER_ID = "nav_filter_item_id";
     
     // Constants to determine how to inflate layout
     public static final int NAV_LAYOUT_TEAMS = 1;
@@ -197,6 +198,7 @@ public class Utils {
     public static final String ANALYTICS_ACTION_FILTER_ALL = ".FilterAll";
     public static final String ANALYTICS_ACTION_FILTER_TEAM = ".FilterTeam";
     public static final String ANALYTICS_ACTION_FILTER_TAG = ".FilterTag";
+    public static final String ANALYTICS_ACTION_OPEN_SETTINGS = ".OpenSettings";
     
     
     public static final int colorArray[] = {

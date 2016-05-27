@@ -52,6 +52,8 @@ import net.c306.done.idonethis.DoneActions;
 import net.c306.done.sync.IDTAccountManager;
 import net.c306.done.sync.IDTSyncAdapter;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 // TODO: 20/02/16 Group dones under date headers in listView
@@ -68,36 +70,46 @@ public class MainActivity
         AbsListView.MultiChoiceModeListener,
         View.OnClickListener {
     
+    //  CONSTANTS  //
+    
     // Saved State Bundle keys
     private static final String TASK_SELECTED_KEY = "selected_position";    // Saved state id for mTaskListPosition
     private static final String NAV_SELECTED_ID_KEY = "nav_selected_tag_position";  // Saved state id for mNavSelectedId
+    
     // Loader ids
     private static final int TASK_LIST_LOADER = 0;
     private static final int TEAM_LIST_LOADER = 1;
     private static final int TAG_LIST_LOADER = 2;
+    private static final String FROM_NAV_BAR = "From Nav Bar";
+    private static final String FROM_OVERFLOW_MENU = "From Overflow Menu";
     
+    // Tags
     private final String ANALYTICS_TAG = this.getClass().getSimpleName();
     private final String LOG_TAG = Utils.LOG_TAG + ANALYTICS_TAG;
     
-    private ActionBarDrawerToggle mNavDrawerToggle;      // Toggle for nav drawer
-    private Snackbar mSnackbar;                 // Snackbar to show messages
-    private Tracker mTracker;                   // Google Analytics tracker
     
+    //  VARIABLES  //
     
-    private String mFilterTitle = null;          // Title to display - team name, #tag or search phrase
+    private ActionBarDrawerToggle mNavDrawerToggle;         // Toggle for nav drawer
+    private Snackbar mSnackbar;                             // Snackbar to show messages
+    private Tracker mTracker;                               // Google Analytics tracker
+    
+    private String mFilterTitle = null;                     // Title to display - team name, #tag or search phrase
     
     // Search filter strings
     private String mSearchFilter = null;
     private String mRestoredSearchFilter = null;
     
     // Nav item identifiers
-    private int mNavFilterType = Utils.NAV_LAYOUT_ALL;  // All, Team, or Tag
-    private String mNavFilterString = null;             // SQL query string
-    private int mNavSelectedId = -1;                    // int id of item to locate in nav linear layout
+    private int mNavFilterType = Utils.NAV_LAYOUT_ALL;      // All, Team, or Tag
+    private String mNavFilterString = null;                 // SQL query string
+    private int mNavSelectedId = -1;                        // int id of item to locate in nav linear layout
     
+    private List<Bundle> mNavStack = new ArrayList<>();
+    private Bundle mAllStateBundle = new Bundle();
     
-    private ListView mTasksListView;                    // List of tasks in main view
-    private TaskListAdapter mTaskListAdapter;           // Adapter for list of tasks
+    private ListView mTasksListView;                        // List of tasks in main view
+    private TaskListAdapter mTaskListAdapter;               // Adapter for list of tasks
     private int mTaskListPosition = ListView.INVALID_POSITION;  // Position of selected item in task list
     
     private Map<Integer, Integer> idToLayoutMap = new ArrayMap<>(); // Mapping type of item (team / tag) to id of respective linear layout in view 
@@ -214,7 +226,7 @@ public class MainActivity
                 case Utils.NEW_TASK_SAVED: {
                     if (mSnackbar != null && mSnackbar.isShown())
                         mSnackbar.dismiss();
-        
+    
                     mSnackbar = Snackbar.make(findViewById(R.id.fab),
                             action == Utils.NEW_TASK_SAVED ? R.string.new_task_saved_toast_message : R.string.edited_task_saved_toast_message,
                             Snackbar.LENGTH_SHORT);
@@ -302,6 +314,11 @@ public class MainActivity
             mSnackbar.setAction("Dismiss", null).show();
         }
     
+        mAllStateBundle.putInt(Utils.KEY_NAV_FILTER_TYPE, Utils.NAV_LAYOUT_ALL);
+        mAllStateBundle.putString(Utils.KEY_NAV_FILTER, null);
+        mAllStateBundle.putString(Utils.KEY_FILTER_TITLE, null);
+        mAllStateBundle.putInt(Utils.KEY_NAV_FILTER_ID, -1);
+        
         // Setup default preferences, if not already set/changed
         PreferenceManager.setDefaultValues(MainActivity.this, R.xml.preferences, false);
     
@@ -361,9 +378,36 @@ public class MainActivity
         if (drawer != null && drawer.isDrawerOpen(GravityCompat.START)) {
             drawer.closeDrawer(GravityCompat.START);
     
-        } else if (mNavFilterString != null) {
-            // First 'back' goes back to showing all tasks
-            filterByTagOrTeam(Utils.NAV_LAYOUT_ALL, null, false, false);
+        } else if (mNavStack.size() > 1) {
+            // Remove current state
+            mNavStack.remove(mNavStack.size() - 1);
+    
+            // Get previous state
+            Bundle previousState = mNavStack.remove(mNavStack.size() - 1);
+            Bundle filterBundle = new Bundle();
+    
+            int filterType = previousState.getInt(Utils.KEY_NAV_FILTER_TYPE);
+    
+            switch (filterType) {
+                case Utils.NAV_LAYOUT_ALL: {
+                    break;
+                }
+        
+                case Utils.NAV_LAYOUT_TAGS: {
+                    filterBundle.putInt(DoneListContract.TagEntry.COLUMN_NAME_ID, previousState.getInt(Utils.KEY_NAV_FILTER_ID));
+                    filterBundle.putString(DoneListContract.TagEntry.COLUMN_NAME_NAME, previousState.getString(Utils.KEY_FILTER_TITLE));
+                    break;
+                }
+        
+                case Utils.NAV_LAYOUT_TEAMS: {
+                    filterBundle.putInt(DoneListContract.TeamEntry.COLUMN_NAME_ID, previousState.getInt(Utils.KEY_NAV_FILTER_ID));
+                    filterBundle.putString(DoneListContract.TeamEntry.COLUMN_NAME_URL, previousState.getString(Utils.KEY_NAV_FILTER));
+                    filterBundle.putString(DoneListContract.TeamEntry.COLUMN_NAME_NAME, previousState.getString(Utils.KEY_FILTER_TITLE));
+                    break;
+                }
+            }
+    
+            filterByTagOrTeam(filterType, filterBundle, false, false);
             
         } else {
             // Second 'back' closes activity
@@ -405,6 +449,7 @@ public class MainActivity
         switch (item.getItemId()) {
             case R.id.action_settings:
                 Intent settingsIntent = new Intent(MainActivity.this, SettingsActivity.class);
+                Utils.sendEvent(mTracker, Utils.ANALYTICS_CATEGORY_ACTION, ANALYTICS_TAG + Utils.ANALYTICS_ACTION_OPEN_SETTINGS, FROM_OVERFLOW_MENU);
                 startActivity(settingsIntent);
                 return true;
         
@@ -834,6 +879,56 @@ public class MainActivity
             getLoaderManager().restartLoader(TAG_LIST_LOADER, null, this);
         } else
             mNavFilterType = filterType;
+    
+        // Update state stack
+        if (mNavFilterType == Utils.NAV_LAYOUT_ALL) {
+        
+            mNavStack.clear();
+            mNavStack.add(mAllStateBundle);
+        
+        } else {
+        
+            Bundle previousState = mNavStack.get(mNavStack.size() - 1);
+            Bundle newState = new Bundle();
+            newState.putInt(Utils.KEY_NAV_FILTER_TYPE, mNavFilterType);
+            newState.putString(Utils.KEY_NAV_FILTER, mNavFilterString);
+            newState.putString(Utils.KEY_FILTER_TITLE, mFilterTitle);
+            newState.putInt(Utils.KEY_NAV_FILTER_ID, mNavSelectedId);
+        
+            switch (previousState.getInt(Utils.KEY_NAV_FILTER_TYPE)) {
+                case Utils.NAV_LAYOUT_ALL: {
+                    // Add the new state to the stack
+                    mNavStack.add(newState);
+                    break;
+                }
+            
+                case Utils.NAV_LAYOUT_TAGS: {
+                    // If new state is tags, replace previous state with it, if it's teams, reset all, then add team
+                    if (mNavFilterType == Utils.NAV_LAYOUT_TAGS) {
+                        mNavStack.remove(mNavStack.size() - 1);
+                        mNavStack.add(newState);
+                    } else {
+                        mNavStack.clear();
+                        mNavStack.add(mAllStateBundle);
+                        mNavStack.add(newState);
+                    }
+                    break;
+                }
+            
+                case Utils.NAV_LAYOUT_TEAMS: {
+                    // If new state is tags, add it, if it's teams, replace previous state
+                    if (mNavFilterType == Utils.NAV_LAYOUT_TAGS) {
+                        mNavStack.add(newState);
+                    } else {
+                        mNavStack.remove(mNavStack.size() - 1);
+                        mNavStack.add(newState);
+                    }
+                    break;
+                }
+            }
+        
+        }
+        //Log.i(LOG_TAG, "filterByTagOrTeam: Nav stack size:" + mNavStack.size());
         
         // Restart loader to filter tasks, if not equals "init"
         if (!isInit && !changeNavHighlightOnly)
@@ -1370,10 +1465,11 @@ public class MainActivity
             
             case R.id.nav_settings: {
                 Intent settingsIntent = new Intent(MainActivity.this, SettingsActivity.class);
+                Utils.sendEvent(mTracker, Utils.ANALYTICS_CATEGORY_ACTION, ANALYTICS_TAG + Utils.ANALYTICS_ACTION_OPEN_SETTINGS, FROM_NAV_BAR);
                 startActivity(settingsIntent);
                 break;
             }
-        
+    
             case R.id.nav_tags_empty: {
                 Utils.sendEvent(mTracker, Utils.ANALYTICS_CATEGORY_ACTION, ANALYTICS_TAG + Utils.ANALYTICS_ACTION_EMPTY_TAGS);
                 Log.i(LOG_TAG, "Tags empty placeholder clicked");
