@@ -670,7 +670,7 @@ public class MainActivity
         if (linearLayout != null && cursor != null) {
             // Clear out previous data in linear layout
             linearLayout.removeAllViews();
-        
+    
             if (cursor.getCount() > 0) {
                 
                 // Set height for list items
@@ -697,10 +697,10 @@ public class MainActivity
                             view.setId(cursor.getInt(idColIndex));
                             view.setLayoutParams(layoutParams);
                             view.setOnClickListener(navTagsClickListener);
-        
+    
                             // Set image resource for tag icon
                             ImageView tagIconImageView = (ImageView) view.findViewById(R.id.nav_team_color_patch);
-        
+    
                             int teamColor = Utils.findTeam(getApplicationContext(), cursor.getString(teamColIndex));
                             teamColor = ContextCompat.getColor(this, Utils.colorArray[teamColor == -1 ? 0 : teamColor % Utils.colorArray.length]);
         
@@ -719,15 +719,6 @@ public class MainActivity
         
                         } while (cursor.moveToNext());
     
-                        // Show/hide tags placeholder view based on # of tags in database
-                        View tagsPlaceholderView = findViewById(R.id.nav_tags_empty);
-                        if (tagsPlaceholderView != null) {
-                            if (cursor.getCount() > 0)
-                                tagsPlaceholderView.setVisibility(View.GONE);
-                            else
-                                tagsPlaceholderView.setVisibility(View.VISIBLE);
-                        }
-                        
                         if (mNavFilterType == Utils.NAV_LAYOUT_TAGS) {
                             Bundle tagDetailsBundle = new Bundle();
                             tagDetailsBundle.putInt(DoneListContract.TagEntry.COLUMN_NAME_ID, mNavSelectedId);
@@ -735,7 +726,7 @@ public class MainActivity
     
                             filterByTagOrTeam(mNavFilterType, tagDetailsBundle, false, true);
                         }
-                    
+    
                         break;
                     }
                 
@@ -786,6 +777,17 @@ public class MainActivity
                     }
                 }
             }
+    
+            if (itemType == TAG_LIST_LOADER) {
+                // Show/hide tags placeholder view based on # of tags in database
+                View tagsPlaceholderView = findViewById(R.id.nav_tags_empty);
+                if (tagsPlaceholderView != null)
+                    tagsPlaceholderView.setVisibility(
+                            cursor.getCount() > 0 ?
+                                    View.GONE : View.VISIBLE);
+        
+            }
+            
         } else
             Log.w(LOG_TAG, "Either layout, or cursor are null");
     }

@@ -288,7 +288,7 @@ public class IDTSyncAdapter extends AbstractThreadedSyncAdapter {
         int daysToFetch = Integer.parseInt(Utils.getFetchValue(context, Utils.PREF_DAYS_TO_FETCH));
     
         if (daysToFetch < 999) {
-        
+            
             String dateSince;
         
             Calendar calendar = Calendar.getInstance();
