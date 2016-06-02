@@ -44,26 +44,6 @@ import java.util.Locale;
 import java.util.Set;
 public class Utils {
     
-    /****
-     * CONSTANTS FOR THE AUTHORIZATION PROCESS
-     ****/
-    
-    // This is the public api key of our application
-    public static final String CLIENT_ID = "";
-    
-    // This is the authorisation key for the header
-    public static final String AUTH_HEADER = "";
-    
-    // This is any string we want to use. This will be used for avoid CSRF attacks. You can generate one here: http://strongpasswordgenerator.com/
-    public static final String STATE = "";
-    
-    // This is the url that Auth process will redirect to. 
-    // We can put whatever we want that starts with https:// .
-    // We use a made up url that we will intercept when redirecting. Avoid Uppercases. 
-    public static final String REDIRECT_URI = "";
-    
-    /*************************************************/
-    
     // SyncAdapter related
     public static final int SYNC_DEFAULT_INTERVAL = 60 * 60; // every 15 minutes
     public static final int SYNC_SYNCABLE = 1;
@@ -130,10 +110,17 @@ public class Utils {
     public static final String PREF_DAYS_TO_FETCH = "days_to_fetch";
     public static final String PREF_COUNT_TO_FETCH = "count_to_fetch";
     
-    public static final int DEFAULT_PREF_VALUE_DAYS_TO_FETCH = 7;
+    // Default shared preferences values
+    public static final int DEFAULT_PREF_VALUE_DAYS_TO_FETCH = 30;
     public static final int DEFAULT_PREF_VALUE_COUNT_TO_FETCH = 100;
     public static final int MAX_PREF_VALUE_COUNT_TO_FETCH = 250;
     public static final int MIN_PREF_VALUE_COUNT_TO_FETCH = 1;
+    public static final String DEFAULT_NOTIFICATION_SOUND = "content://settings/system/notification_sound";
+    public static final boolean DEFAULT_SYNC_ON_STARTUP = false;
+    public static final boolean DEFAULT_SHOW_NOTIFICATION = true;
+    public static final String DEFAULT_ALARM_TIME = "19:00";
+    public static final int DEFAULT_SNOOZE_IN_SECONDS = 15 * 60; // Same as android:defaultValue in pref_notification.xml > ListPreference
+    public static final Set<String> DEFAULT_NOTIFICATION_DAYS = new HashSet(Arrays.asList("1", "2", "3", "4", "5", "6", "7"));
     
     // User Preferences file property names
     public static final String TEAMS = "teams";
@@ -143,12 +130,7 @@ public class Utils {
     public static final String NEW_TASK_ACTIVITY_STATE = "newTaskActivityState";
     
     // Default Notification Alarm Constants
-    public static final boolean DEFAULT_SYNC_ON_STARTUP = false;
-    public static final boolean DEFAULT_SHOW_NOTIFICATION = true;
-    public static final String DEFAULT_ALARM_TIME = "19:00";
-    public static final int DEFAULT_SNOOZE_IN_SECONDS = 15 * 60; // Same as android:defaultValue in pref_notification.xml > ListPreference
     public static final int NOTIFICATION_ID = 1320015027;
-    public static final Set<String> DEFAULT_NOTIFICATION_DAYS = new HashSet(Arrays.asList("1", "2", "3", "4", "5", "6", "7"));
     public static final Set<String> WEEKDAY_VALUES = new HashSet(Arrays.asList("1", "2", "3", "4", "5"));
     public static final Set<String> WEEKEND_VALUES = new HashSet(Arrays.asList("6", "7"));
     
@@ -270,7 +252,7 @@ public class Utils {
         
         return prefs.getString(
                 "notifications_new_message_ringtone",
-                "content://settings/system/notification_sound"
+                Utils.DEFAULT_NOTIFICATION_SOUND
         );
     }
     
@@ -315,24 +297,10 @@ public class Utils {
         return prefs.getString(Utils.ACCESS_TOKEN, null);
     }
     
-    public static void setAccessToken(Context c, String token) {
-        SharedPreferences prefs = c.getSharedPreferences(Utils.USER_DETAILS_PREFS_FILENAME, Context.MODE_PRIVATE);
-        SharedPreferences.Editor editor = prefs.edit();
-        editor.putString(Utils.ACCESS_TOKEN, token);
-        editor.apply();
-    }
-    
     @Nullable
     public static String getRefreshToken(Context c) {
         SharedPreferences prefs = c.getSharedPreferences(Utils.USER_DETAILS_PREFS_FILENAME, Context.MODE_PRIVATE);
         return prefs.getString("refreshToken", null);
-    }
-    
-    public static void setRefreshToken(Context c, String token) {
-        SharedPreferences prefs = c.getSharedPreferences(Utils.USER_DETAILS_PREFS_FILENAME, Context.MODE_PRIVATE);
-        SharedPreferences.Editor editor = prefs.edit();
-        editor.putString("refreshToken", token);
-        editor.apply();
     }
     
     public static boolean isTokenExpired(Context c) {
@@ -345,13 +313,6 @@ public class Utils {
     public static long getExpiryTime(Context c) {
         SharedPreferences prefs = c.getSharedPreferences(Utils.USER_DETAILS_PREFS_FILENAME, Context.MODE_PRIVATE);
         return prefs.getLong("expires", -1);
-    }
-    
-    public static void setExpiryTime(Context c, long time) {
-        SharedPreferences prefs = c.getSharedPreferences(Utils.USER_DETAILS_PREFS_FILENAME, Context.MODE_PRIVATE);
-        SharedPreferences.Editor editor = prefs.edit();
-        editor.putLong("expires", time);
-        editor.apply();
     }
     
     public static void setUsername(Context c, String username) {

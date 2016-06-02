@@ -21,6 +21,7 @@ import com.squareup.otto.Subscribe;
 
 import net.c306.done.auth.AccountAuthenticatorActivity;
 import net.c306.done.sync.IDTAccountManager;
+import net.c306.done.sync.IDTAuthStrings;
 
 import org.json.JSONObject;
 
@@ -83,7 +84,7 @@ public class LoginActivity extends AccountAuthenticatorActivity {
         return Utils.IDT_ACCESS_TOKEN_URL + QUESTION_MARK
                 + GRANT_TYPE_PARAM + EQUALS + GRANT_TYPE
                 + AMPERSAND
-                + REDIRECT_URI_PARAM + EQUALS + Utils.REDIRECT_URI
+                + REDIRECT_URI_PARAM + EQUALS + IDTAuthStrings.REDIRECT_URI
                 + AMPERSAND
                 + RESPONSE_TYPE_VALUE + EQUALS + authorizationToken;
     }
@@ -97,9 +98,9 @@ public class LoginActivity extends AccountAuthenticatorActivity {
         return Utils.IDT_AUTHORIZATION_URL + QUESTION_MARK
                 + RESPONSE_TYPE_PARAM + EQUALS + RESPONSE_TYPE_VALUE
                 + AMPERSAND
-                + CLIENT_ID_PARAM + EQUALS + Utils.CLIENT_ID
+                + CLIENT_ID_PARAM + EQUALS + IDTAuthStrings.CLIENT_ID
                 + AMPERSAND
-                + STATE_PARAM + EQUALS + Utils.STATE;
+                + STATE_PARAM + EQUALS + IDTAuthStrings.STATE;
     }
     
     @Override
@@ -238,7 +239,7 @@ public class LoginActivity extends AccountAuthenticatorActivity {
                         //Connect
                         httpcon = (HttpsURLConnection) (new URL(url).openConnection());
                         httpcon.setDoOutput(true);
-                        httpcon.setRequestProperty("Authorization", Utils.AUTH_HEADER);
+                        httpcon.setRequestProperty("Authorization", IDTAuthStrings.AUTH_HEADER);
                         httpcon.setRequestProperty("Cache-Control", "no-cache");
                         httpcon.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
                         httpcon.setRequestProperty("Accept", "application/json");
@@ -454,7 +455,7 @@ public class LoginActivity extends AccountAuthenticatorActivity {
         public boolean shouldOverrideUrlLoading(WebView view, String url) {
             
             // Retrieve auth token from url here on redirect to REDIRECT_URL 
-            if (url.startsWith(Utils.REDIRECT_URI)) {
+            if (url.startsWith(IDTAuthStrings.REDIRECT_URI)) {
                 
                 // Hide webview, show progress bar
                 mWebView.setVisibility(View.GONE);
@@ -467,7 +468,7 @@ public class LoginActivity extends AccountAuthenticatorActivity {
                 // If not, that means the request may be a result of CSRF and must be rejected.
                 
                 String stateToken = uri.getQueryParameter(STATE_PARAM);
-                if (stateToken == null || !stateToken.equals(Utils.STATE)) {
+                if (stateToken == null || !stateToken.equals(IDTAuthStrings.STATE)) {
                     Log.e(LOG_TAG, "Authorize: " + "State token doesn't match");
                     bus.post(new LoginUpdateEvent("User Cancelled.", View.GONE, Utils.LOGIN_CANCELLED_OR_ERROR));
                     return true;

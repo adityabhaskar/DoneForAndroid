@@ -72,7 +72,7 @@ public class RefreshTokenTask extends AsyncTask<Void, Void, Boolean> {
                 //Connect
                 httpcon = (HttpsURLConnection) (new URL(url).openConnection());
                 httpcon.setDoOutput(true);
-                httpcon.setRequestProperty("Authorization", Utils.AUTH_HEADER);
+                httpcon.setRequestProperty("Authorization", IDTAuthStrings.AUTH_HEADER);
                 httpcon.setRequestProperty("Cache-Control", "no-cache");
                 httpcon.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
                 httpcon.setRequestProperty("Accept", "application/json");

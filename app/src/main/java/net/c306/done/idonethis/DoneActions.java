@@ -96,7 +96,7 @@ public class DoneActions {
         
         // This will cause issues later since hashtag links in edited, 
         // non-synced dones will disappear till synced again.
-        // TODO: 07/03/16 Parse raw_text for any #tags already known, create links for them save formatted text to markedup_text 
+        // TODO: 07/03/16 If offline, parse raw_text for any #tags already known, create links for them save formatted text to markedup_text 
         editedContentValues.put(DoneListContract.DoneEntry.COLUMN_NAME_MARKEDUP_TEXT, doneText);
         
         editedContentValues.put(

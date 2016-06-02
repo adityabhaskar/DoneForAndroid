@@ -99,7 +99,7 @@
     <PreferenceCategory android:title="Others">
 
         <EditTextPreference
-            android:defaultValue="100"
+            android:defaultValue="@integer/DEFAULT_COUNT_TO_FETCH"
             android:inputType="number"
             android:key="@string/PREF_COUNT_TO_FETCH"
             android:summary="@string/PREF_SUMMARY_COUNT_TO_FETCH"

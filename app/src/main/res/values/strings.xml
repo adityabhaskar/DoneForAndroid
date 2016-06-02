@@ -181,6 +181,7 @@
 
     <string name="PREF_TITLE_COUNT_TO_FETCH">Number of tasks to sync (max 250*)</string>
     <string name="PREF_SUMMARY_COUNT_TO_FETCH">Higher the number, more the data consumption</string>
+    <integer name="DEFAULT_COUNT_TO_FETCH">100</integer>
 
     <string name="PREF_TITLE_DAYS_TO_FETCH">Number of days to sync, capped at NUMCOUNT tasks</string>
 

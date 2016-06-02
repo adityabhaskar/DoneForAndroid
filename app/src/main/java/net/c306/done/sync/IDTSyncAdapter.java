@@ -149,7 +149,6 @@ public class IDTSyncAdapter extends AbstractThreadedSyncAdapter {
      * @return number of tags saved to database
      */
     public static int saveTagsToDatabase(Context context, List<DoneItem.DoneTags> tagsList, boolean deleteExisting) {
-        // TODO: 23/05/16 Add team field 
         int tagCount = tagsList.size();
         Vector<ContentValues> cVVector = new Vector<>(tagCount);
         

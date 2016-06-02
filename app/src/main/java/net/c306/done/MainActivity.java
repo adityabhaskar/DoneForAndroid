@@ -56,7 +56,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-// TODO: 20/02/16 Group dones under date headers in listView
 public class MainActivity
         extends 
         AppCompatActivity

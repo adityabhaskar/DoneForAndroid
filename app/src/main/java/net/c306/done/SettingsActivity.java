@@ -467,20 +467,17 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
                     case Utils.PREF_COUNT_TO_FETCH: {
                         EditTextPreference countToFetchPreference = (EditTextPreference) preference;
                         String newValueString = (String) newValue;
-            
-                        if (Integer.parseInt((String) newValue) > Utils.MAX_PREF_VALUE_COUNT_TO_FETCH) {
+    
+                        if (Integer.parseInt((String) newValue) > Utils.MAX_PREF_VALUE_COUNT_TO_FETCH)
                             newValueString = "" + Utils.MAX_PREF_VALUE_COUNT_TO_FETCH;
-                            SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getActivity().getApplicationContext());
-                            SharedPreferences.Editor editor = preferences.edit();
-                            editor.putString(Utils.PREF_COUNT_TO_FETCH, newValueString);
-                            editor.commit();
-                        } else if (Integer.parseInt((String) newValue) < Utils.MIN_PREF_VALUE_COUNT_TO_FETCH) {
+                        else if (Integer.parseInt((String) newValue) < Utils.MIN_PREF_VALUE_COUNT_TO_FETCH)
                             newValueString = "" + Utils.MIN_PREF_VALUE_COUNT_TO_FETCH;
-                            SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getActivity().getApplicationContext());
-                            SharedPreferences.Editor editor = preferences.edit();
-                            editor.putString(Utils.PREF_COUNT_TO_FETCH, newValueString);
-                            editor.commit();
-                        }
+    
+                        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getActivity().getApplicationContext());
+                        SharedPreferences.Editor editor = preferences.edit();
+                        editor.putString(Utils.PREF_COUNT_TO_FETCH, newValueString);
+                        editor.commit();
+                        
                         countToFetchPreference.setText(newValueString);
                         countToFetchPreference.setSummary(newValueString);
             
