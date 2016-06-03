@@ -1110,7 +1110,7 @@ public class MainActivity
                         DoneListContract.DoneEntry.COLUMN_NAME_UPDATED,
                         DoneListContract.DoneEntry.COLUMN_NAME_EDITED_FIELDS
                 };
-            
+    
                 // Filter out deleted tasks
                 String selection = DoneListContract.DoneEntry.COLUMN_NAME_IS_DELETED + " IS 'FALSE'";
     

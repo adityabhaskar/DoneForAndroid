@@ -468,25 +468,46 @@ public class SettingsActivity extends AppCompatPreferenceActivity implements Sha
                         EditTextPreference countToFetchPreference = (EditTextPreference) preference;
                         String newValueString = (String) newValue;
     
-                        if (Integer.parseInt((String) newValue) > Utils.MAX_PREF_VALUE_COUNT_TO_FETCH)
-                            newValueString = "" + Utils.MAX_PREF_VALUE_COUNT_TO_FETCH;
-                        else if (Integer.parseInt((String) newValue) < Utils.MIN_PREF_VALUE_COUNT_TO_FETCH)
-                            newValueString = "" + Utils.MIN_PREF_VALUE_COUNT_TO_FETCH;
+                        boolean isModified = false;
     
-                        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getActivity().getApplicationContext());
-                        SharedPreferences.Editor editor = preferences.edit();
-                        editor.putString(Utils.PREF_COUNT_TO_FETCH, newValueString);
-                        editor.commit();
-                        
-                        countToFetchPreference.setText(newValueString);
-                        countToFetchPreference.setSummary(newValueString);
+                        if (newValueString.isEmpty() || !Utils.isInteger(newValueString)) {
+                            newValueString = String.valueOf(Utils.DEFAULT_PREF_VALUE_COUNT_TO_FETCH);
+                            isModified = true;
+                        } else {
+                            try {
+                                int newValueInt = Integer.parseInt(newValueString);
             
+                                if (newValueInt > Utils.MAX_PREF_VALUE_COUNT_TO_FETCH) {
+                                    newValueString = "" + Utils.MAX_PREF_VALUE_COUNT_TO_FETCH;
+                                    isModified = true;
+                                } else if (newValueInt < Utils.MIN_PREF_VALUE_COUNT_TO_FETCH) {
+                                    newValueString = "" + Utils.MIN_PREF_VALUE_COUNT_TO_FETCH;
+                                    isModified = true;
+                                }
+            
+                            } catch (NumberFormatException e) {
+                                newValueString = String.valueOf(Utils.DEFAULT_PREF_VALUE_COUNT_TO_FETCH);
+                                isModified = true;
+                            }
+                        }
+    
+                        if (isModified) {
+                            SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getActivity().getApplicationContext());
+                            SharedPreferences.Editor editor = preferences.edit();
+                            editor.putString(Utils.PREF_COUNT_TO_FETCH, newValueString);
+                            editor.commit();
+        
+                            countToFetchPreference.setText(newValueString);
+                        }
+                        
+                        countToFetchPreference.setSummary(newValueString);
+    
                         ListPreference daysToFetchPreference = (ListPreference) findPreference(Utils.PREF_DAYS_TO_FETCH);
                         String daysToFetchTitle = getString(R.string.PREF_TITLE_DAYS_TO_FETCH)
                                 .replaceFirst("NUMCOUNT", newValueString);
                         daysToFetchPreference.setTitle(daysToFetchTitle);
-                        
-                        return false;
+    
+                        return !isModified;
                     }
                 }
                 return true;

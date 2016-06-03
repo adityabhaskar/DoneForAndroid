@@ -282,8 +282,14 @@ public class IDTSyncAdapter extends AbstractThreadedSyncAdapter {
         // Contains server response (or error message)
         String result = "";
     
-        String fetchUrl = Utils.IDT_DONE_URL + "?page_size=" + Utils.getFetchValue(context, Utils.PREF_COUNT_TO_FETCH);
+        String fetchUrl = Utils.IDT_DONE_URL + "?page_size=";
     
+        int countToFetch = Integer.parseInt(Utils.getFetchValue(context, Utils.PREF_COUNT_TO_FETCH));
+        if (countToFetch <= 100)
+            fetchUrl += countToFetch;
+        else
+            fetchUrl += 100;
+        
         int daysToFetch = Integer.parseInt(Utils.getFetchValue(context, Utils.PREF_DAYS_TO_FETCH));
     
         if (daysToFetch < 999) {
@@ -298,62 +304,86 @@ public class IDTSyncAdapter extends AbstractThreadedSyncAdapter {
         
             fetchUrl += "&done_date_after=" + dateSince;
         }
+    
+        String nextUrl = null;
         
         try {
-            //Connect
-            httpcon = (HttpURLConnection) new URL(fetchUrl).openConnection();
-            httpcon.setRequestProperty("Authorization", "Bearer " + authToken);
-            httpcon.setRequestProperty("Content-Type", "application/json");
-            httpcon.setRequestProperty("Accept", "application/json");
-            httpcon.setRequestMethod("GET");
-            httpcon.connect();
-            
-            //Response Code
-            resultStatus = httpcon.getResponseCode();
-            String responseMessage = httpcon.getResponseMessage();
-            
-            switch (resultStatus) {
-                case HttpURLConnection.HTTP_ACCEPTED:
-                case HttpURLConnection.HTTP_CREATED:
-                case HttpURLConnection.HTTP_OK:
-                    Log.v(LOG_TAG, "Got Done List - " + resultStatus + ": " + responseMessage);
-                    break; // fine
-                
-                case HttpURLConnection.HTTP_UNAUTHORIZED:
-                    Log.w(LOG_TAG, "Authcode invalid - " + resultStatus + ": " + responseMessage);
-                    // Set token invalid
-                    Utils.setTokenValidity(context, false);
-                    Utils.sendMessage(context, Utils.SENDER_FETCH_TASKS, responseMessage, Utils.STATUS_TASK_UNAUTH, -1);
     
-                default:
-                    Log.w(LOG_TAG, "Couldn't fetch dones" + resultStatus + ": " + responseMessage);
-                    Utils.sendMessage(context, Utils.SENDER_FETCH_TASKS, responseMessage, Utils.STATUS_TASK_OTHER_ERROR, -1);
+            do {
+        
+                if (nextUrl != null)
+                    fetchUrl = nextUrl;
+        
+                Log.i(LOG_TAG, fetchUrl);
+        
+                //Connect
+                httpcon = (HttpURLConnection) new URL(fetchUrl).openConnection();
+                httpcon.setRequestProperty("Authorization", "Bearer " + authToken);
+                httpcon.setRequestProperty("Content-Type", "application/json");
+                httpcon.setRequestProperty("Accept", "application/json");
+                httpcon.setRequestMethod("GET");
+                httpcon.connect();
+        
+                //Response Code
+                resultStatus = httpcon.getResponseCode();
+                String responseMessage = httpcon.getResponseMessage();
+        
+                switch (resultStatus) {
+                    case HttpURLConnection.HTTP_ACCEPTED:
+                    case HttpURLConnection.HTTP_CREATED:
+                    case HttpURLConnection.HTTP_OK:
+                        Log.i(LOG_TAG, "fetchTasks: Got Done List - " + resultStatus + ": " + responseMessage);
+                        break; // fine
+            
+                    case HttpURLConnection.HTTP_UNAUTHORIZED:
+                        Log.w(LOG_TAG, "fetchTasks: Authcode invalid - " + resultStatus + ": " + responseMessage);
+                        // Set token invalid
+                        Utils.setTokenValidity(context, false);
+                        Utils.sendMessage(context, Utils.SENDER_FETCH_TASKS, responseMessage, Utils.STATUS_TASK_UNAUTH, -1);
+            
+                    default:
+                        Log.w(LOG_TAG, "fetchTasks: Couldn't fetch dones" + resultStatus + ": " + responseMessage);
+                        Utils.sendMessage(context, Utils.SENDER_FETCH_TASKS, responseMessage, Utils.STATUS_TASK_OTHER_ERROR, -1);
+                }
+        
+                //Read      
+                br = new BufferedReader(new InputStreamReader(httpcon.getInputStream(), "UTF-8"));
+        
+                String line;
+                StringBuilder sb = new StringBuilder();
+        
+                while ((line = br.readLine()) != null) {
+                    sb.append(line).append("\n");
+                }
+        
+                JSONObject masterObj = new JSONObject(sb.toString());
+                nextUrl = masterObj.has("next") ? masterObj.getString("next") : null;
+                String resultsString = "";
+        
+                if (masterObj.has("results"))
+                    resultsString = masterObj.getString("results");
+                else if (masterObj.has("result"))
+                    resultsString = masterObj.getString("result");
+        
+                JSONArray taskArray = new JSONArray(resultsString);
+                countToFetch -= taskArray.length();
+        
+                result += "," + resultsString.substring(1, resultsString.length() - 1);
+        
             }
-            
-            //Read      
-            br = new BufferedReader(new InputStreamReader(httpcon.getInputStream(), "UTF-8"));
-            
-            String line;
-            StringBuilder sb = new StringBuilder();
-            
-            while ((line = br.readLine()) != null) {
-                sb.append(line).append("\n");
-            }
-            
-            result = sb.toString();
-            
-            if (result.equals("")) {
-                
+            while (nextUrl != null && !nextUrl.equals("null") && !nextUrl.isEmpty() && countToFetch > 0);
+    
+            result = "[" + result.substring(1) + "]";
+    
+            if (result.equals(""))
                 result = null;
-    
-            } else if (resultStatus == HttpURLConnection.HTTP_OK)
+            else if (resultStatus == HttpURLConnection.HTTP_OK)
                 fetchedTaskCount = getTaskListFromJson(result);
-    
     
         } catch (Exception e) {
             result = null;
             e.printStackTrace();
-            Log.e(LOG_TAG, e.getMessage());
+            Log.e(LOG_TAG, "fetchTasks: ", e);
             Utils.sendMessage(context, Utils.SENDER_FETCH_TASKS, e.getMessage(), Utils.STATUS_TASK_OTHER_ERROR, -1);
         } finally {
             if (httpcon != null) {
@@ -363,7 +393,7 @@ public class IDTSyncAdapter extends AbstractThreadedSyncAdapter {
                 try {
                     br.close();
                 } catch (final IOException e) {
-                    Log.e(LOG_TAG, "Error closing stream", e);
+                    Log.e(LOG_TAG, "fetchTasks: Error closing stream: ", e);
                 }
             }
         }
@@ -490,9 +520,8 @@ public class IDTSyncAdapter extends AbstractThreadedSyncAdapter {
     
         List<DoneItem.DoneTags> allTagsArray = new ArrayList<>();
         List<String> taskTagsArray = new ArrayList<>();
-        
-        JSONObject masterObj = new JSONObject(forecastJsonStr);
-        JSONArray donesListArray = masterObj.getJSONArray("results");
+    
+        JSONArray donesListArray = new JSONArray(forecastJsonStr);
         
         Vector<ContentValues> cVVector = new Vector<>(donesListArray.length());
         
