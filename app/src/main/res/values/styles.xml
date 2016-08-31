@@ -67,4 +67,9 @@
         <item name="android:layout_marginBottom">8dp</item>
     </style>
 
+    <style name="BrandedCheckBox" parent="AppTheme">
+        <!--<item name="colorAccent">#60000000</item>-->
+        <item name="colorAccent">@color/primary</item>
+    </style>
+
 </resources>

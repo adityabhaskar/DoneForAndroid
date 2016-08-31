@@ -26,36 +26,36 @@ public class DoneListProvider extends ContentProvider {
     private static final SQLiteQueryBuilder sDonesByTeamQueryBuilder;
     //done_id = ?
     private static final String sDoneSelection =
-            DoneListContract.DoneEntry.COLUMN_NAME_ID + " = ? ";
+            DoneListContract.TaskEntry.COLUMN_NAME_ID + " = ? ";
     //team_short_name = ?
     private static final String sTeamSelection =
-            DoneListContract.DoneEntry.COLUMN_NAME_TEAM + " = ? ";
+            DoneListContract.TaskEntry.COLUMN_NAME_TEAM + " = ? ";
     //team_short_name = ? AND done_date >= ?
     private static final String sTeamWithStartDateSelection =
-            DoneListContract.DoneEntry.COLUMN_NAME_TEAM + " = ? AND " +
-                            DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE + " >= ? ";
+            DoneListContract.TaskEntry.COLUMN_NAME_TEAM + " = ? AND " +
+                    DoneListContract.TaskEntry.COLUMN_NAME_DONE_DATE + " >= ? ";
     //team_short_name = ? AND done_date = ?
     private static final String sTeamAndDateSelection =
-            DoneListContract.DoneEntry.COLUMN_NAME_TEAM + " = ? AND " +
-                    DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE + " = ? ";
+            DoneListContract.TaskEntry.COLUMN_NAME_TEAM + " = ? AND " +
+                    DoneListContract.TaskEntry.COLUMN_NAME_DONE_DATE + " = ? ";
     //done_date = ?
     private static final String sDateSelection =
-                    DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE + " = ? ";
+            DoneListContract.TaskEntry.COLUMN_NAME_DONE_DATE + " = ? ";
     
     static{
         sDonesByTeamQueryBuilder = new SQLiteQueryBuilder();
         
         sDonesByTeamQueryBuilder.setTables(
-                DoneListContract.DoneEntry.TABLE_NAME);
+                DoneListContract.TaskEntry.TABLE_NAME);
     
     
         //This is an inner join which looks like
         //dones INNER JOIN teams ON dones.team_id = teams.id
         //sDonesByTeamQueryBuilder.setTables(
-        //        DoneListContract.DoneEntry.TABLE_NAME + " INNER JOIN " +
+        //        DoneListContract.TaskEntry.TABLE_NAME + " INNER JOIN " +
         //                DoneListContract.TeamEntry.TABLE_NAME +
-        //                " ON " + DoneListContract.DoneEntry.TABLE_NAME +
-        //                "." + DoneListContract.DoneEntry.COLUMN_NAME_TEAM +
+        //                " ON " + DoneListContract.TaskEntry.TABLE_NAME +
+        //                "." + DoneListContract.TaskEntry.COLUMN_NAME_TEAM +
         //                " = " + DoneListContract.TeamEntry.TABLE_NAME +
         //                "." + DoneListContract.TeamEntry.COLUMN_NAME_URL);
     }
@@ -88,8 +88,8 @@ public class DoneListProvider extends ContentProvider {
     }
     
     private Cursor getDonesByTeam(Uri uri, String[] projection, String sortOrder) {
-        String teamSetting = DoneListContract.DoneEntry.getTeamFromUri(uri);
-        String startDate = DoneListContract.DoneEntry.getStartDateFromUri(uri);
+        String teamSetting = DoneListContract.TaskEntry.getTeamFromUri(uri);
+        String startDate = DoneListContract.TaskEntry.getStartDateFromUri(uri);
         
         String[] selectionArgs;
         String selection;
@@ -113,8 +113,8 @@ public class DoneListProvider extends ContentProvider {
     }
     
     private Cursor getDonesByTeamAndDate(Uri uri, String[] projection, String sortOrder) {
-        String TeamSetting = DoneListContract.DoneEntry.getTeamFromUri(uri);
-        String date = DoneListContract.DoneEntry.getDateFromUri(uri);
+        String TeamSetting = DoneListContract.TaskEntry.getTeamFromUri(uri);
+        String date = DoneListContract.TaskEntry.getDateFromUri(uri);
         
         return sDonesByTeamQueryBuilder.query(mOpenHelper.getReadableDatabase(),
                 projection,
@@ -127,7 +127,7 @@ public class DoneListProvider extends ContentProvider {
     }
     
     private Cursor getDonesByDate(Uri uri, String[] projection, String sortOrder) {
-        String date = DoneListContract.DoneEntry.getDateFromUri(uri);
+        String date = DoneListContract.TaskEntry.getDateFromUri(uri);
         
         return sDonesByTeamQueryBuilder.query(mOpenHelper.getReadableDatabase(),
                 projection,
@@ -140,7 +140,7 @@ public class DoneListProvider extends ContentProvider {
     }
     
     private Cursor getThisDone(Uri uri, String[] projection, String sortOrder) {
-        String id = DoneListContract.DoneEntry.getDoneIDFromUri(uri);
+        String id = DoneListContract.TaskEntry.getDoneIDFromUri(uri);
         
         return sDonesByTeamQueryBuilder.query(mOpenHelper.getReadableDatabase(),
                 projection,
@@ -167,15 +167,15 @@ public class DoneListProvider extends ContentProvider {
         switch (sUriMatcher.match(uri)) {
             // Student: Uncomment and fill out these two cases
             case DONES_WITH_TEAM_AND_DATE:
-                return DoneListContract.DoneEntry.CONTENT_TYPE;
+                return DoneListContract.TaskEntry.CONTENT_TYPE;
             case DONES_WITH_TEAM:
-                return DoneListContract.DoneEntry.CONTENT_TYPE;
+                return DoneListContract.TaskEntry.CONTENT_TYPE;
             case DONES_WITH_DATE:
-                return DoneListContract.DoneEntry.CONTENT_TYPE;
+                return DoneListContract.TaskEntry.CONTENT_TYPE;
             case DONES:
-                return DoneListContract.DoneEntry.CONTENT_TYPE;
+                return DoneListContract.TaskEntry.CONTENT_TYPE;
             case DONE_ITEM:
-                return DoneListContract.DoneEntry.CONTENT_ITEM_TYPE;
+                return DoneListContract.TaskEntry.CONTENT_ITEM_TYPE;
             case TEAMS:
                 return DoneListContract.TeamEntry.CONTENT_TYPE;
             case TAGS:
@@ -217,7 +217,7 @@ public class DoneListProvider extends ContentProvider {
             case DONES: {
                 // Return default list of dones 
                 retCursor = mOpenHelper.getReadableDatabase().query(
-                        DoneListContract.DoneEntry.TABLE_NAME,
+                        DoneListContract.TaskEntry.TABLE_NAME,
                         projection,
                         selection,
                         selectionArgs,
@@ -283,9 +283,9 @@ public class DoneListProvider extends ContentProvider {
         
             // "dones/*/*"
             case DONES: {
-                long _id = db.insert(DoneListContract.DoneEntry.TABLE_NAME, null, values);
+                long _id = db.insert(DoneListContract.TaskEntry.TABLE_NAME, null, values);
                 if (_id > -1) // based on http://stackoverflow.com/a/17628179/1078008
-                    returnUri = DoneListContract.DoneEntry.buildDoneListWithIdUri(_id);
+                    returnUri = DoneListContract.TaskEntry.buildDoneListWithIdUri(_id);
                 else
                     throw new android.database.SQLException("Failed to insert row into " + uri);
                 break;
@@ -332,7 +332,7 @@ public class DoneListProvider extends ContentProvider {
             // "dones/*/*"
             case DONES:
                 rowsDeleted = db.delete(
-                        DoneListContract.DoneEntry.TABLE_NAME, selection, selectionArgs);
+                        DoneListContract.TaskEntry.TABLE_NAME, selection, selectionArgs);
                 break;
         
             case TEAMS:
@@ -368,7 +368,7 @@ public class DoneListProvider extends ContentProvider {
         
             case DONES:
                 rowsUpdated = db.update(
-                        DoneListContract.DoneEntry.TABLE_NAME, values, selection, selectionArgs);
+                        DoneListContract.TaskEntry.TABLE_NAME, values, selection, selectionArgs);
                 break;
         
             case TEAMS:
@@ -403,7 +403,7 @@ public class DoneListProvider extends ContentProvider {
         switch (sUriMatcher.match(uri)) {
             
             case DONES:
-                tableName = DoneListContract.DoneEntry.TABLE_NAME;
+                tableName = DoneListContract.TaskEntry.TABLE_NAME;
                 break;
         
             case TEAMS:
@@ -423,7 +423,7 @@ public class DoneListProvider extends ContentProvider {
         try {
             for (ContentValues value : values) {
                 //Use insert or replace, instead of insert, so can retrieve updates from server 
-                //long _id = db.insert(DoneListContract.DoneEntry.TABLE_NAME, null, value);
+                //long _id = db.insert(DoneListContract.TaskEntry.TABLE_NAME, null, value);
                 long _id = db.insertWithOnConflict(
                         tableName, null, value, SQLiteDatabase.CONFLICT_REPLACE);
                 if (_id != -1) {

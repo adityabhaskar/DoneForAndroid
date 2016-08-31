@@ -40,7 +40,7 @@ public class DoneActions {
     }
     
     public boolean create(Bundle newDoneDetails) {
-        long id = newDoneDetails.getLong(DoneListContract.DoneEntry.COLUMN_NAME_ID, -1);
+        long id = newDoneDetails.getLong(DoneListContract.TaskEntry.COLUMN_NAME_ID, -1);
         
         if (id == -1) {
             Log.w(LOG_TAG, "No id passed to edit()");
@@ -48,22 +48,22 @@ public class DoneActions {
         }
         
         String parsedDoneDate = null;
-        String doneText = newDoneDetails.getString(DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT);
-        String doneDate = newDoneDetails.getString(DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE);
-        String teamURL = newDoneDetails.getString(DoneListContract.DoneEntry.COLUMN_NAME_TEAM);
+        String doneText = newDoneDetails.getString(DoneListContract.TaskEntry.COLUMN_NAME_RAW_TEXT);
+        String doneDate = newDoneDetails.getString(DoneListContract.TaskEntry.COLUMN_NAME_DONE_DATE);
+        String teamURL = newDoneDetails.getString(DoneListContract.TaskEntry.COLUMN_NAME_TEAM);
         
         // Save done with is_local = true to database
         ContentValues newDoneValues = new ContentValues();
-        newDoneValues.put(DoneListContract.DoneEntry.COLUMN_NAME_ID, id);
-        newDoneValues.put(DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT, doneText);
-        newDoneValues.put(DoneListContract.DoneEntry.COLUMN_NAME_MARKEDUP_TEXT, doneText);
-        newDoneValues.put(DoneListContract.DoneEntry.COLUMN_NAME_TEAM, teamURL);
-        newDoneValues.put(DoneListContract.DoneEntry.COLUMN_NAME_OWNER, Utils.getUsername(mContext));
-        newDoneValues.put(DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE, doneDate);
-        newDoneValues.put(DoneListContract.DoneEntry.COLUMN_NAME_IS_LOCAL, "TRUE");
-        newDoneValues.put(DoneListContract.DoneEntry.COLUMN_NAME_UPDATED, idtDateFormat.format(new Date()));
-        mContext.getContentResolver().insert(DoneListContract.DoneEntry.CONTENT_URI, newDoneValues);
-    
+        newDoneValues.put(DoneListContract.TaskEntry.COLUMN_NAME_ID, id);
+        newDoneValues.put(DoneListContract.TaskEntry.COLUMN_NAME_RAW_TEXT, doneText);
+        newDoneValues.put(DoneListContract.TaskEntry.COLUMN_NAME_MARKEDUP_TEXT, doneText);
+        newDoneValues.put(DoneListContract.TaskEntry.COLUMN_NAME_TEAM, teamURL);
+        newDoneValues.put(DoneListContract.TaskEntry.COLUMN_NAME_OWNER, Utils.getUsername(mContext));
+        newDoneValues.put(DoneListContract.TaskEntry.COLUMN_NAME_DONE_DATE, doneDate);
+        newDoneValues.put(DoneListContract.TaskEntry.COLUMN_NAME_IS_LOCAL, "TRUE");
+        newDoneValues.put(DoneListContract.TaskEntry.COLUMN_NAME_UPDATED, idtDateFormat.format(new Date()));
+        mContext.getContentResolver().insert(DoneListContract.TaskEntry.CONTENT_URI, newDoneValues);
+        
         IDTSyncAdapter.syncImmediately(mContext, false, true, false);
         return true;
     }
@@ -75,39 +75,39 @@ public class DoneActions {
      * @return boolean for success or failure
      */
     public boolean edit(Bundle editedDetails) {
-        long id = editedDetails.getLong(DoneListContract.DoneEntry.COLUMN_NAME_ID, -1);
+        long id = editedDetails.getLong(DoneListContract.TaskEntry.COLUMN_NAME_ID, -1);
         
         if (id == -1) {
             Log.w(LOG_TAG, "No id passed to edit()");
             return false;
         }
-        
-        String doneText = editedDetails.getString(DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT);
-        String doneDate = editedDetails.getString(DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE);
-        String teamUrl = editedDetails.getString(DoneListContract.DoneEntry.COLUMN_NAME_TEAM);
-        List<String> editedFields = editedDetails.getStringArrayList(DoneListContract.DoneEntry.COLUMN_NAME_EDITED_FIELDS);
+    
+        String doneText = editedDetails.getString(DoneListContract.TaskEntry.COLUMN_NAME_RAW_TEXT);
+        String doneDate = editedDetails.getString(DoneListContract.TaskEntry.COLUMN_NAME_DONE_DATE);
+        String teamUrl = editedDetails.getString(DoneListContract.TaskEntry.COLUMN_NAME_TEAM);
+        List<String> editedFields = editedDetails.getStringArrayList(DoneListContract.TaskEntry.COLUMN_NAME_EDITED_FIELDS);
         
         // Save to database 
         ContentValues editedContentValues = new ContentValues();
-        editedContentValues.put(DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT, doneText);
-        editedContentValues.put(DoneListContract.DoneEntry.COLUMN_NAME_TEAM, teamUrl);
-        editedContentValues.put(DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE, doneDate);
-        editedContentValues.put(DoneListContract.DoneEntry.COLUMN_NAME_UPDATED, idtDateFormat.format(new Date()));
+        editedContentValues.put(DoneListContract.TaskEntry.COLUMN_NAME_RAW_TEXT, doneText);
+        editedContentValues.put(DoneListContract.TaskEntry.COLUMN_NAME_TEAM, teamUrl);
+        editedContentValues.put(DoneListContract.TaskEntry.COLUMN_NAME_DONE_DATE, doneDate);
+        editedContentValues.put(DoneListContract.TaskEntry.COLUMN_NAME_UPDATED, idtDateFormat.format(new Date()));
         
         // This will cause issues later since hashtag links in edited, 
         // non-synced dones will disappear till synced again.
         // TODO: 07/03/16 If offline, parse raw_text for any #tags already known, create links for them save formatted text to markedup_text 
-        editedContentValues.put(DoneListContract.DoneEntry.COLUMN_NAME_MARKEDUP_TEXT, doneText);
+        editedContentValues.put(DoneListContract.TaskEntry.COLUMN_NAME_MARKEDUP_TEXT, doneText);
         
         editedContentValues.put(
-                DoneListContract.DoneEntry.COLUMN_NAME_EDITED_FIELDS,
+                DoneListContract.TaskEntry.COLUMN_NAME_EDITED_FIELDS,
                 new Gson().toJson(editedFields)
         );
         
         mContext.getContentResolver().update(
-                DoneListContract.DoneEntry.CONTENT_URI,
+                DoneListContract.TaskEntry.CONTENT_URI,
                 editedContentValues,
-                DoneListContract.DoneEntry.COLUMN_NAME_ID + " IS ?",
+                DoneListContract.TaskEntry.COLUMN_NAME_ID + " IS ?",
                 new String[]{String.valueOf(id)}
         );
     
@@ -131,15 +131,15 @@ public class DoneActions {
     
         // Get subset of selected tasks from database, where owner is same as username 
         // these are the only ones deleted on server
-        Uri queryUri = DoneListContract.DoneEntry.buildDoneListUri();
+        Uri queryUri = DoneListContract.TaskEntry.buildDoneListUri();
         
         String[] mProjection = new String[]{
-                DoneListContract.DoneEntry.COLUMN_NAME_ID,
-                DoneListContract.DoneEntry.COLUMN_NAME_OWNER,
+                DoneListContract.TaskEntry.COLUMN_NAME_ID,
+                DoneListContract.TaskEntry.COLUMN_NAME_OWNER,
         };
-        
-        String querySelectionClause = DoneListContract.DoneEntry.COLUMN_NAME_ID + " IN " + providedIdListString + " AND " +
-                DoneListContract.DoneEntry.COLUMN_NAME_OWNER + " is ?"; // delete only if owner is same as current user
+    
+        String querySelectionClause = DoneListContract.TaskEntry.COLUMN_NAME_ID + " IN " + providedIdListString + " AND " +
+                DoneListContract.TaskEntry.COLUMN_NAME_OWNER + " is ?"; // delete only if owner is same as current user
         
         String[] querySelectionArgs = {mUsername};
         
@@ -147,8 +147,8 @@ public class DoneActions {
         
         if (cursor != null) {
             //Log.v(LOG_TAG, "Delete allowed item count: " + cursor.getCount());
-            
-            int idIndex = cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_ID);
+    
+            int idIndex = cursor.getColumnIndex(DoneListContract.TaskEntry.COLUMN_NAME_ID);
             allowedIdList = new long[cursor.getCount()];
             
             int i = 0;
@@ -168,14 +168,14 @@ public class DoneActions {
         // If owner is same as user, mark is_deleted as true in local database 
         String allowedIdListString = Arrays.toString(allowedIdList).replace("[", "(").replace("]", ")");
         Log.v(LOG_TAG, "Delete allowed list: " + allowedIdListString);
-        
-        String deleteSelectionClause = DoneListContract.DoneEntry.COLUMN_NAME_ID + " IN " + allowedIdListString;
+    
+        String deleteSelectionClause = DoneListContract.TaskEntry.COLUMN_NAME_ID + " IN " + allowedIdListString;
         ContentValues contentValues = new ContentValues();
-        contentValues.put(DoneListContract.DoneEntry.COLUMN_NAME_IS_DELETED, "TRUE");
+        contentValues.put(DoneListContract.TaskEntry.COLUMN_NAME_IS_DELETED, "TRUE");
     
         // mark to be deleted items as is_deleted = true
         int rowsMarkedAsDeleted = mContext.getContentResolver().update(
-                DoneListContract.DoneEntry.CONTENT_URI,
+                DoneListContract.TaskEntry.CONTENT_URI,
                 contentValues,
                 deleteSelectionClause,
                 null
@@ -183,9 +183,9 @@ public class DoneActions {
     
         // items where is_deleted and is_local are both true, delete entirely
         int rowsDeleted = mContext.getContentResolver().delete(
-                DoneListContract.DoneEntry.CONTENT_URI,
-                DoneListContract.DoneEntry.COLUMN_NAME_IS_LOCAL + " IS 'TRUE' AND " +
-                        DoneListContract.DoneEntry.COLUMN_NAME_IS_DELETED + " IS 'TRUE'",
+                DoneListContract.TaskEntry.CONTENT_URI,
+                DoneListContract.TaskEntry.COLUMN_NAME_IS_LOCAL + " IS 'TRUE' AND " +
+                        DoneListContract.TaskEntry.COLUMN_NAME_IS_DELETED + " IS 'TRUE'",
                 null
         );
     

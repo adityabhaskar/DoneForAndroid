@@ -9,9 +9,12 @@ import android.text.Spannable;
 import android.text.SpannableString;
 import android.text.TextPaint;
 import android.text.style.URLSpan;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.CheckBox;
+import android.widget.CompoundButton;
 import android.widget.TextView;
 
 import net.c306.done.db.DoneListContract;
@@ -53,21 +56,21 @@ public class TaskListAdapter extends ResourceCursorAdapter {
         View teamSpace = view.findViewById(R.id.team_color_patch);
     
         int teamColor = Utils.findTeam(context, cursor.getString(
-                cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_TEAM)
+                cursor.getColumnIndex(DoneListContract.TaskEntry.COLUMN_NAME_TEAM)
         ));
     
         teamSpace.setBackgroundResource(Utils.colorArray[teamColor == -1 ? 0 : teamColor % Utils.colorArray.length]);
         
         // Set text
         TextView rawTextTextView = (TextView) view.findViewById(R.id.text_view_task_text);
-        
-        Spannable rawTextWithUnderlines = (Spannable) Html.fromHtml(cursor.getString(cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_MARKEDUP_TEXT)));
+    
+        Spannable rawTextWithUnderlines = (Spannable) Html.fromHtml(cursor.getString(cursor.getColumnIndex(DoneListContract.TaskEntry.COLUMN_NAME_MARKEDUP_TEXT)));
         SpannableString formattedText = new SpannableString(formatForTextView(rawTextWithUnderlines));
         rawTextTextView.setText(formattedText);
     
-        String isEdited = cursor.getString(cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_EDITED_FIELDS));
-        String isLocal = cursor.getString(cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_IS_LOCAL));
-    
+        String isEdited = cursor.getString(cursor.getColumnIndex(DoneListContract.TaskEntry.COLUMN_NAME_EDITED_FIELDS));
+        String isLocal = cursor.getString(cursor.getColumnIndex(DoneListContract.TaskEntry.COLUMN_NAME_IS_LOCAL));
+        
         // If task is locally created or edited, set text colour to secondary_text
         if ("TRUE".equals(isLocal) || (isEdited != null && !isEdited.trim().isEmpty()))
             rawTextTextView.setTextColor(ContextCompat.getColor(mContext, R.color.secondary_text));
@@ -75,10 +78,33 @@ public class TaskListAdapter extends ResourceCursorAdapter {
             rawTextTextView.setTextColor(ContextCompat.getColor(mContext, R.color.primary_text));
     
     
+        // Set checkbox
+        boolean isCompleted = Boolean.parseBoolean(cursor.getString(cursor.getColumnIndex(DoneListContract.TaskEntry.COLUMN_NAME_GOAL_COMPLETED)));
+        CheckBox isCompletedCheckbox = (CheckBox) view.findViewById(R.id.is_completed_checkbox);
+        isCompletedCheckbox.setChecked(isCompleted);
+        //isCompletedCheckbox.setBackgroundResource(Utils.colorArray[teamColor == -1 ? 0 : teamColor % Utils.colorArray.length]);
+    
+        // Enable checkbox if user is task owner
+        boolean isOwner = cursor.getString(cursor.getColumnIndex(DoneListContract.TaskEntry.COLUMN_NAME_OWNER)).equals(Utils.getUsername(mContext));
+        isCompletedCheckbox.setEnabled(isOwner);
+    
+        // Add listener to checkbox
+        isCompletedCheckbox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton compoundButton, boolean isChecked) {
+                if (isChecked) {
+                    // Do something
+                } else {
+                    // Do something
+                }
+                Log.i(LOG_TAG, "onCheckedChanged: " + compoundButton + " - " + isChecked);
+            }
+        });
+        
         // Set date
         TextView dateTextView = (TextView) view.findViewById(R.id.item_date);
-        String doneDate = cursor.getString(cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE));
-    
+        String doneDate = cursor.getString(cursor.getColumnIndex(DoneListContract.TaskEntry.COLUMN_NAME_DONE_DATE));
+        
         calendar.setTime(new Date());
         calendar.add(Calendar.DATE, -1);
         String yesterday = idtDateFormat.format(calendar.getTime());

@@ -41,34 +41,34 @@ public class DoneListDbHelper extends SQLiteOpenHelper {
     
     private void createTasksTable(SQLiteDatabase db) {
         // Create dones table 
-        final String SQL_CREATE_TABLE_DONES = "CREATE TABLE " + DoneListContract.DoneEntry.TABLE_NAME +
+        final String SQL_CREATE_TABLE_DONES = "CREATE TABLE " + DoneListContract.TaskEntry.TABLE_NAME +
                 "(" +
                 // Main Fields
-                DoneListContract.DoneEntry.COLUMN_NAME_ID + " INTEGER NOT NULL UNIQUE PRIMARY KEY, " +
-                DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE + " INTEGER, " +
-                DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT + " TEXT NOT NULL, " +
-                DoneListContract.DoneEntry.COLUMN_NAME_TEAM + " TEXT NOT NULL, " +
+                DoneListContract.TaskEntry.COLUMN_NAME_ID + " INTEGER NOT NULL UNIQUE PRIMARY KEY, " +
+                DoneListContract.TaskEntry.COLUMN_NAME_DONE_DATE + " INTEGER, " +
+                DoneListContract.TaskEntry.COLUMN_NAME_RAW_TEXT + " TEXT NOT NULL, " +
+                DoneListContract.TaskEntry.COLUMN_NAME_TEAM + " TEXT NOT NULL, " +
                 // Action Manager fields
-                DoneListContract.DoneEntry.COLUMN_NAME_IS_LOCAL + " TEXT NOT NULL DEFAULT 'FALSE', " +
-                DoneListContract.DoneEntry.COLUMN_NAME_IS_DELETED + " TEXT NOT NULL DEFAULT 'FALSE', " +
-                DoneListContract.DoneEntry.COLUMN_NAME_EDITED_FIELDS + " TEXT, " +
+                DoneListContract.TaskEntry.COLUMN_NAME_IS_LOCAL + " TEXT NOT NULL DEFAULT 'FALSE', " +
+                DoneListContract.TaskEntry.COLUMN_NAME_IS_DELETED + " TEXT NOT NULL DEFAULT 'FALSE', " +
+                DoneListContract.TaskEntry.COLUMN_NAME_EDITED_FIELDS + " TEXT, " +
                 // Other Fields
-                DoneListContract.DoneEntry.COLUMN_NAME_TEAM_SHORT_NAME + " TEXT, " +
-                DoneListContract.DoneEntry.COLUMN_NAME_CREATED + " INTEGER, " +
-                DoneListContract.DoneEntry.COLUMN_NAME_UPDATED + " INTEGER, " +
-                DoneListContract.DoneEntry.COLUMN_NAME_MARKEDUP_TEXT + " TEXT, " +
-                DoneListContract.DoneEntry.COLUMN_NAME_OWNER + " TEXT, " +
-                DoneListContract.DoneEntry.COLUMN_NAME_TAGS + " TEXT, " +
-                DoneListContract.DoneEntry.COLUMN_NAME_LIKES + " TEXT, " +
-                DoneListContract.DoneEntry.COLUMN_NAME_COMMENTS + " TEXT, " +
-                DoneListContract.DoneEntry.COLUMN_NAME_META_DATA + " TEXT, " +
-                DoneListContract.DoneEntry.COLUMN_NAME_IS_GOAL + " TEXT, " +
-                DoneListContract.DoneEntry.COLUMN_NAME_GOAL_COMPLETED + " TEXT, " +
-                DoneListContract.DoneEntry.COLUMN_NAME_URL + " TEXT, " +
-                DoneListContract.DoneEntry.COLUMN_NAME_PERMALINK + " TEXT " +
+                DoneListContract.TaskEntry.COLUMN_NAME_TEAM_SHORT_NAME + " TEXT, " +
+                DoneListContract.TaskEntry.COLUMN_NAME_CREATED + " INTEGER, " +
+                DoneListContract.TaskEntry.COLUMN_NAME_UPDATED + " INTEGER, " +
+                DoneListContract.TaskEntry.COLUMN_NAME_MARKEDUP_TEXT + " TEXT, " +
+                DoneListContract.TaskEntry.COLUMN_NAME_OWNER + " TEXT, " +
+                DoneListContract.TaskEntry.COLUMN_NAME_TAGS + " TEXT, " +
+                DoneListContract.TaskEntry.COLUMN_NAME_LIKES + " TEXT, " +
+                DoneListContract.TaskEntry.COLUMN_NAME_COMMENTS + " TEXT, " +
+                DoneListContract.TaskEntry.COLUMN_NAME_META_DATA + " TEXT, " +
+                DoneListContract.TaskEntry.COLUMN_NAME_IS_GOAL + " TEXT, " +
+                DoneListContract.TaskEntry.COLUMN_NAME_GOAL_COMPLETED + " TEXT, " +
+                DoneListContract.TaskEntry.COLUMN_NAME_URL + " TEXT, " +
+                DoneListContract.TaskEntry.COLUMN_NAME_PERMALINK + " TEXT " +
                 // Team reference fields
                 // Set up the dones.team column as a foreign key to teams.url.
-                //" FOREIGN KEY (" + DoneListContract.DoneEntry.COLUMN_NAME_TEAM + ") REFERENCES " +
+                //" FOREIGN KEY (" + DoneListContract.TaskEntry.COLUMN_NAME_TEAM + ") REFERENCES " +
                 //DoneListContract.TeamEntry.TABLE_NAME + " (" + DoneListContract.TeamEntry.COLUMN_NAME_URL + ") " +
                 ")";
     
@@ -126,8 +126,8 @@ public class DoneListDbHelper extends SQLiteOpenHelper {
                 throw new IllegalStateException(
                         "onUpgrade() with unknown oldVersion " + oldVersion);
         }
-        db.execSQL("ALTER TABLE" + DoneListContract.DoneEntry.TABLE_NAME + " ADD Column " + "COL_D INTEGER DEFAULT 0");
-        db.execSQL("DROP TABLE IF EXISTS " + DoneListContract.DoneEntry.TABLE_NAME);
+        db.execSQL("ALTER TABLE" + DoneListContract.TaskEntry.TABLE_NAME + " ADD Column " + "COL_D INTEGER DEFAULT 0");
+        db.execSQL("DROP TABLE IF EXISTS " + DoneListContract.TaskEntry.TABLE_NAME);
         onCreate(db);
 */
         if (oldVersion == 14 && newVersion == 15) {
@@ -135,7 +135,7 @@ public class DoneListDbHelper extends SQLiteOpenHelper {
         } else {
             db.execSQL("DROP TABLE IF EXISTS " + DoneListContract.TeamEntry.TABLE_NAME);
             db.execSQL("DROP TABLE IF EXISTS " + DoneListContract.TagEntry.TABLE_NAME);
-            db.execSQL("DROP TABLE IF EXISTS " + DoneListContract.DoneEntry.TABLE_NAME);
+            db.execSQL("DROP TABLE IF EXISTS " + DoneListContract.TaskEntry.TABLE_NAME);
             onCreate(db);
         }
     

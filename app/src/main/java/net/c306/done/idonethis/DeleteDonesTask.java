@@ -71,12 +71,12 @@ public class DeleteDonesTask extends AsyncTask<Void, Void, Integer> {
     
         // Get deleted, non-local dones from database
         Cursor cursor = mContext.getContentResolver().query(
-                DoneListContract.DoneEntry.buildDoneListUri(),                          // URI
+                DoneListContract.TaskEntry.buildDoneListUri(),                          // URI
                 new String[]{                                                           // Projection
-                        DoneListContract.DoneEntry.COLUMN_NAME_ID,
+                        DoneListContract.TaskEntry.COLUMN_NAME_ID,
                 },
-                DoneListContract.DoneEntry.COLUMN_NAME_IS_LOCAL + " IS 'FALSE' AND " +   // Selection
-                        DoneListContract.DoneEntry.COLUMN_NAME_IS_DELETED + " IS 'TRUE'",
+                DoneListContract.TaskEntry.COLUMN_NAME_IS_LOCAL + " IS 'FALSE' AND " +   // Selection
+                        DoneListContract.TaskEntry.COLUMN_NAME_IS_DELETED + " IS 'TRUE'",
                 null,                                                                   // Selection Args
                 null                                                                    // Sort Order
         );
@@ -88,7 +88,7 @@ public class DeleteDonesTask extends AsyncTask<Void, Void, Integer> {
                 Log.v(LOG_TAG, "doInBackground: Got " + cursor.getCount() + " pending dones to delete on server");
                 
                 int resultStatus;
-                int columnIndexID = cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_ID);
+                int columnIndexID = cursor.getColumnIndex(DoneListContract.TaskEntry.COLUMN_NAME_ID);
         
                 // Iterate over unsent dones 
                 while (cursor.moveToNext() && !isCancelled()) {
@@ -177,8 +177,8 @@ public class DeleteDonesTask extends AsyncTask<Void, Void, Integer> {
                 String sentDonesIdString = TextUtils.join(",", deletedDonesList);
         
                 mContext.getContentResolver().delete(
-                        DoneListContract.DoneEntry.CONTENT_URI,
-                        DoneListContract.DoneEntry.COLUMN_NAME_ID + " IN (" + sentDonesIdString + ")",
+                        DoneListContract.TaskEntry.CONTENT_URI,
+                        DoneListContract.TaskEntry.COLUMN_NAME_ID + " IN (" + sentDonesIdString + ")",
                         null
                 );
             }

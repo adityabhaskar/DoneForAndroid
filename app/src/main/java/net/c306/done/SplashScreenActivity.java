@@ -4,10 +4,10 @@ import android.accounts.Account;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.design.widget.Snackbar;
-import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.view.animation.AnimationUtils;
+import android.widget.Toast;
 
 import com.google.android.gms.analytics.Tracker;
 
@@ -83,16 +83,7 @@ public class SplashScreenActivity extends AppCompatActivity {
                 
                 if (resultCode == RESULT_CANCELED) {
                     // If error, show toast/snackbar.
-                    mSnackbar = Snackbar.make(findViewById(R.id.fab), R.string.LOGIN_ERROR_OR_CANCELLED, Snackbar.LENGTH_LONG);
-                    mSnackbar.setAction("Dismiss", new View.OnClickListener() {
-                        @Override
-                        public void onClick(View v) {
-                            if (mSnackbar != null && mSnackbar.isShown())
-                                mSnackbar.dismiss();
-                        }
-                    })
-                            .setActionTextColor(ContextCompat.getColor(this, R.color.link_colour))
-                            .show();
+                    Toast.makeText(getApplicationContext(), R.string.LOGIN_ERROR_OR_CANCELLED, Toast.LENGTH_LONG).show();
                     
                 } else if (resultCode == RESULT_OK) {
                     // Successfully logged in

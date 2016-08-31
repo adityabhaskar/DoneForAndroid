@@ -501,9 +501,9 @@ public class Utils {
         String today = new SimpleDateFormat("yyyy-MM-dd", Locale.UK).format(new Date());
         
         Cursor cursor = context.getContentResolver().query(
-                DoneListContract.DoneEntry.CONTENT_URI,
-                new String[]{DoneListContract.DoneEntry.COLUMN_NAME_ID},
-                DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE + " IS '" + today + "'",
+                DoneListContract.TaskEntry.CONTENT_URI,
+                new String[]{DoneListContract.TaskEntry.COLUMN_NAME_ID},
+                DoneListContract.TaskEntry.COLUMN_NAME_DONE_DATE + " IS '" + today + "'",
                 null,
                 null
         );

@@ -130,17 +130,17 @@ public class TaskDetailsActivity
     private void getTaskList() {
         
         // Sort order:  Descending, by date - same as MainActivity
-        String sortOrder = DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE + " DESC, " +
-                DoneListContract.DoneEntry.COLUMN_NAME_IS_LOCAL + " DESC, " +
-                DoneListContract.DoneEntry.COLUMN_NAME_EDITED_FIELDS + " DESC, " +
-                DoneListContract.DoneEntry.COLUMN_NAME_UPDATED + " DESC, " +
-                DoneListContract.DoneEntry.COLUMN_NAME_ID + " DESC";
+        String sortOrder = DoneListContract.TaskEntry.COLUMN_NAME_DONE_DATE + " DESC, " +
+                DoneListContract.TaskEntry.COLUMN_NAME_IS_LOCAL + " DESC, " +
+                DoneListContract.TaskEntry.COLUMN_NAME_EDITED_FIELDS + " DESC, " +
+                DoneListContract.TaskEntry.COLUMN_NAME_UPDATED + " DESC, " +
+                DoneListContract.TaskEntry.COLUMN_NAME_ID + " DESC";
         
         String[] cursorProjectionString = new String[]{
-                DoneListContract.DoneEntry.COLUMN_NAME_ID
+                DoneListContract.TaskEntry.COLUMN_NAME_ID
         };
-        
-        String selection = DoneListContract.DoneEntry.COLUMN_NAME_IS_DELETED + " IS 'FALSE'";
+    
+        String selection = DoneListContract.TaskEntry.COLUMN_NAME_IS_DELETED + " IS 'FALSE'";
     
         switch (mNavFilterType) {
             case Utils.NAV_LAYOUT_ALL: {
@@ -151,7 +151,7 @@ public class TaskDetailsActivity
             case Utils.NAV_LAYOUT_TEAMS: {
                 // Add team filtering string
                 selection += " AND " +
-                        DoneListContract.DoneEntry.COLUMN_NAME_TEAM +
+                        DoneListContract.TaskEntry.COLUMN_NAME_TEAM +
                         " IS '" +
                         mNavFilter +
                         "'";
@@ -161,7 +161,7 @@ public class TaskDetailsActivity
             case Utils.NAV_LAYOUT_TAGS: {
                 // Add tag filtering string
                 selection += " AND " +
-                        DoneListContract.DoneEntry.COLUMN_NAME_TAGS +
+                        DoneListContract.TaskEntry.COLUMN_NAME_TAGS +
                         " LIKE '%" +
                         mNavFilter +
                         "%'";
@@ -176,11 +176,11 @@ public class TaskDetailsActivity
             
             for (String filterString : filterArr) {
                 selection += " AND (" +
-                        DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT +
+                        DoneListContract.TaskEntry.COLUMN_NAME_RAW_TEXT +
                         " LIKE '%" +
                         filterString +
                         "%' OR " +
-                        DoneListContract.DoneEntry.COLUMN_NAME_OWNER +
+                        DoneListContract.TaskEntry.COLUMN_NAME_OWNER +
                         " LIKE '%" +
                         filterString +
                         "%')";
@@ -188,7 +188,7 @@ public class TaskDetailsActivity
         }
         
         Cursor cursor = getContentResolver().query(
-                DoneListContract.DoneEntry.CONTENT_URI,
+                DoneListContract.TaskEntry.CONTENT_URI,
                 cursorProjectionString,
                 selection,
                 null,
@@ -199,7 +199,7 @@ public class TaskDetailsActivity
             
             mTaskIdList = new long[cursor.getCount()];
             int i = 0;
-            int columnIndex = cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_ID);
+            int columnIndex = cursor.getColumnIndex(DoneListContract.TaskEntry.COLUMN_NAME_ID);
             
             while (cursor.moveToNext()) {
                 mTaskIdList[i] = cursor.getLong(columnIndex);
@@ -278,7 +278,7 @@ public class TaskDetailsActivity
             
             case R.id.action_edit: {
                 Intent editDoneIntent = new Intent(TaskDetailsActivity.this, NewDoneActivity.class);
-                editDoneIntent.putExtra(DoneListContract.DoneEntry.COLUMN_NAME_ID, mTaskIdList[mCurrentTaskIndex]);
+                editDoneIntent.putExtra(DoneListContract.TaskEntry.COLUMN_NAME_ID, mTaskIdList[mCurrentTaskIndex]);
     
                 // Start edit activity
                 startActivityForResult(editDoneIntent, Utils.NEW_DONE_ACTIVITY_IDENTIFIER);

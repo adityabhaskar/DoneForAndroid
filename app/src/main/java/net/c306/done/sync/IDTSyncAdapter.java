@@ -208,11 +208,11 @@ public class IDTSyncAdapter extends AbstractThreadedSyncAdapter {
         
             // Check for unsent task actions - add, edit, delete
             Cursor cursor = context.getContentResolver().query(
-                    DoneListContract.DoneEntry.buildDoneListUri(),                  // URI
-                    new String[]{DoneListContract.DoneEntry.COLUMN_NAME_ID},        // Projection
-                    DoneListContract.DoneEntry.COLUMN_NAME_IS_LOCAL + " IS 'TRUE' OR " + // Selection
-                            DoneListContract.DoneEntry.COLUMN_NAME_IS_DELETED + " IS 'TRUE' OR " +
-                            DoneListContract.DoneEntry.COLUMN_NAME_EDITED_FIELDS + " IS NOT NULL",
+                    DoneListContract.TaskEntry.buildDoneListUri(),                  // URI
+                    new String[]{DoneListContract.TaskEntry.COLUMN_NAME_ID},        // Projection
+                    DoneListContract.TaskEntry.COLUMN_NAME_IS_LOCAL + " IS 'TRUE' OR " + // Selection
+                            DoneListContract.TaskEntry.COLUMN_NAME_IS_DELETED + " IS 'TRUE' OR " +
+                            DoneListContract.TaskEntry.COLUMN_NAME_EDITED_FIELDS + " IS NOT NULL",
                     null, // Selection Args
                     null  // Sort Order
             );
@@ -238,11 +238,11 @@ public class IDTSyncAdapter extends AbstractThreadedSyncAdapter {
             
                 // 2. Check for unsent task actions - add, edit, delete
                 Cursor cursor = context.getContentResolver().query(
-                        DoneListContract.DoneEntry.buildDoneListUri(),                  // URI
-                        new String[]{DoneListContract.DoneEntry.COLUMN_NAME_ID},        // Projection
-                        DoneListContract.DoneEntry.COLUMN_NAME_IS_LOCAL + " IS 'TRUE' OR " + // Selection
-                                DoneListContract.DoneEntry.COLUMN_NAME_IS_DELETED + " IS 'TRUE' OR " +
-                                DoneListContract.DoneEntry.COLUMN_NAME_EDITED_FIELDS + " IS NOT NULL",
+                        DoneListContract.TaskEntry.buildDoneListUri(),                  // URI
+                        new String[]{DoneListContract.TaskEntry.COLUMN_NAME_ID},        // Projection
+                        DoneListContract.TaskEntry.COLUMN_NAME_IS_LOCAL + " IS 'TRUE' OR " + // Selection
+                                DoneListContract.TaskEntry.COLUMN_NAME_IS_DELETED + " IS 'TRUE' OR " +
+                                DoneListContract.TaskEntry.COLUMN_NAME_EDITED_FIELDS + " IS NOT NULL",
                         null, // Selection Args
                         null  // Sort Order
                 );
@@ -531,24 +531,24 @@ public class IDTSyncAdapter extends AbstractThreadedSyncAdapter {
             doneItem = gson.fromJson(doneItemString, DoneItem.class);
             
             ContentValues doneItemValues = new ContentValues();
-            
-            doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_ID, doneItem.id);
-            doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_CREATED, doneItem.created);
-            doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_UPDATED, doneItem.updated);
-            doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_MARKEDUP_TEXT, doneItem.markedup_text);
-            doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE, doneItem.done_date);
-            doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_OWNER, doneItem.owner);
-            doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_TEAM_SHORT_NAME, doneItem.team_short_name);
-            doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_LIKES, "");
-            doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_COMMENTS, "");
-            doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_META_DATA, gson.toJson(doneItem.meta_data, DoneItem.DoneMeta.class));
-            doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_IS_GOAL, doneItem.is_goal);
-            doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_GOAL_COMPLETED, doneItem.goal_completed);
-            doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_URL, doneItem.url);
-            doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_TEAM, doneItem.team);
-            doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT, Html.fromHtml(doneItem.raw_text).toString());
-            doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_PERMALINK, doneItem.permalink);
-            doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_IS_LOCAL, doneItem.is_local);
+    
+            doneItemValues.put(DoneListContract.TaskEntry.COLUMN_NAME_ID, doneItem.id);
+            doneItemValues.put(DoneListContract.TaskEntry.COLUMN_NAME_CREATED, doneItem.created);
+            doneItemValues.put(DoneListContract.TaskEntry.COLUMN_NAME_UPDATED, doneItem.updated);
+            doneItemValues.put(DoneListContract.TaskEntry.COLUMN_NAME_MARKEDUP_TEXT, doneItem.markedup_text);
+            doneItemValues.put(DoneListContract.TaskEntry.COLUMN_NAME_DONE_DATE, doneItem.done_date);
+            doneItemValues.put(DoneListContract.TaskEntry.COLUMN_NAME_OWNER, doneItem.owner);
+            doneItemValues.put(DoneListContract.TaskEntry.COLUMN_NAME_TEAM_SHORT_NAME, doneItem.team_short_name);
+            doneItemValues.put(DoneListContract.TaskEntry.COLUMN_NAME_LIKES, "");
+            doneItemValues.put(DoneListContract.TaskEntry.COLUMN_NAME_COMMENTS, "");
+            doneItemValues.put(DoneListContract.TaskEntry.COLUMN_NAME_META_DATA, gson.toJson(doneItem.meta_data, DoneItem.DoneMeta.class));
+            doneItemValues.put(DoneListContract.TaskEntry.COLUMN_NAME_IS_GOAL, doneItem.is_goal);
+            doneItemValues.put(DoneListContract.TaskEntry.COLUMN_NAME_GOAL_COMPLETED, doneItem.goal_completed);
+            doneItemValues.put(DoneListContract.TaskEntry.COLUMN_NAME_URL, doneItem.url);
+            doneItemValues.put(DoneListContract.TaskEntry.COLUMN_NAME_TEAM, doneItem.team);
+            doneItemValues.put(DoneListContract.TaskEntry.COLUMN_NAME_RAW_TEXT, Html.fromHtml(doneItem.raw_text).toString());
+            doneItemValues.put(DoneListContract.TaskEntry.COLUMN_NAME_PERMALINK, doneItem.permalink);
+            doneItemValues.put(DoneListContract.TaskEntry.COLUMN_NAME_IS_LOCAL, doneItem.is_local);
     
             taskTagsArray.clear();
             for (int j = 0; j < doneItem.tags.length; j++) {
@@ -556,7 +556,7 @@ public class IDTSyncAdapter extends AbstractThreadedSyncAdapter {
                 doneItem.tags[j].team = doneItem.team;
             }
             allTagsArray.addAll(Arrays.asList(doneItem.tags));
-            doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_TAGS, gson.toJson(taskTagsArray.toArray(), String[].class));
+            doneItemValues.put(DoneListContract.TaskEntry.COLUMN_NAME_TAGS, gson.toJson(taskTagsArray.toArray(), String[].class));
             
             cVVector.add(doneItemValues);
         }
@@ -577,12 +577,12 @@ public class IDTSyncAdapter extends AbstractThreadedSyncAdapter {
             // Delete non-local dones from local database, to be replaced by freshly retrieved ones 
             // There could be some local non-posted dones that were typed while sync was on
             context.getContentResolver().delete(
-                    DoneListContract.DoneEntry.CONTENT_URI, // Table uri
-                    DoneListContract.DoneEntry.COLUMN_NAME_IS_LOCAL + " IS 'FALSE'", // Selection
+                    DoneListContract.TaskEntry.CONTENT_URI, // Table uri
+                    DoneListContract.TaskEntry.COLUMN_NAME_IS_LOCAL + " IS 'FALSE'", // Selection
                     null); // Selection args
     
             // Add newly fetched entries to the database
-            context.getContentResolver().bulkInsert(DoneListContract.DoneEntry.CONTENT_URI, cvArray);
+            context.getContentResolver().bulkInsert(DoneListContract.TaskEntry.CONTENT_URI, cvArray);
             
         }
     

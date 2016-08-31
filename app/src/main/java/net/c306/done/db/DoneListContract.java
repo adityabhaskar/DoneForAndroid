@@ -79,7 +79,7 @@ public class DoneListContract {
     }
     
     /* Inner class that defines the table contents */
-    public static abstract class DoneEntry implements BaseColumns {
+    public static abstract class TaskEntry implements BaseColumns {
         
         public static final Uri CONTENT_URI = BASE_CONTENT_URI.buildUpon().appendPath(PATH_DONES).build();
         

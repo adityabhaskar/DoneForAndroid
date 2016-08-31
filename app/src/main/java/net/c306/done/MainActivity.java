@@ -1015,7 +1015,7 @@ public class MainActivity
                         Log.v(LOG_TAG, "Account removed...");
                         
                         // Empty database
-                        getContentResolver().delete(DoneListContract.DoneEntry.CONTENT_URI, null, null);
+                        getContentResolver().delete(DoneListContract.TaskEntry.CONTENT_URI, null, null);
                         getContentResolver().delete(DoneListContract.TeamEntry.CONTENT_URI, null, null);
                         mTaskListAdapter.notifyDataSetChanged();
                         Log.v(LOG_TAG, "Database deleted.");
@@ -1054,7 +1054,7 @@ public class MainActivity
      */
     private void editSelectedItems(long id) {
         Intent editDoneIntent = new Intent(MainActivity.this, NewDoneActivity.class);
-        editDoneIntent.putExtra(DoneListContract.DoneEntry.COLUMN_NAME_ID, id);
+        editDoneIntent.putExtra(DoneListContract.TaskEntry.COLUMN_NAME_ID, id);
     
         // Start edit activity
         startActivityForResult(editDoneIntent, Utils.NEW_DONE_ACTIVITY_IDENTIFIER);
@@ -1092,27 +1092,28 @@ public class MainActivity
             case TASK_LIST_LOADER: {
                 
                 // Sort order:  Descending, by date.
-                String sortOrder = DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE + " DESC, " +
-                        DoneListContract.DoneEntry.COLUMN_NAME_IS_LOCAL + " DESC, " +
-                        DoneListContract.DoneEntry.COLUMN_NAME_EDITED_FIELDS + " DESC, " +
-                        DoneListContract.DoneEntry.COLUMN_NAME_UPDATED + " DESC, " +
+                String sortOrder = DoneListContract.TaskEntry.COLUMN_NAME_DONE_DATE + " DESC, " +
+                        DoneListContract.TaskEntry.COLUMN_NAME_IS_LOCAL + " DESC, " +
+                        DoneListContract.TaskEntry.COLUMN_NAME_EDITED_FIELDS + " DESC, " +
+                        DoneListContract.TaskEntry.COLUMN_NAME_UPDATED + " DESC, " +
                         "_id DESC";
-            
-                Uri donesUri = DoneListContract.DoneEntry.buildDoneListUri();
+    
+                Uri donesUri = DoneListContract.TaskEntry.buildDoneListUri();
             
                 String[] cursorProjectionString = new String[]{
-                        DoneListContract.DoneEntry.COLUMN_NAME_ID + " AS _id",
-                        DoneListContract.DoneEntry.COLUMN_NAME_MARKEDUP_TEXT,
-                        DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE,
-                        DoneListContract.DoneEntry.COLUMN_NAME_TEAM,
-                        DoneListContract.DoneEntry.COLUMN_NAME_IS_LOCAL,
-                        DoneListContract.DoneEntry.COLUMN_NAME_OWNER,
-                        DoneListContract.DoneEntry.COLUMN_NAME_UPDATED,
-                        DoneListContract.DoneEntry.COLUMN_NAME_EDITED_FIELDS
+                        DoneListContract.TaskEntry.COLUMN_NAME_ID + " AS _id",
+                        DoneListContract.TaskEntry.COLUMN_NAME_MARKEDUP_TEXT,
+                        DoneListContract.TaskEntry.COLUMN_NAME_DONE_DATE,
+                        DoneListContract.TaskEntry.COLUMN_NAME_TEAM,
+                        DoneListContract.TaskEntry.COLUMN_NAME_IS_LOCAL,
+                        DoneListContract.TaskEntry.COLUMN_NAME_OWNER,
+                        DoneListContract.TaskEntry.COLUMN_NAME_UPDATED,
+                        DoneListContract.TaskEntry.COLUMN_NAME_GOAL_COMPLETED,
+                        DoneListContract.TaskEntry.COLUMN_NAME_EDITED_FIELDS
                 };
     
                 // Filter out deleted tasks
-                String selection = DoneListContract.DoneEntry.COLUMN_NAME_IS_DELETED + " IS 'FALSE'";
+                String selection = DoneListContract.TaskEntry.COLUMN_NAME_IS_DELETED + " IS 'FALSE'";
     
                 switch (mNavFilterType) {
                     case Utils.NAV_LAYOUT_ALL: {
@@ -1123,7 +1124,7 @@ public class MainActivity
                     case Utils.NAV_LAYOUT_TEAMS: {
                         // Add team filtering string
                         selection += " AND " +
-                                DoneListContract.DoneEntry.COLUMN_NAME_TEAM +
+                                DoneListContract.TaskEntry.COLUMN_NAME_TEAM +
                                 " IS '" +
                                 mNavFilterString +
                                 "'";
@@ -1133,7 +1134,7 @@ public class MainActivity
                     case Utils.NAV_LAYOUT_TAGS: {
                         // Add tag filtering string
                         selection += " AND " +
-                                DoneListContract.DoneEntry.COLUMN_NAME_TAGS +
+                                DoneListContract.TaskEntry.COLUMN_NAME_TAGS +
                                 " LIKE '%" +
                                 mNavFilterString +
                                 "%'";
@@ -1148,11 +1149,11 @@ public class MainActivity
                 
                     for (String filterString : filterArr) {
                         selection += " AND (" +
-                                DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT +
+                                DoneListContract.TaskEntry.COLUMN_NAME_RAW_TEXT +
                                 " LIKE '%" +
                                 filterString +
                                 "%' OR " +
-                                DoneListContract.DoneEntry.COLUMN_NAME_OWNER +
+                                DoneListContract.TaskEntry.COLUMN_NAME_OWNER +
                                 " LIKE '%" +
                                 filterString +
                                 "%')";
@@ -1377,9 +1378,10 @@ public class MainActivity
      */
     @Override
     public void onItemClick(AdapterView<?> adapterView, View view, int position, long rowId) {
-    
         mTaskListPosition = position;
     
+        Log.i(LOG_TAG, "onItemClick: " + view.getId() + " : " + view);
+        
         Intent taskDetailsActivity = new Intent(MainActivity.this, TaskDetailsActivity.class);
         // Initial task to show details of 
         taskDetailsActivity.putExtra(Utils.KEY_SELECTED_TASK_ID, rowId);
@@ -1400,7 +1402,7 @@ public class MainActivity
         // If selected item's owner is not the same as user, unselect and show toast
         if (checked) {
             Cursor cursor = (Cursor) mTaskListAdapter.getItem(position);
-            String taskOwner = cursor.getString(cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_OWNER));
+            String taskOwner = cursor.getString(cursor.getColumnIndex(DoneListContract.TaskEntry.COLUMN_NAME_OWNER));
         
             if (!taskOwner.equals(Utils.getUsername(getApplicationContext()))) {
                 // Uncheck the item

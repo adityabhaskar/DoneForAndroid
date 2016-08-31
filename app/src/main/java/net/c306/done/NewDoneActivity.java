@@ -70,7 +70,7 @@ public class NewDoneActivity extends AppCompatActivity {
         Utils.sendScreen(mTracker, ANALYTICS_TAG);
     
         Intent starterIntent = getIntent();
-        mId = starterIntent.getLongExtra(DoneListContract.DoneEntry.COLUMN_NAME_ID, -1);
+        mId = starterIntent.getLongExtra(DoneListContract.TaskEntry.COLUMN_NAME_ID, -1);
         
         if (mId > -1)
             populateForEdit();
@@ -311,14 +311,14 @@ public class NewDoneActivity extends AppCompatActivity {
         
         // Fetch task details from database
         Cursor cursor = getContentResolver().query(
-                DoneListContract.DoneEntry.CONTENT_URI,                         // URI
+                DoneListContract.TaskEntry.CONTENT_URI,                         // URI
                 new String[]{                                                   // Projection
-                        DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT,
-                        DoneListContract.DoneEntry.COLUMN_NAME_TEAM,
-                        DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE,
-                        DoneListContract.DoneEntry.COLUMN_NAME_EDITED_FIELDS
+                        DoneListContract.TaskEntry.COLUMN_NAME_RAW_TEXT,
+                        DoneListContract.TaskEntry.COLUMN_NAME_TEAM,
+                        DoneListContract.TaskEntry.COLUMN_NAME_DONE_DATE,
+                        DoneListContract.TaskEntry.COLUMN_NAME_EDITED_FIELDS
                 },
-                DoneListContract.DoneEntry.COLUMN_NAME_ID + " IS ? ",      // Selection
+                DoneListContract.TaskEntry.COLUMN_NAME_ID + " IS ? ",      // Selection
                 new String[]{String.valueOf(mId),},      // Selection Args
                 null                                                            // Sort Order
         );
@@ -331,8 +331,8 @@ public class NewDoneActivity extends AppCompatActivity {
                 cursor.moveToNext();
                 
                 // Set text
-                String rawText = cursor.getString(cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT));
-                mPreEditBundle.putString(DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT, rawText);
+                String rawText = cursor.getString(cursor.getColumnIndex(DoneListContract.TaskEntry.COLUMN_NAME_RAW_TEXT));
+                mPreEditBundle.putString(DoneListContract.TaskEntry.COLUMN_NAME_RAW_TEXT, rawText);
                 MultiAutoCompleteTextView taskTextEditText = (MultiAutoCompleteTextView) findViewById(R.id.task_text_edit_text);
                 if (taskTextEditText != null) {
                     taskTextEditText.setText(rawText);
@@ -341,8 +341,8 @@ public class NewDoneActivity extends AppCompatActivity {
                 }
                 
                 // Set team
-                mTeam = cursor.getString(cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_TEAM));
-                mPreEditBundle.putString(DoneListContract.DoneEntry.COLUMN_NAME_TEAM, mTeam);
+                mTeam = cursor.getString(cursor.getColumnIndex(DoneListContract.TaskEntry.COLUMN_NAME_TEAM));
+                mPreEditBundle.putString(DoneListContract.TaskEntry.COLUMN_NAME_TEAM, mTeam);
                 EditText teamEditText = (EditText) findViewById(R.id.team_picker);
                 if (teamEditText != null) {
                     String teamName = teamNames.get(teamURLs.indexOf(mTeam));
@@ -350,7 +350,7 @@ public class NewDoneActivity extends AppCompatActivity {
                 }
                 
                 // Set date
-                String editDate = cursor.getString(cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE));
+                String editDate = cursor.getString(cursor.getColumnIndex(DoneListContract.TaskEntry.COLUMN_NAME_DONE_DATE));
                 if (!mDoneDate.equals(editDate)) {
                     mDoneDate = editDate;
                     
@@ -363,7 +363,7 @@ public class NewDoneActivity extends AppCompatActivity {
                     );
                     mFormattedDoneDate = userDateFormat.format(c.getTime());
                 }
-                mPreEditBundle.putString(DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE, mDoneDate);
+                mPreEditBundle.putString(DoneListContract.TaskEntry.COLUMN_NAME_DONE_DATE, mDoneDate);
                 
                 EditText doneDateText = (EditText) findViewById(R.id.done_date_text);
                 if (doneDateText != null)
@@ -371,7 +371,7 @@ public class NewDoneActivity extends AppCompatActivity {
                 
                 
                 // Set edited fields
-                String editedFieldsString = cursor.getString(cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_EDITED_FIELDS));
+                String editedFieldsString = cursor.getString(cursor.getColumnIndex(DoneListContract.TaskEntry.COLUMN_NAME_EDITED_FIELDS));
                 
                 if (editedFieldsString != null && !editedFieldsString.equals(""))
                     mEditedFields = new Gson().fromJson(editedFieldsString, new TypeToken<ArrayList<String>>() {
@@ -380,7 +380,7 @@ public class NewDoneActivity extends AppCompatActivity {
                     mEditedFields = new ArrayList<>();
                 
                 mPreEditBundle.putStringArrayList(
-                        DoneListContract.DoneEntry.COLUMN_NAME_EDITED_FIELDS,
+                        DoneListContract.TaskEntry.COLUMN_NAME_EDITED_FIELDS,
                         (ArrayList<String>) mEditedFields);
                 
             }
@@ -558,8 +558,8 @@ public class NewDoneActivity extends AppCompatActivity {
             if (taskTextEditText != null) {
             
                 String taskText = taskTextEditText.getText().toString().trim();
-            
-                String preEditTaskText = mPreEditBundle.getString(DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT);
+    
+                String preEditTaskText = mPreEditBundle.getString(DoneListContract.TaskEntry.COLUMN_NAME_RAW_TEXT);
                 if (preEditTaskText != null)
                     preEditTaskText = preEditTaskText.trim();
             
@@ -605,13 +605,13 @@ public class NewDoneActivity extends AppCompatActivity {
             
             if (mId > -1) {
                 // Case: Edit this done
-                String preEditTaskText = mPreEditBundle.getString(DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT);
+                String preEditTaskText = mPreEditBundle.getString(DoneListContract.TaskEntry.COLUMN_NAME_RAW_TEXT);
                 if (preEditTaskText != null)
                     preEditTaskText = preEditTaskText.trim();
     
                 if (taskText.equals(preEditTaskText) &&
-                        mTeam.equals(mPreEditBundle.getString(DoneListContract.DoneEntry.COLUMN_NAME_TEAM)) &&
-                        mDoneDate.equals(mPreEditBundle.getString(DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE))
+                        mTeam.equals(mPreEditBundle.getString(DoneListContract.TaskEntry.COLUMN_NAME_TEAM)) &&
+                        mDoneDate.equals(mPreEditBundle.getString(DoneListContract.TaskEntry.COLUMN_NAME_DONE_DATE))
                         ) {
                     // No change made
                     setResult(RESULT_OK);
@@ -620,17 +620,24 @@ public class NewDoneActivity extends AppCompatActivity {
                     return;
                 }
     
-                if (!mEditedFields.contains(DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT)) {
-                    mEditedFields.add(DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT);
+                if (!mEditedFields.contains(DoneListContract.TaskEntry.COLUMN_NAME_RAW_TEXT)) {
+                    mEditedFields.add(DoneListContract.TaskEntry.COLUMN_NAME_RAW_TEXT);
                 }
     
+                // TODO: Add code to save as todo, etc 
+                if (taskText.matches("^\\[\\] .+?")) {
+                    Log.i(LOG_TAG, "onSaveClicked: edit task to be a TODO");
+                } else {
+                    Log.i(LOG_TAG, "onSaveClicked: edit task to be a DONE");
+                }
+                
                 // Save edited values to database, mark as edited
                 Bundle editedDetails = new Bundle();
-                editedDetails.putString(DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT, taskText);
-                editedDetails.putString(DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE, mDoneDate);
-                editedDetails.putString(DoneListContract.DoneEntry.COLUMN_NAME_TEAM, mTeam);
-                editedDetails.putLong(DoneListContract.DoneEntry.COLUMN_NAME_ID, mId);
-                editedDetails.putStringArrayList(DoneListContract.DoneEntry.COLUMN_NAME_EDITED_FIELDS, (ArrayList<String>) mEditedFields);
+                editedDetails.putString(DoneListContract.TaskEntry.COLUMN_NAME_RAW_TEXT, taskText);
+                editedDetails.putString(DoneListContract.TaskEntry.COLUMN_NAME_DONE_DATE, mDoneDate);
+                editedDetails.putString(DoneListContract.TaskEntry.COLUMN_NAME_TEAM, mTeam);
+                editedDetails.putLong(DoneListContract.TaskEntry.COLUMN_NAME_ID, mId);
+                editedDetails.putStringArrayList(DoneListContract.TaskEntry.COLUMN_NAME_EDITED_FIELDS, (ArrayList<String>) mEditedFields);
                 
                 boolean result = new DoneActions(this).edit(editedDetails);
                 
@@ -652,14 +659,14 @@ public class NewDoneActivity extends AppCompatActivity {
                 Utils.setLocalDoneIdCounter(this, localTaskIdCounter);
                 
                 // Add temporary id to new done bundle
-                newDoneDetails.putLong(DoneListContract.DoneEntry.COLUMN_NAME_ID, localTaskIdCounter);
+                newDoneDetails.putLong(DoneListContract.TaskEntry.COLUMN_NAME_ID, localTaskIdCounter);
                 // Add team to bundle. Later, to be got from selector
-                newDoneDetails.putString(DoneListContract.DoneEntry.COLUMN_NAME_TEAM, mTeam);
+                newDoneDetails.putString(DoneListContract.TaskEntry.COLUMN_NAME_TEAM, mTeam);
                 // Add done_date to bundle
-                newDoneDetails.putString(DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE, mDoneDate);
+                newDoneDetails.putString(DoneListContract.TaskEntry.COLUMN_NAME_DONE_DATE, mDoneDate);
                 // Add cleaned (of date strings) taskText to bundle
-                newDoneDetails.putString(DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT, taskText);
-    
+                newDoneDetails.putString(DoneListContract.TaskEntry.COLUMN_NAME_RAW_TEXT, taskText);
+                
                 boolean result = new DoneActions(this).create(newDoneDetails);
     
                 if (result) {

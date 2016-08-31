@@ -112,25 +112,25 @@ public class TaskDetailsFragment extends Fragment {
     private Bundle getTaskDetails() {
         SQLiteQueryBuilder qb = new SQLiteQueryBuilder();
     
-        qb.setTables(DoneListContract.DoneEntry.TABLE_NAME + " INNER JOIN " +
+        qb.setTables(DoneListContract.TaskEntry.TABLE_NAME + " INNER JOIN " +
                 DoneListContract.TeamEntry.TABLE_NAME +
-                " ON " + DoneListContract.DoneEntry.TABLE_NAME +
-                "." + DoneListContract.DoneEntry.COLUMN_NAME_TEAM +
+                " ON " + DoneListContract.TaskEntry.TABLE_NAME +
+                "." + DoneListContract.TaskEntry.COLUMN_NAME_TEAM +
                 " = " + DoneListContract.TeamEntry.TABLE_NAME +
                 "." + DoneListContract.TeamEntry.COLUMN_NAME_URL);
         
         Cursor cursor = qb.query(
                 DoneListDbHelper.getInstance(mContext).getReadableDatabase(),
                 new String[]{
-                        DoneListContract.DoneEntry.TABLE_NAME + "." + DoneListContract.DoneEntry.COLUMN_NAME_MARKEDUP_TEXT + " as " + DoneListContract.DoneEntry.COLUMN_NAME_MARKEDUP_TEXT,
-                        DoneListContract.DoneEntry.TABLE_NAME + "." + DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE + " as " + DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE,
-                        DoneListContract.DoneEntry.TABLE_NAME + "." + DoneListContract.DoneEntry.COLUMN_NAME_OWNER + " as " + DoneListContract.DoneEntry.COLUMN_NAME_OWNER,
-                        DoneListContract.DoneEntry.TABLE_NAME + "." + DoneListContract.DoneEntry.COLUMN_NAME_LIKES + " as " + DoneListContract.DoneEntry.COLUMN_NAME_LIKES,
-                        DoneListContract.DoneEntry.TABLE_NAME + "." + DoneListContract.DoneEntry.COLUMN_NAME_COMMENTS + " as " + DoneListContract.DoneEntry.COLUMN_NAME_COMMENTS,
+                        DoneListContract.TaskEntry.TABLE_NAME + "." + DoneListContract.TaskEntry.COLUMN_NAME_MARKEDUP_TEXT + " as " + DoneListContract.TaskEntry.COLUMN_NAME_MARKEDUP_TEXT,
+                        DoneListContract.TaskEntry.TABLE_NAME + "." + DoneListContract.TaskEntry.COLUMN_NAME_DONE_DATE + " as " + DoneListContract.TaskEntry.COLUMN_NAME_DONE_DATE,
+                        DoneListContract.TaskEntry.TABLE_NAME + "." + DoneListContract.TaskEntry.COLUMN_NAME_OWNER + " as " + DoneListContract.TaskEntry.COLUMN_NAME_OWNER,
+                        DoneListContract.TaskEntry.TABLE_NAME + "." + DoneListContract.TaskEntry.COLUMN_NAME_LIKES + " as " + DoneListContract.TaskEntry.COLUMN_NAME_LIKES,
+                        DoneListContract.TaskEntry.TABLE_NAME + "." + DoneListContract.TaskEntry.COLUMN_NAME_COMMENTS + " as " + DoneListContract.TaskEntry.COLUMN_NAME_COMMENTS,
                         DoneListContract.TeamEntry.TABLE_NAME + "." + DoneListContract.TeamEntry.COLUMN_NAME_NAME + " as " + DoneListContract.TeamEntry.COLUMN_NAME_NAME,
                         DoneListContract.TeamEntry.TABLE_NAME + "." + DoneListContract.TeamEntry.COLUMN_NAME_URL + " as " + DoneListContract.TeamEntry.COLUMN_NAME_URL
                 },
-                DoneListContract.DoneEntry.COLUMN_NAME_ID + " is ?",
+                DoneListContract.TaskEntry.COLUMN_NAME_ID + " is ?",
                 new String[]{String.valueOf(mTaskId)},
                 null,
                 null,
@@ -142,24 +142,24 @@ public class TaskDetailsFragment extends Fragment {
             
             if (cursor.getCount() > 0) {
                 cursor.moveToNext();
-                
-                taskDetails.putString(DoneListContract.DoneEntry.COLUMN_NAME_MARKEDUP_TEXT,
-                        cursor.getString(cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_MARKEDUP_TEXT)));
-                
-                taskDetails.putString(DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE,
-                        cursor.getString(cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE)));
-                
-                taskDetails.putString(DoneListContract.DoneEntry.COLUMN_NAME_OWNER,
-                        cursor.getString(cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_OWNER)));
-                
-                taskDetails.putString(DoneListContract.DoneEntry.COLUMN_NAME_LIKES,
-                        cursor.getString(cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_LIKES)));
-                
-                taskDetails.putString(DoneListContract.DoneEntry.COLUMN_NAME_COMMENTS,
-                        cursor.getString(cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_COMMENTS)));
-                
-                taskDetails.putString(DoneListContract.DoneEntry.COLUMN_NAME_COMMENTS,
-                        cursor.getString(cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_COMMENTS)));
+    
+                taskDetails.putString(DoneListContract.TaskEntry.COLUMN_NAME_MARKEDUP_TEXT,
+                        cursor.getString(cursor.getColumnIndex(DoneListContract.TaskEntry.COLUMN_NAME_MARKEDUP_TEXT)));
+    
+                taskDetails.putString(DoneListContract.TaskEntry.COLUMN_NAME_DONE_DATE,
+                        cursor.getString(cursor.getColumnIndex(DoneListContract.TaskEntry.COLUMN_NAME_DONE_DATE)));
+    
+                taskDetails.putString(DoneListContract.TaskEntry.COLUMN_NAME_OWNER,
+                        cursor.getString(cursor.getColumnIndex(DoneListContract.TaskEntry.COLUMN_NAME_OWNER)));
+    
+                taskDetails.putString(DoneListContract.TaskEntry.COLUMN_NAME_LIKES,
+                        cursor.getString(cursor.getColumnIndex(DoneListContract.TaskEntry.COLUMN_NAME_LIKES)));
+    
+                taskDetails.putString(DoneListContract.TaskEntry.COLUMN_NAME_COMMENTS,
+                        cursor.getString(cursor.getColumnIndex(DoneListContract.TaskEntry.COLUMN_NAME_COMMENTS)));
+    
+                taskDetails.putString(DoneListContract.TaskEntry.COLUMN_NAME_COMMENTS,
+                        cursor.getString(cursor.getColumnIndex(DoneListContract.TaskEntry.COLUMN_NAME_COMMENTS)));
                 
                 taskDetails.putString(DoneListContract.TeamEntry.COLUMN_NAME_NAME,
                         cursor.getString(cursor.getColumnIndex(DoneListContract.TeamEntry.COLUMN_NAME_NAME)));
@@ -190,7 +190,7 @@ public class TaskDetailsFragment extends Fragment {
             ownerIcon.setAlpha(0x8A);
             taskOwnerTextView.setCompoundDrawablesWithIntrinsicBounds(ownerIcon, null, null, null);
     
-            String taskOwner = taskDetails.getString(DoneListContract.DoneEntry.COLUMN_NAME_OWNER);
+            String taskOwner = taskDetails.getString(DoneListContract.TaskEntry.COLUMN_NAME_OWNER);
     
             taskOwnerTextView.setText(taskOwner);
     
@@ -206,7 +206,7 @@ public class TaskDetailsFragment extends Fragment {
         TextView taskDate = (TextView) view.findViewById(R.id.task_done_date);
         if (taskDate != null) {
             // Format date for locale
-            String dateString = taskDetails.getString(DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE);
+            String dateString = taskDetails.getString(DoneListContract.TaskEntry.COLUMN_NAME_DONE_DATE);
             String[] dateParts = dateString.split("\\-");
     
             SimpleDateFormat idtDateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.UK);
@@ -240,7 +240,7 @@ public class TaskDetailsFragment extends Fragment {
     
         // Set task text
         TextView taskTextTextView = (TextView) view.findViewById(R.id.task_text);
-        String taskText = taskDetails.getString(DoneListContract.DoneEntry.COLUMN_NAME_MARKEDUP_TEXT);
+        String taskText = taskDetails.getString(DoneListContract.TaskEntry.COLUMN_NAME_MARKEDUP_TEXT);
         if (taskTextTextView != null && taskText != null) {
             // Format text with HTML
             Spannable rawTextWithUnderlines = (Spannable) Html.fromHtml(taskText);
@@ -260,7 +260,7 @@ public class TaskDetailsFragment extends Fragment {
             taskLikes.setCompoundDrawablesWithIntrinsicBounds(likesIcon, null, null, null);
             
             // Set like count if not empty
-            String likeCount = taskDetails.getString(DoneListContract.DoneEntry.COLUMN_NAME_LIKES);
+            String likeCount = taskDetails.getString(DoneListContract.TaskEntry.COLUMN_NAME_LIKES);
             if (likeCount != null && !likeCount.isEmpty())
                 taskLikes.setText(likeCount);
         }
@@ -275,7 +275,7 @@ public class TaskDetailsFragment extends Fragment {
             taskComments.setCompoundDrawablesWithIntrinsicBounds(commentsIcon, null, null, null);
             
             // Set comment count if not empty
-            String commentCount = taskDetails.getString(DoneListContract.DoneEntry.COLUMN_NAME_COMMENTS);
+            String commentCount = taskDetails.getString(DoneListContract.TaskEntry.COLUMN_NAME_COMMENTS);
             if (commentCount != null && !commentCount.isEmpty())
                 taskComments.setText(commentCount);
         }

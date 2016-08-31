@@ -91,14 +91,14 @@ public class PostNewDoneTask extends AsyncTask<Void, Void, Integer> {
     
         // Get local, undeleted dones from database
         Cursor cursor = mContext.getContentResolver().query(
-                DoneListContract.DoneEntry.buildDoneListUri(),                          // URI
+                DoneListContract.TaskEntry.buildDoneListUri(),                          // URI
                 new String[]{                                                           // Projection
-                        DoneListContract.DoneEntry.COLUMN_NAME_ID,
-                        DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT,
-                        DoneListContract.DoneEntry.COLUMN_NAME_TEAM,
-                        DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE
+                        DoneListContract.TaskEntry.COLUMN_NAME_ID,
+                        DoneListContract.TaskEntry.COLUMN_NAME_RAW_TEXT,
+                        DoneListContract.TaskEntry.COLUMN_NAME_TEAM,
+                        DoneListContract.TaskEntry.COLUMN_NAME_DONE_DATE
                 },
-                DoneListContract.DoneEntry.COLUMN_NAME_IS_LOCAL + " IS 'TRUE'",   // Selection
+                DoneListContract.TaskEntry.COLUMN_NAME_IS_LOCAL + " IS 'TRUE'",   // Selection
                 null,                                                                   // Selection Args
                 null                                                                    // Sort Order
         );
@@ -108,10 +108,10 @@ public class PostNewDoneTask extends AsyncTask<Void, Void, Integer> {
             if (cursor.getCount() > 0) {
                 
                 int resultStatus;
-                int columnIndexID = cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_ID);
-                int columnIndexRawText = cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT);
-                int columnIndexDoneDate = cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE);
-                int columnIndexTeam = cursor.getColumnIndex(DoneListContract.DoneEntry.COLUMN_NAME_TEAM);
+                int columnIndexID = cursor.getColumnIndex(DoneListContract.TaskEntry.COLUMN_NAME_ID);
+                int columnIndexRawText = cursor.getColumnIndex(DoneListContract.TaskEntry.COLUMN_NAME_RAW_TEXT);
+                int columnIndexDoneDate = cursor.getColumnIndex(DoneListContract.TaskEntry.COLUMN_NAME_DONE_DATE);
+                int columnIndexTeam = cursor.getColumnIndex(DoneListContract.TaskEntry.COLUMN_NAME_TEAM);
     
                 Log.v(LOG_TAG, "doInBackground: Got " + cursor.getCount() + " pending new tasks to post to server");
                 
@@ -285,24 +285,24 @@ public class PostNewDoneTask extends AsyncTask<Void, Void, Integer> {
                 doneItem = gson.fromJson(taskObject.toString(), IDTSyncAdapter.DoneItem.class);
         
                 ContentValues doneItemValues = new ContentValues();
-        
-                doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_ID, doneItem.id);
-                doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_CREATED, doneItem.created);
-                doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_UPDATED, doneItem.updated);
-                doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_MARKEDUP_TEXT, doneItem.markedup_text);
-                doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_DONE_DATE, doneItem.done_date);
-                doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_OWNER, doneItem.owner);
-                doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_TEAM_SHORT_NAME, doneItem.team_short_name);
-                doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_LIKES, "");
-                doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_COMMENTS, "");
-                doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_META_DATA, gson.toJson(doneItem.meta_data, IDTSyncAdapter.DoneItem.DoneMeta.class));
-                doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_IS_GOAL, doneItem.is_goal);
-                doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_GOAL_COMPLETED, doneItem.goal_completed);
-                doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_URL, doneItem.url);
-                doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_TEAM, doneItem.team);
-                doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_RAW_TEXT, Html.fromHtml(doneItem.raw_text).toString());
-                doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_PERMALINK, doneItem.permalink);
-                doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_IS_LOCAL, doneItem.is_local);
+    
+                doneItemValues.put(DoneListContract.TaskEntry.COLUMN_NAME_ID, doneItem.id);
+                doneItemValues.put(DoneListContract.TaskEntry.COLUMN_NAME_CREATED, doneItem.created);
+                doneItemValues.put(DoneListContract.TaskEntry.COLUMN_NAME_UPDATED, doneItem.updated);
+                doneItemValues.put(DoneListContract.TaskEntry.COLUMN_NAME_MARKEDUP_TEXT, doneItem.markedup_text);
+                doneItemValues.put(DoneListContract.TaskEntry.COLUMN_NAME_DONE_DATE, doneItem.done_date);
+                doneItemValues.put(DoneListContract.TaskEntry.COLUMN_NAME_OWNER, doneItem.owner);
+                doneItemValues.put(DoneListContract.TaskEntry.COLUMN_NAME_TEAM_SHORT_NAME, doneItem.team_short_name);
+                doneItemValues.put(DoneListContract.TaskEntry.COLUMN_NAME_LIKES, "");
+                doneItemValues.put(DoneListContract.TaskEntry.COLUMN_NAME_COMMENTS, "");
+                doneItemValues.put(DoneListContract.TaskEntry.COLUMN_NAME_META_DATA, gson.toJson(doneItem.meta_data, IDTSyncAdapter.DoneItem.DoneMeta.class));
+                doneItemValues.put(DoneListContract.TaskEntry.COLUMN_NAME_IS_GOAL, doneItem.is_goal);
+                doneItemValues.put(DoneListContract.TaskEntry.COLUMN_NAME_GOAL_COMPLETED, doneItem.goal_completed);
+                doneItemValues.put(DoneListContract.TaskEntry.COLUMN_NAME_URL, doneItem.url);
+                doneItemValues.put(DoneListContract.TaskEntry.COLUMN_NAME_TEAM, doneItem.team);
+                doneItemValues.put(DoneListContract.TaskEntry.COLUMN_NAME_RAW_TEXT, Html.fromHtml(doneItem.raw_text).toString());
+                doneItemValues.put(DoneListContract.TaskEntry.COLUMN_NAME_PERMALINK, doneItem.permalink);
+                doneItemValues.put(DoneListContract.TaskEntry.COLUMN_NAME_IS_LOCAL, doneItem.is_local);
         
                 taskTagsArray.clear();
         
@@ -310,15 +310,15 @@ public class PostNewDoneTask extends AsyncTask<Void, Void, Integer> {
                     taskTagsArray.add(DoneListContract.TagEntry.TAG_ID_PRE + doneItem.tags[j].id + DoneListContract.TagEntry.TAG_ID_POST);
                     doneItem.tags[j].team = doneItem.team;
                 }
-        
-                doneItemValues.put(DoneListContract.DoneEntry.COLUMN_NAME_TAGS, gson.toJson(taskTagsArray.toArray(), String[].class));
+    
+                doneItemValues.put(DoneListContract.TaskEntry.COLUMN_NAME_TAGS, gson.toJson(taskTagsArray.toArray(), String[].class));
         
                 allTagsArray.addAll(Arrays.asList(doneItem.tags));
         
                 savedTaskCounter += mContext.getContentResolver().update(
-                        DoneListContract.DoneEntry.CONTENT_URI,
+                        DoneListContract.TaskEntry.CONTENT_URI,
                         doneItemValues,
-                        DoneListContract.DoneEntry.COLUMN_NAME_ID + " IS ?",
+                        DoneListContract.TaskEntry.COLUMN_NAME_ID + " IS ?",
                         new String[]{String.valueOf(sentTaskIds.get(i))}
                 );
             }

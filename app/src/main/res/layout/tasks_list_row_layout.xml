@@ -5,13 +5,30 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:background="?android:attr/activatedBackgroundIndicator"
+    android:descendantFocusability="blocksDescendants"
     android:minHeight="?android:attr/listPreferredItemHeight">
 
     <View
         android:id="@+id/team_color_patch"
-        android:layout_width="8dp"
+        android:layout_width="@dimen/_8dp_half"
         android:layout_height="match_parent"
         android:background="@color/team9"/>
+
+    <View
+        android:layout_width="@dimen/_4dp"
+        android:layout_height="match_parent"/>
+
+    <CheckBox
+        android:id="@+id/is_completed_checkbox"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:checked="true"
+        android:enabled="true"
+        android:paddingStart="@dimen/_4dp"
+        android:theme="@style/BrandedCheckBox"
+        />
+
+    <!--android:background="@color/team9"-->
 
     <LinearLayout
         android:layout_width="fill_parent"
