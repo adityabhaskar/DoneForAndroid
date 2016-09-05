@@ -363,6 +363,11 @@ public class MainActivity
         // Analytics Obtain the shared Tracker instance.
         AnalyticsApplication application = (AnalyticsApplication) getApplication();
         mTracker = application.getDefaultTracker();
+    
+        if (!Utils.getNotificationSeen(MainActivity.this) && Utils.getShowNotification(MainActivity.this)) {
+            Log.i(LOG_TAG, "onCreate: show EoS post notification");
+            Utils.showEndOfServiceNotification(getApplicationContext());
+        }
     }
     
     @Override

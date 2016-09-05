@@ -208,4 +208,8 @@
     </string-array>
     <integer name="DEFAULT_DAYS_TO_FETCH">30</integer>
 
+    <string name="POST_NOTICE_TITLE">Important Notice!</string>
+    <string name="POST_NOTICE_TEXT">This app will soon <b>stop working for iDoneThis</b> users.\n\nPlease see the post below with full details.</string>
+    <string name="BUTTON_TEXT_SEE_POST">View Full Post</string>
 </resources>
+ 

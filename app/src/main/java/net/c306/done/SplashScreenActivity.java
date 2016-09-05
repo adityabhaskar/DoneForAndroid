@@ -24,36 +24,15 @@ public class SplashScreenActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        
-        Account syncAccount = IDTAccountManager.getSyncAccount(SplashScreenActivity.this);
-        
-        if (syncAccount != null) {
-            // Logged in - go to Main Activity
     
-            // Sync on launch if setting is set to true
-            if (Utils.getSyncOnStartup(this))
-                IDTSyncAdapter.syncImmediately(getApplicationContext());
+        //Utils.setNotificationSeen(this, false);
     
-            // Re-set notification alarm in case it disappeared
-            // Disabled because may trigger alarm on every app open if alarm time already passed!
-            //Utils.setNotificationAlarm(SplashScreenActivity.this, null);
-            
-            Intent nextActivity = new Intent(SplashScreenActivity.this, MainActivity.class);
-            startActivity(nextActivity);
-            finish();
-            
+        // Show postAlert
+        if (!Utils.getNotificationSeen(SplashScreenActivity.this)) {
+            Intent postAlertIntent = new Intent(SplashScreenActivity.this, EndOfServicePostNoticeActivity.class);
+            startActivityForResult(postAlertIntent, Utils.POST_ALERT_ACTIVITY_IDENTIFIER);
         } else {
-            getWindow().setBackgroundDrawableResource(R.drawable.login_screen);
-            
-            // Not logged in - inflate Layout to show Login Screen
-            View view = getLayoutInflater().inflate(R.layout.activity_splash_screen, null, false);
-            view.startAnimation(AnimationUtils.loadAnimation(SplashScreenActivity.this, android.R.anim.fade_in));
-    
-            setContentView(view);
-    
-            // Analytics Obtain the shared Tracker instance.
-            AnalyticsApplication application = (AnalyticsApplication) getApplication();
-            mTracker = application.getDefaultTracker();
+            checkForAccount();
         }
     }
     
@@ -114,6 +93,44 @@ public class SplashScreenActivity extends AppCompatActivity {
                     finish();
                 }
             }
+            break;
+    
+            case Utils.POST_ALERT_ACTIVITY_IDENTIFIER: {
+                checkForAccount();
+            }
+        }
+    }
+    
+    private void checkForAccount() {
+        Account syncAccount = IDTAccountManager.getSyncAccount(SplashScreenActivity.this);
+        
+        if (syncAccount != null) {
+            // Logged in - go to Main Activity
+            
+            // Sync on launch if setting is set to true
+            if (Utils.getSyncOnStartup(this))
+                IDTSyncAdapter.syncImmediately(getApplicationContext());
+            
+            // Re-set notification alarm in case it disappeared
+            // Disabled because may trigger alarm on every app open if alarm time already passed!
+            //Utils.setNotificationAlarm(SplashScreenActivity.this, null);
+            
+            Intent nextActivity = new Intent(SplashScreenActivity.this, MainActivity.class);
+            startActivity(nextActivity);
+            finish();
+            
+        } else {
+            getWindow().setBackgroundDrawableResource(R.drawable.login_screen);
+            
+            // Not logged in - inflate Layout to show Login Screen
+            View view = getLayoutInflater().inflate(R.layout.activity_splash_screen, null, false);
+            view.startAnimation(AnimationUtils.loadAnimation(SplashScreenActivity.this, android.R.anim.fade_in));
+            
+            setContentView(view);
+            
+            // Analytics Obtain the shared Tracker instance.
+            AnalyticsApplication application = (AnalyticsApplication) getApplication();
+            mTracker = application.getDefaultTracker();
         }
     }
     

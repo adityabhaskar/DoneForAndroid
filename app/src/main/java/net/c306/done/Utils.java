@@ -1,6 +1,7 @@
 package net.c306.done;
 
 import android.app.AlarmManager;
+import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.ComponentName;
@@ -57,6 +58,7 @@ public class Utils {
     public static final int NEW_DONE_ACTIVITY_IDENTIFIER = 7003;
     public static final int SETTINGS_ACTIVITY_IDENTIFIER = 7004;
     public static final int TASK_DETAILS_ACTIVITY_IDENTIFIER = 7005;
+    public static final int POST_ALERT_ACTIVITY_IDENTIFIER = 7006;
     
     // ACTIVITY RESULT STATUS
     public static final int LOGIN_FINISHED = 0;
@@ -74,12 +76,14 @@ public class Utils {
     public static final String DONE_LOCAL_BROADCAST_LISTENER_INTENT = "net.c306.done.mainActivityListenerIntent";
     public static final String NOTIFICAION_ALARM_INTENT = "net.c306.done.notificationAlarms";
     public static final String NOTIFICAION_ALARM_SNOOZED_INTENT = "net.c306.done.notificationAlarms.Snoozed";
+    public static final String NOTIFICAION_EOS_CANCELLED_INTENT = "net.c306.done.eosNotification.Cancelled";
     public static final String INTENT_ACTION = "intent_action";
     public static final String INTENT_COUNT = "intent_count";
     public static final int ACTION_SNOOZE = 9001;
     public static final int ACTION_LOG_DONE = 9002;
     public static final int ACTION_OPEN_SETTINGS = 9003;
     public static final int ACTION_SHOW_AUTH = 9004;
+    public static final int ACTION_OPEN_EOS_POST = 9005;
     
     // IDT URLs
     public static final String IDT_NOOP_URL = "https://idonethis.com/api/v0.1/noop/";
@@ -109,6 +113,7 @@ public class Utils {
     public static final String PREF_NOTIFICATION_SOUND = "notifications_new_message_ringtone";
     public static final String PREF_DAYS_TO_FETCH = "days_to_fetch";
     public static final String PREF_COUNT_TO_FETCH = "count_to_fetch";
+    public static final String PREF_POST_NOTIFICATION_SEEN = "post_notification_seen"; // Same value as @R/constants/PREF_SHOW_NOTIFICATION
     
     // Default shared preferences values
     public static final int DEFAULT_PREF_VALUE_DAYS_TO_FETCH = 30;
@@ -121,6 +126,7 @@ public class Utils {
     public static final String DEFAULT_ALARM_TIME = "19:00";
     public static final int DEFAULT_SNOOZE_IN_SECONDS = 15 * 60; // Same as android:defaultValue in pref_notification.xml > ListPreference
     public static final Set<String> DEFAULT_NOTIFICATION_DAYS = new HashSet(Arrays.asList("1", "2", "3", "4", "5", "6", "7"));
+    public static final boolean DEFAULT_POST_NOTIFICATION_SEEN = false;
     
     // User Preferences file property names
     public static final String TEAMS = "teams";
@@ -130,7 +136,8 @@ public class Utils {
     public static final String NEW_TASK_ACTIVITY_STATE = "newTaskActivityState";
     
     // Default Notification Alarm Constants
-    public static final int NOTIFICATION_ID = 1320015027;
+    public static final int ALARM_NOTIFICATION_ID = 1320015027;
+    public static final int EOS_NOTIFICATION_ID = 1320015028;
     public static final Set<String> WEEKDAY_VALUES = new HashSet(Arrays.asList("1", "2", "3", "4", "5"));
     public static final Set<String> WEEKEND_VALUES = new HashSet(Arrays.asList("6", "7"));
     
@@ -204,6 +211,8 @@ public class Utils {
             R.color.team10
     };
     
+    public static final String EOS_POST_URL = "http://goo.gl/M7UYCC";
+    
     /**
     *           
     *           Methods start here
@@ -254,6 +263,22 @@ public class Utils {
                 "notifications_new_message_ringtone",
                 Utils.DEFAULT_NOTIFICATION_SOUND
         );
+    }
+    
+    public static boolean getNotificationSeen(Context c) {
+        SharedPreferences prefs = c.getSharedPreferences(Utils.USER_DETAILS_PREFS_FILENAME, Context.MODE_PRIVATE);
+        
+        return prefs.getBoolean(
+                Utils.PREF_POST_NOTIFICATION_SEEN,
+                Utils.DEFAULT_POST_NOTIFICATION_SEEN
+        );
+    }
+    
+    public static void setNotificationSeen(Context c, boolean flag) {
+        SharedPreferences prefs = c.getSharedPreferences(Utils.USER_DETAILS_PREFS_FILENAME, Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.putBoolean(Utils.PREF_POST_NOTIFICATION_SEEN, flag);
+        editor.apply();
     }
     
     public static boolean getSyncOnStartup(Context c) {
@@ -447,8 +472,8 @@ public class Utils {
     }
     
     public static void cancelNotificationAlarm(Context context) {
-        
-        clearNotification(context);
+    
+        clearNotification(context, Utils.ALARM_NOTIFICATION_ID);
         
         AlarmManager alarmMgr = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
         
@@ -581,20 +606,20 @@ public class Utils {
         * */
         NotificationManager mNotificationManager =
                 (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-        
-        mNotificationManager.notify(Utils.NOTIFICATION_ID, mBuilder.build());
+    
+        mNotificationManager.notify(Utils.ALARM_NOTIFICATION_ID, mBuilder.build());
     }
     
-    public static void clearNotification(Context context) {
+    public static void clearNotification(Context context, int notificationId) {
         NotificationManager mNotificationManager =
                 (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-        mNotificationManager.cancel(Utils.NOTIFICATION_ID);
+        mNotificationManager.cancel(notificationId);
     }
     
     public static void snoozeNotification(Context context) {
         
         // 1. Dismiss current notification
-        Utils.clearNotification(context);
+        Utils.clearNotification(context, Utils.ALARM_NOTIFICATION_ID);
         
         // 2. Add alarm for X minutes from now
         AlarmManager alarmMgr = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
@@ -751,5 +776,55 @@ public class Utils {
             }
         }
         return true;
+    }
+    
+    public static void showEndOfServiceNotification(Context context) {
+        /*
+        * Create notification builder
+        * */
+        NotificationCompat.Builder mBuilder =
+                new NotificationCompat.Builder(context)
+                        .setSmallIcon(R.drawable.ic_warning_white_24dp)
+                        .setContentTitle(context.getString(R.string.POST_NOTICE_TITLE))
+                        .setTicker(context.getString(R.string.POST_NOTICE_TITLE))
+                        .setPriority(Notification.PRIORITY_HIGH)
+                        .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                        .setAutoCancel(true)
+                        .setOngoing(true)
+                        .setOnlyAlertOnce(true)
+                        .setContentText(context.getString(R.string.POST_NOTICE_TEXT));
+        
+        Bitmap bm = BitmapFactory.decodeResource(context.getResources(), R.drawable.ic_splash_icon_120);
+        mBuilder.setLargeIcon(bm);
+        
+        String ringtone = Utils.getRingtone(context);
+        if (ringtone != null && !ringtone.isEmpty())
+            mBuilder.setSound(Uri.parse(ringtone));
+        
+        /*
+        * Add main action for notification - open post
+        * */
+        Intent openWebIntent = new Intent(Utils.NOTIFICAION_EOS_CANCELLED_INTENT);
+        openWebIntent.putExtra(Utils.INTENT_ACTION, Utils.ACTION_OPEN_EOS_POST);
+        PendingIntent openWebPendingIntent = PendingIntent.getBroadcast(
+                context, 0, openWebIntent,
+                PendingIntent.FLAG_CANCEL_CURRENT
+        );
+        
+        mBuilder.setContentIntent(openWebPendingIntent);
+        
+        mBuilder.addAction(new NotificationCompat.Action(
+                R.drawable.ic_open_in_browser_white_24dp,
+                context.getString(R.string.BUTTON_TEXT_SEE_POST),
+                openWebPendingIntent
+        ));
+        
+        /*
+        * Show notification
+        * */
+        NotificationManager mNotificationManager =
+                (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+        
+        mNotificationManager.notify(Utils.EOS_NOTIFICATION_ID, mBuilder.build());
     }
 }

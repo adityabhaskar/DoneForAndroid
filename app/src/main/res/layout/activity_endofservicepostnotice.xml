@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              android:layout_width="wrap_content"
+              android:layout_height="wrap_content"
+              android:layout_gravity="center"
+              android:background="@android:color/background_light"
+              android:gravity="center"
+              android:minHeight="300dp"
+              android:minWidth="300dp"
+              android:orientation="vertical"
+              android:paddingBottom="@dimen/_32_double"
+              android:paddingLeft="@dimen/_16dp_single"
+              android:paddingRight="@dimen/_16dp_single">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/POST_NOTICE_TITLE"
+        android:textAlignment="center"
+        android:textColor="@color/primary_text"
+        android:textSize="22sp"/>
+
+    <TextView
+        android:id="@+id/post_alert_textview"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:paddingBottom="@dimen/_32_double"
+        android:paddingTop="@dimen/_16dp_single"
+        android:text="@string/POST_NOTICE_TEXT"
+        android:textColor="@color/secondary_text"
+        android:textSize="18sp"/>
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:onClick="openPost"
+        android:text="@string/BUTTON_TEXT_SEE_POST"/>
+</LinearLayout>
